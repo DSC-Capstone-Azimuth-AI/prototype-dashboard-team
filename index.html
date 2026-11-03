@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DERCONNECT Unified Dashboard</title>
+  <meta name="description" content="Anomaly-focused monitoring for DERCONNECT buildings and sub-grids: detect, classify, visualize, investigate, interpret.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M9 1 3 9h4l-1 6 6-8H8z' fill='%232a78d6'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand-row">
+      <div class="brand">
+        <h1>DERCONNECT Unified Dashboard</h1>
+        <p>Building and sub-grid anomaly monitoring for building managers and electrical engineers</p>
+      </div>
+      <div class="workflow" aria-label="Workflow">
+        <span>Detect</span><i>→</i><span>Classify</span><i>→</i><span>Visualize</span><i>→</i><span>Investigate</span><i>→</i><span>Interpret</span>
+      </div>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="Toggle dark mode">
+        <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 1.5v11a5.5 5.5 0 0 1 0-11z" fill="currentColor"/></svg>
+        <span>Theme</span>
+      </button>
+    </div>
+    <nav class="tabs" aria-label="Dashboard sections">
+      <a href="#overview" data-section="overview"><span class="num">1</span>Overview &amp; system health</a>
+      <a href="#investigate" data-section="investigate"><span class="num">2</span>Anomaly investigation</a>
+      <a href="#buildings" data-section="buildings"><span class="num">3</span>Building &amp; sub-grid analysis</a>
+      <a href="#models" data-section="models"><span class="num">4</span>Detection model evaluation</a>
+    </nav>
+  </header>
+
+  <!-- Synchronized filters: every chart, KPI, queue, log and gallery below reads from these. -->
+  <section class="filters" id="filters" aria-label="Filters">
+    <div class="filter">
+      <label for="f-range">Time range</label>
+      <div class="filter-range">
+        <select id="f-range">
+          <option value="7">Last 7 days</option>
+          <option value="14">Last 14 days</option>
+          <option value="monitor" selected>Monitoring period (6 wk)</option>
+          <option value="all">Full history (12 wk)</option>
+          <option value="custom">Custom…</option>
+        </select>
+        <input type="date" id="f-from" aria-label="From date" hidden>
+        <input type="date" id="f-to" aria-label="To date" hidden>
+      </div>
+    </div>
+    <div class="filter"><label for="f-subgrid">Sub-grid</label><select id="f-subgrid"></select></div>
+    <div class="filter"><label for="f-building">Building</label><select id="f-building"></select></div>
+    <div class="filter"><label for="f-meter">Meter</label><select id="f-meter"></select></div>
+    <div class="filter"><label for="f-type">Anomaly type</label><select id="f-type"></select></div>
+    <div class="filter"><label for="f-severity">Severity</label><select id="f-severity"></select></div>
+    <div class="filter"><label for="f-status">Status</label><select id="f-status"></select></div>
+    <div class="filter"><label for="f-detector">Detector</label><select id="f-detector"></select></div>
+    <button class="btn" id="f-reset" type="button">Reset</button>
+    <div class="spacer"></div>
+    <div class="filter-summary" id="filter-summary" aria-live="polite"></div>
+  </section>
+
+  <main>
+    <div class="banner" id="data-banner"></div>
+    <section class="section" id="sec-overview" aria-labelledby="h-overview"></section>
+    <section class="section" id="sec-investigate" aria-labelledby="h-investigate"></section>
+    <section class="section" id="sec-buildings" aria-labelledby="h-buildings"></section>
+    <section class="section" id="sec-models" aria-labelledby="h-models"></section>
+  </main>
+  <footer>
+    DERCONNECT D05 · Detection code: chronos2-sarsim0-anomaly-team (scores, conformal thresholds, event grouping) ·
+    Event gallery adapted from Oreshkin et al., 2026, App. G, Fig. 8
+  </footer>
+
+  <!-- Data: detector output and synthetic ground truth are separate files. -->
+  <script src="data/derconnect-data.js"></script>
+  <script src="data/synthetic-labels.js"></script>
+  <script src="js/util.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/sections/overview.js"></script>
+  <script src="js/sections/investigate.js"></script>
+  <script src="js/sections/buildings.js"></script>
+  <script src="js/sections/models.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
