@@ -14,8 +14,8 @@ const fs = require('node:fs');
     const url = process.env.DASHBOARD_URL || 'http://127.0.0.1:8000';
     const go = async hash => {
       await page.evaluate(h => { location.hash = h; }, hash);
-      await page.waitForFunction(h => DC.state.section === h.split('/')[0] && DC.state.routeId === (h.split('/')[1] || null), hash);
-      await page.waitForTimeout(50);
+      await page.waitForFunction(h => DC.state.section === h.split('/')[0] && DC.state.routeId === (h.split('/')[1] || null) &&
+        document.querySelector('.section.active')?.id === 'sec-' + h.split('/')[0] && !document.querySelector('#main-content').hasAttribute('aria-busy'), hash);
     };
     const openDisclosure = async text => {
       await page.getByText(text, { exact: true }).locator('..').evaluate(node => { node.open = true; });
@@ -86,6 +86,7 @@ const fs = require('node:fs');
     await page.getByLabel('Investigation status', { exact: true }).selectOption('explained');
     assert.equal(await page.evaluate(() => DC.state.selected), null);
     assert.equal(await page.evaluate(() => location.hash), '#investigate');
+    await page.locator('#event-detail').waitFor({ state: 'detached' });
     assert.equal(await page.locator('#event-detail svg').count(), 0);
     await page.locator('#f-reset').click();
     const detectors = await page.evaluate(() => DC.D.detectors.map(d => d.id));

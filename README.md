@@ -24,7 +24,7 @@ python3 -m http.server 8000   # then visit http://localhost:8000
 
 | Destination | Purpose |
 |---|---|
-| **Overview** | Four selected-period electricity/review metrics, one actual-versus-expected chart, five priority events, building consumption links. Type/severity charts and meter heatmap remain under System diagnostics. |
+| **Overview** | Pending events, high/critical events, affected buildings and meter completeness; five priority events appear before the compact demand summary/chart. Building consumption links, type/severity charts and meter heatmap remain available. |
 | **Buildings** | Searchable directory with consumption, pending priority, meters and completeness. Open `#buildings/LIB` for a dedicated profile with demand, historical means, simulated channels and linked anomalies. Advanced building/sub-grid analysis retains comparisons, heatmaps, daily profiles, peaks, decomposition and solar views. |
 | **Anomaly Investigation** | Filtered, sortable event list or optional gallery. Every event opens a separate `#investigate/CR-030` detail route: four key facts, highlighted demand chart, evidence, definition and browser-local operator review/notes. Weather, quality, score/threshold, forecast quantiles, detector overlap, synthetic labels, history and scatter remain in disclosures. |
 | **Detection Quality** | Detector comparisons, precision/recall/F1, false-positive analysis, synthetic scenarios, threshold diagnostics and ground-truth comparisons. Comparison metrics describe the complete evaluation run; diagnostic panels retain their existing scope. |
@@ -35,6 +35,18 @@ Filters are contextual: Overview exposes time/building; Buildings exposes time a
 
 Review decisions and notes use localStorage, with no server or training-label synchronization. Explicit Save notes reports storage availability. A review decision does not prove a diagnosis. PR #2’s dataset-scoped review storage and status IDs are retained. Notes from the earlier uncommitted UX version migrate into that same review store for this dataset. Existing status records still load.
 
+Investigation details adapt to the existing event classification: point events foreground the paired reading and nominal forecast range; sustained events emphasize the interval and valid signed excess use; contextual events open weather/occupancy evidence; seasonal events foreground prior-week comparisons; quality events put the meter-status timeline first. Suspect or absent readings take precedence over temporal behavior. This selects a presentation, not a new classification or detection rule. Unsupported classifications use a general evidence view. Missing forecasts/context remain explicit gaps, and prior-week comparisons are retrospective evidence rather than a confirmed cause.
+
+Advanced building analysis groups comparisons/sub-grid health, historical patterns, peaks, decomposition and solar/measurement availability. Detection Quality groups comparison charts, diagnostics, scenarios and methodology. Local control changes preserve focus, opened disclosures and unsaved review drafts within the current record; navigating away still requires saving notes. Transitions respect reduced-motion preferences.
+
+**Compare related meters:** open an event and press **Compare related meters →** below the event summary. Use it to check whether unusual readings are isolated to one meter or occur across several locations. Compare its meter with up to two compatible peers from the same simulated sub-grid or the campus. Consumption and PV generation stay separate, and units must match. Switch between demand and actual-minus-expected deviation, choose the event-only window or 24 hourly samples of context on either side, and hover a chart or use the timestamp slider/arrow keys to inspect every meter at the same instant. Charts share time and vertical scales. Each meter lists valid paired samples, signed event-window energy difference, quality gaps and linked overlapping detections from the selected event's detector. List filters do not limit this comparison. Missing evidence stays unavailable; concurrent behavior is not a shared-fault diagnosis. Comparison selections survive current-session redraws for that event but reset on reload; the event's own URL remains stable. All relationships/readings remain simulated.
+
+The visible Investigation Focus box has been removed. Event-specific reading/quality evidence remains beside its chart, and interpretation and browser-local review sit side by side on wide screens. All four destinations share one navigation list. Route changes use a brief workspace slide/fade through native View Transitions where available, with a Web Animations fallback and immediate reduced-motion navigation. Rapid switching supersedes earlier transitions; local filters and review controls preserve their existing focus/draft behavior. Dataset context and implementation/research references use expandable disclosures, with the simulated-data label always visible.
+
+Section tabs have inline SVG icons, restrained press feedback and a sliding active highlight. Selecting a tab lands at the section's filters and content, keeping time/building/detector controls discoverable, and briefly emphasizes the heading. Selecting the current tab returns to that section's filters without resetting their values. The highlight adapts to desktop/mobile navigation geometry; reduced motion removes the bounce, animated highlight travel, heading emphasis and smooth scrolling. Direct record links/history keep their existing route behavior. Overview's four metrics have decorative icons. Clicking a metric (or using Enter/Space) emphasizes that card with an accent border, top stripe and value; selecting another moves the emphasis, and selecting it again clears it. This presentation choice survives current-session redraws and section switches; reload clears it. Metric values and filter scope are unchanged by emphasis.
+
+Each page leads with its anomaly task: Overview places its review action inside the priority queue; building cards emphasize pending events; profiles show a six-event priority preview before demand/history context. **Review all building events →** opens the full event list with the building, detector and date scope carried over. Detection Quality starts with a compact event-metric comparison; locked calibration settings and additional metrics remain available in an expandable table. Measurements, detection rules and metric values are unchanged.
+
 ### Browser regression checks
 
 Serve the checkout, then run (requires Playwright and Chromium):
@@ -42,6 +54,11 @@ Serve the checkout, then run (requires Playwright and Chromium):
 ```bash
 python3 -m http.server 8000 --bind 127.0.0.1
 node tests/navigation.cjs http://127.0.0.1:8000
+node tests/regression.cjs
+node tests/browser.cjs
+node tests/investigation-views.cjs
+node tests/meter-comparison.cjs
+node tests/section-navigation.cjs
 # Optional: SCREENSHOT_DIR=work/screenshots node tests/navigation.cjs
 ```
 

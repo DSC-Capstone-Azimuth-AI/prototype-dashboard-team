@@ -13,7 +13,10 @@
   <header class="app-header">
     <div class="brand-row">
       <div class="brand">
-        <h1>DERCONNECT</h1>
+        <div class="brand-title">
+          <svg class="brand-mark" width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="10" fill="currentColor"/><path d="m18 6-9 12h6l-1 8 9-13h-6z" fill="var(--on-accent, white)"/></svg>
+          <h1>DERCONNECT</h1>
+        </div>
         <p>Campus energy management</p>
       </div>
       <button class="icon-btn" id="theme-toggle" type="button" aria-label="Toggle dark mode">
@@ -22,10 +25,11 @@
       </button>
     </div>
     <nav class="tabs" aria-label="Dashboard sections">
-      <a href="#overview" data-section="overview"><span class="num">1</span>Overview</a>
-      <a href="#buildings" data-section="buildings"><span class="num">3</span>Buildings</a>
-      <a href="#investigate" data-section="investigate"><span class="num">2</span>Anomaly Investigation</a>
-      <a href="#models" data-section="models"><span class="num">4</span>Detection Quality</a>
+      <span class="nav-indicator" id="nav-indicator" aria-hidden="true" hidden></span>
+      <a href="#overview" data-section="overview" aria-label="Overview" aria-controls="sec-overview"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="nav-copy">Overview<small aria-hidden="true">Campus health</small></span></a>
+      <a href="#investigate" data-section="investigate" aria-label="Anomaly Investigation" aria-controls="sec-investigate"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h5l3-7 4 14 3-7h5"/></svg><span class="nav-copy">Anomaly Investigation<small aria-hidden="true">Event evidence &amp; review</small></span></a>
+      <a href="#buildings" data-section="buildings" aria-label="Buildings &amp; Sub-grids" aria-controls="sec-buildings"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V4h10v17M15 10h4v11M8 8h4M8 12h4M8 16h4"/></svg><span class="nav-copy">Buildings &amp; Sub-grids<small aria-hidden="true">Location analysis</small></span></a>
+      <a href="#models" data-section="models" aria-label="Detection Quality" aria-controls="sec-models"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3v17h17M8 15v-4M13 15V5M18 15V8"/></svg><span class="nav-copy">Detection Quality<small aria-hidden="true">Synthetic evaluation</small></span></a>
     </nav>
   </header>
 
@@ -64,8 +68,10 @@
     <section class="section" id="sec-models" aria-labelledby="h-models"></section>
   </main>
   <footer>
+    <details class="footer-details"><summary>Data &amp; research references</summary>
     DERCONNECT D05 · Detection code: chronos2-sarsim0-anomaly-team (scores, conformal thresholds, event grouping) ·
     Event gallery adapted from Oreshkin et al., 2026, App. G, Fig. 8
+    </details>
   </footer>
 
   <!-- Data: detector output and synthetic ground truth are separate files. -->

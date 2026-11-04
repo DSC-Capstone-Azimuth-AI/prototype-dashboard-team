@@ -12,7 +12,7 @@
     const buildings = DC.scopeBuildings();
 
     root.append(el("div", { class: "section-head" },
-      el("h2", { id: "h-buildings", text: "Building & sub-grid analysis" }),
+      el("h3", { text: "Building & sub-grid analysis" }),
       el("p", { text: "Compare buildings, find where anomalies cluster, and look at a building's load patterns, peaks, components and solar output." })));
     const grid = el("div", { class: "grid cols-12" });
     root.append(grid);
@@ -33,9 +33,11 @@
       ["Anomaly frequency", "Detected events", (s) => s.n, (v) => DC.fmt.int(v), "--seq-4"],
       ["Estimated excess energy", "kWh above expected, all events", (s) => s.excess, (v) => DC.fmt.int(v) + " kWh", "--seq-4"],
     ];
+    const comparisons = [];
     for (const [title, sub, get, fmt, color] of cmp) {
       const c = ui().card(title, sub, { span: 4 });
       grid.append(c.card);
+      comparisons.push(c.card);
       const ch = el("div", { class: "chart" });
       c.body.append(ch);
       requestAnimationFrame(() => DC.charts.hbar(ch, {
@@ -103,7 +105,7 @@
     const fb = DC.buildingById[focusId], main = DC.mainMeter(focusId);
     const focusBar = el("div", { class: "span-12 banner", style: { marginBottom: 0 } },
       el("b", { text: "Focus building" }),
-      el("select", { class: "mini-select", "aria-label": "Focus building", onchange: (e) => { focusLocal = e.target.value; if (DC.state.building !== "all") DC.setState({ building: e.target.value }); else render(root); } },
+      el("select", { class: "mini-select", "aria-label": "Focus building", onchange: (e) => { focusLocal = e.target.value; if (DC.state.building !== "all") DC.setState({ building: e.target.value }); else ui().refresh(root, () => renderResearch(root)); } },
         buildings.map((b) => el("option", { value: b.id, text: b.name, selected: b.id === focusId ? true : null }))),
       el("span", { text: `${fb.subgrid} · ${fb.profile} profile · ${fb.pv_kw ? fb.pv_kw + " kW rooftop PV" : "no PV"}` }));
     grid.append(focusBar);
@@ -200,6 +202,7 @@
     const x = main.actual, N = DC.META.n;
     const trend = new Float64Array(N);
     const half = 84;
+    dc.body.append(el("p", { class: "note-box", text: "Retrospective decomposition: the centered 7-day mean uses future observations. This is a descriptive view, not a causal or online detector." }));
     const cum = new Float64Array(N + 1);
     for (let t = 0; t < N; t++) cum[t + 1] = cum[t] + x[t];
     for (let t = 0; t < N; t++) { const a = Math.max(0, t - half), b = Math.min(N, t + half); trend[t] = (cum[b] - cum[a]) / (b - a); }
@@ -217,7 +220,7 @@
     const pvM = DC.pvMeter(focusId);
     const sol = ui().card("Solar generation context", pvM ? `${pvM.id} · daily energy, measured vs. weather-informed expectation` : "", { span: 6 });
     grid.append(sol.card);
-    if (pvM) {
+    if (pvM && DC.D.weather?.ghi) {
       const solEl = el("div", { class: "chart" }), irrEl = el("div", { class: "chart" });
       if (pvM.building !== focusId) sol.body.append(el("div", { class: "note-box", style: { marginBottom: "8px" }, text: `${fb.name} has no PV meter; showing ${DC.buildingById[pvM.building].name}.` }));
       sol.body.append(solEl, el("div", { class: "chart-title", text: "Daily irradiation (kWh/m²)" }), irrEl);
@@ -246,17 +249,26 @@
     }
 
     if (!pvM) sol.body.append(el("p", { class: "empty", text: "No simulated PV meter is associated with this building." }));
+    else if (!DC.D.weather?.ghi) sol.body.append(el("p", { class: "empty", text: "Irradiance context unavailable. Weather-informed solar comparison cannot be assessed." }));
 
     // power quality - only with measurements
     const pq = ui().card("Power quality", "Voltage and frequency against operating ranges", { span: 6 });
     grid.append(pq.card);
     pq.body.append(el("div", { class: "empty" }, el("b", { text: "No electrical measurements yet." }), el("div", { text: "This panel activates when DERCONNECT provides voltage / frequency channels (e.g. ±5% of 480 V, 60 ± 0.05 Hz). Until then power-quality anomalies are out of scope." })));
+    // Retain all analyses, but expose one task-sized group at a time.
+    for (const [title, cards, open] of [
+      ["Building comparisons & sub-grid health", [...comparisons, fh.card, sg.card], true],
+      ["Historical patterns", [dh.card, tp.card], false],
+      ["Peak demand", [pk.card], false],
+      ["Load decomposition", [dc.card], false],
+      ["Solar & measurement availability", [sol.card, pq.card], false],
+    ]) grid.append(el("details", { class: "disclosure span-12 analysis-group", open }, el("summary", { text: title }), el("div", { class: "grid cols-12" }, cards)));
   }
 
   function render(root) {
     DC.clear(root);
     const id = DC.state.profile, b = DC.buildingById[id], [t0, t1] = DC.range();
-    const heading = el("div", { class: "section-head" }, el("h2", { id: "h-buildings", text: b ? b.name : "Buildings" }), el("p", { text: b ? `${b.subgrid} · ${b.profile} simulated profile · ${b.id}` : "Browse buildings and open a focused electricity profile." }));
+    const heading = el("div", { class: "section-head" }, el("div", { class: "section-eyebrow", text: b ? "Building profile" : "Location analysis" }), el("h2", { id: "h-buildings", text: b ? b.name : "Buildings" }), el("p", { text: b ? `${b.subgrid} · ${b.profile} simulated profile · ${b.id}` : "Find a building, check its electricity profile and review associated events." }));
     root.append(heading);
     if (b) root.append(el("p", { class: "muted" }, "Verified UCSD demonstration name · DERCONNECT coverage: " + (b.derconnect_coverage || "Not verified") + ". All profiles and meter relationships are simulated. ", b.name_source ? el("a", { href: b.name_source, target: "_blank", rel: "noopener", text: "Official building-name source" }) : "Name source unavailable."));
     const eventsFor = (bid) => DC.allEvents().filter(e => e.building === bid && e.start < t1 && t0 < e.end);
@@ -269,8 +281,9 @@
           const meters = DC.D.meters.filter(m => m.building === building.id), main = DC.mainMeter(building.id), events = eventsFor(building.id), pending = DC.sortEvents(events.filter(DC.isOpen), "priority");
           list.append(el("article", { class: "card building-card" }, el("div", { class: "eyebrow", text: building.subgrid + " · " + building.id }),
             el("h3", {}, el("a", { href: "#buildings/" + building.id, text: building.name })),
-            el("div", { class: "building-energy", text: main && main.actual.slice(t0, t1).some(Number.isFinite) ? DC.fmt.kwh(DC.energy(main, t0, t1)) : "No simulated measurements" }),
-            el("p", { text: `${events.length} detected events · ${pending.length} requiring review` }), pending.length ? DC.sevBadge(pending[0].severity) : el("span", { class: "muted", text: meters.length ? "No pending events in this period" : "Status unavailable" }),
+            el("div", { class: "building-pending" }, el("strong", { text: pending.length }), el("span", { text: "events requiring review" })),
+            pending.length ? DC.sevBadge(pending[0].severity) : el("span", { class: "muted", text: meters.length ? "No pending events in this period" : "Status unavailable" }),
+            el("p", { class: "building-energy", text: main && main.actual.slice(t0, t1).some(Number.isFinite) ? `${DC.fmt.kwh(DC.energy(main, t0, t1))} · ${events.length} detected events` : "No simulated measurements" }),
             el("p", { class: "muted", text: `${meters.length} simulated meters · ${meters.length ? DC.fmt.pct(DC.completeness(meters, t0, t1), 1) + " data completeness" : "Completeness unavailable"}` }),
             el("a", { class: "action-link", href: "#buildings/" + building.id, text: "Open building profile →" })));
         }
@@ -280,16 +293,29 @@
       search.addEventListener("input", () => { buildingSearch = search.value; draw(); });
       root.append(search, list);
       const research = el("details", { class: "disclosure", open: researchOpen }, el("summary", { text: "Advanced building & sub-grid analysis" }), el("div"));
-      research.addEventListener("toggle", () => { if (!research.isConnected) return; researchOpen = research.open; if (research.open) renderResearch(research.lastChild); });
-      root.append(research); draw(); return;
+      research.addEventListener("toggle", () => { if (!research.isConnected) return; researchOpen = research.open; if (research.open && !research.lastChild.children.length) renderResearch(research.lastChild); });
+      root.append(research); draw();
+      if (researchOpen) renderResearch(research.lastChild);
+      return;
     }
     root.prepend(el("nav", { class: "breadcrumbs", "aria-label": "Breadcrumbs" }, el("a", { href: "#buildings", text: "← All buildings" })));
     const meters = DC.D.meters.filter(m => m.building === id), main = DC.mainMeter(id), events = eventsFor(id);
     if (!meters.length || !main || !main.actual.slice(t0, t1).some(Number.isFinite)) { root.append(el("div", { class: "empty", text: "No simulated main-meter measurements available. Consumption and operating status cannot be assessed." })); return; }
     const stats = el("div", { class: "kpis" });
-    for (const [label, value] of [["Electricity use", DC.fmt.kwh(DC.energy(main, t0, t1))], ["Peak demand", DC.fmt.kw(Math.max(...main.actual.slice(t0, t1)))], ["Detected events", events.length], ["Data completeness", DC.fmt.pct(DC.completeness(meters, t0, t1), 1)]]) stats.append(el("div", { class: "card kpi" }, el("div", { class: "label", text: label }), el("div", { class: "value", text: value })));
+    const pending = events.filter(DC.isOpen), high = pending.filter(e => e.severity === "critical" || e.severity === "high");
+    for (const [label, value] of [["Events requiring review", pending.length], ["High / critical events", high.length], ["Data completeness", DC.fmt.pct(DC.completeness(meters, t0, t1), 1)], ["Electricity use", DC.fmt.kwh(DC.energy(main, t0, t1))]]) stats.append(el("div", { class: "card kpi" }, el("div", { class: "label", text: label }), el("div", { class: "value", text: value })));
     root.append(stats);
+    const recent = ui().card("Building anomalies", `${events.length} detected events · ${pending.length} requiring review · selected period`);
+    recent.card.id = "building-anomalies";
+    const ranked = DC.sortEvents(events, "priority").sort((a, b) => Number(DC.isOpen(b)) - Number(DC.isOpen(a)));
+    for (const e of ranked.slice(0, 6)) recent.body.append(el("a", { class: "building-summary", href: "#investigate/" + e.id }, el("span", { text: `${e.id} · ${DC.CATEGORY_LABEL[e.category]} · ${DC.time.short(e.start)}` }), DC.sevBadge(e.severity), DC.statusPill(DC.eventStatus(e))));
+    if (!events.length) recent.body.append(el("p", { class: "empty", text: "No detected events for this building in the selected period. This does not establish normal operation." }));
+    recent.body.append(el("p", { class: "card-foot", text: "Pending events appear first, ranked by operational priority. Open a record for measurements, context and related-meter comparison." }));
+    recent.tools.append(el("a", { class: "btn action-link", href: "#investigate", text: "Review all building events →", onclick: event => { event.preventDefault(); DC.reviewBuildingEvents(id); } }));
+    root.append(recent.card);
     const chart = ui().card("Actual vs. expected electricity demand", `${main.id} · ${DC.det().label} · kW · hourly simulated measurements`);
+    chart.card.id = "building-demand";
+    chart.body.append(el("p", { class: "demand-summary", text: `Peak demand: ${DC.fmt.kw(Math.max(...main.actual.slice(t0, t1)))} in the selected period.` }));
     const chartEl = el("div", { class: "chart" }); chart.body.append(chartEl, ui().legend([{ kind: "line", color: DC.css("--actual"), label: "Actual" }, { kind: "dash", color: DC.css("--expected"), label: "Expected" }, { kind: "box", color: DC.css("--band-inner"), label: "80% forecast band" }])); root.append(chart.card);
     const ov = ui().overlays(events.filter(e => e.meter === main.id), t => main.actual[t]);
     DC.charts.timeSeries(chartEl, { t0, t1, height: 300, band: [{ lo: t => DC.q(main.id, "q10", t), hi: t => DC.q(main.id, "q90", t), color: DC.css("--band-inner") }], series: [{ get: t => main.actual[t], color: DC.css("--actual") }, { get: t => DC.q(main.id, "q50", t), dash: "5 4", color: DC.css("--expected") }], ...ov, onClick: (t, hit) => hit && hit.ev && DC.openEvent(hit.ev.id), tooltip: t => ({ title: DC.time.stamp(t), rows: [{ value: DC.fmt.kw(main.actual[t]), label: "actual" }, { value: DC.fmt.kw(DC.q(main.id, "q50", t)), label: "expected" }] }) });
@@ -298,9 +324,6 @@
     history.body.append(el("p", { text: `${DC.fmt.kw(current)} selected-period mean · ${DC.fmt.kw(previous)} clean-history mean. Different weather and schedules may affect this comparison.` })); root.append(history.card);
     const meterCard = ui().card("Available meters", "Simulated channel associations; real DERCONNECT coverage is unconfirmed");
     for (const m of meters) meterCard.body.append(el("p", { text: `${m.id} · ${m.kind === "main" ? "Main electricity meter" : "PV generation"} · ${m.unit}` })); root.append(meterCard.card);
-    const recent = ui().card("Building anomalies", "Selected period · ranked by operational priority");
-    for (const e of DC.sortEvents(events, "priority")) recent.body.append(el("a", { class: "building-summary", href: "#investigate/" + e.id }, el("span", { text: `${e.id} · ${DC.CATEGORY_LABEL[e.category]} · ${DC.time.short(e.start)}` }), DC.sevBadge(e.severity), DC.statusPill(DC.eventStatus(e))));
-    if (!events.length) recent.body.append(el("p", { class: "empty", text: "No detected events for this building in the selected period. This does not establish normal operation." })); root.append(recent.card);
   }
 
   DC.sections.buildings = { render };

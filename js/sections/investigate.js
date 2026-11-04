@@ -6,14 +6,25 @@
   const view = { mode: "log", sort: "priority", scale: "kw" };
 
   const SORTS = [["priority", "Severity / priority"], ["impact", "Estimated impact (kWh)"], ["time", "Most recent"], ["duration", "Duration"], ["novelty", "Novelty score"]];
+  const NEXT_STEPS = {
+    point: "Check the meter and operating log around the highlighted timestamp before assigning a cause.",
+    sustained: "Check whether a scheduled activity could explain the interval; inspect quality before interpreting energy impact.",
+    context: "Compare schedules, weather and occupancy. A contextual association is a hypothesis, not a confirmed cause.",
+    pattern: "Check weekday/weekend schedules and available context before treating a changed pattern as an operational issue.",
+    quality: "Verify meter communications and readings. Resolve evidence gaps before estimating consumption impact or assigning a load-related cause.",
+    general: "Check measurements and context before recording a review decision.",
+  };
+  const refresh = root => ui().refresh(root, () => render(root));
+  const comparisonViews = new Map();
 
   function render(root) {
     DC.clear(root);
     const events = DC.sortEvents(DC.events(), view.sort);
     const selId = DC.state.selected;
     root.append(el("div", { class: "section-head" },
+      el("div", { class: "section-eyebrow", text: selId ? "Event evidence & review" : "Event triage" }),
       el("h2", { id: "h-investigate", text: selId ? "Event investigation" : "Anomaly investigation" }),
-      el("p", { text: "Find an event to review, then open its evidence and record your investigation." })));
+      el("p", { text: selId ? "Inspect the measured departure, compare available context and record your review." : "Start with priority events, or compare shapes in the gallery. Open an event to inspect its evidence." })));
 
     const grid = el("div", { class: "grid cols-12" });
     root.append(grid);
@@ -24,10 +35,10 @@
         view.mode === "log" ? `${events.length} events · click a row to open its record`
           : "Event-centred panels aligned to onset (after SarSim0 Fig. 8) · measured line, dashed expected baseline, shaded event window", { span: 12 });
       grid.append(lg.card);
-      const sortSel = el("select", { class: "mini-select", "aria-label": "Sort events", onchange: (e) => { view.sort = e.target.value; render(root); } },
+      const sortSel = el("select", { class: "mini-select", "aria-label": "Sort events", onchange: (e) => { view.sort = e.target.value; refresh(root); } },
         SORTS.map(([v, t]) => el("option", { value: v, text: "Sort: " + t, selected: v === view.sort ? true : null })));
-      lg.tools.append(sortSel, ui().segmented([["log", "Log"], ["gallery", "Gallery"]], view.mode, (v) => { view.mode = v; render(root); }, "Event view"));
-      if (view.mode === "gallery") lg.tools.prepend(ui().segmented([["kw", "kW"], ["norm", "Normalized"]], view.scale, (v) => { view.scale = v; render(root); }, "Gallery scale"));
+      lg.tools.append(sortSel, ui().segmented([["log", "Log"], ["gallery", "Gallery"]], view.mode, (v) => { view.mode = v; refresh(root); }, "Event view"));
+      if (view.mode === "gallery") lg.tools.prepend(ui().segmented([["kw", "kW"], ["norm", "Normalized"]], view.scale, (v) => { view.scale = v; refresh(root); }, "Gallery scale"));
       if (!events.length) lg.body.append(el("div", { class: "empty", text: "No events match the current filters." }));
       else if (view.mode === "log") lg.body.append(logTable(events, selId, root));
       else lg.body.append(gallery(events, selId));
@@ -41,16 +52,16 @@
     grid.append(detail.card);
     if (!ev) { detail.body.append(el("div", { class: "detail-empty", text: "No event selected." })); return; }
     detail.head.remove();
-    buildDetail(detail.body, ev, root);
+    const lens = buildDetail(detail.body, ev, root);
 
     // ---------- Historical comparison + scatter ----------
     const hist = ui().card("Historical comparison", `Same window in the previous three weeks · ${DC.meterName(ev.meter)}`, { span: 6 });
     const sc = ui().card("Magnitude vs. duration", "Short, sharp spikes vs. long sustained events · all events in filters", { span: 6 });
-    const secondary = el("details", { class: "disclosure span-12" }, el("summary", { text: "Historical comparison & event distribution" }), el("div", { class: "grid cols-12" }, hist.card, sc.card));
+    const secondary = el("details", { class: "disclosure span-12" }, el("summary", { text: "Historical comparison & event distribution" }), el("div", { class: "grid cols-12" }, lens === "pattern" ? null : hist.card, sc.card));
     grid.append(secondary);
     const histEl = el("div", { class: "chart" }), scEl = el("div", { class: "chart" });
     hist.body.append(histEl); sc.body.append(scEl);
-    drawHistory(histEl, hist.body, ev);
+    if (lens !== "pattern") drawHistory(histEl, hist.body, ev);
     sc.body.append(ui().legend(DC.TYPES.filter((t) => events.some((e) => e.type === t.id)).map((t) => ({ kind: "type", type: t.id, label: t.label }))));
     DC.charts.scatter(scEl, {
       height: 300, xLog: true, xLabel: "Duration (hours, log scale)", yLabel: "Peak deviation (% of typical load)",
@@ -70,7 +81,7 @@
     const thead = el("thead", {}, el("tr", {}, cols.map(([label, key], i) => {
       const th = el("th", { class: (key ? "sortable " : "") + ([4, 6, 7, 8].includes(i) ? "num" : ""), scope: "col" }, label);
       if (key) {
-        DC.clear(th).append(el("button", { class: "sort-button", type: "button", text: label + (view.sort === key ? " ▼" : ""), onclick: () => { view.sort = key; render(root); } }));
+        DC.clear(th).append(el("button", { class: "sort-button", type: "button", "data-focus-key": "sort:" + key, text: label + (view.sort === key ? " ▼" : ""), onclick: () => { view.sort = key; refresh(root); } }));
         th.setAttribute("aria-sort", view.sort === key ? "descending" : "none");
       }
       return th;
@@ -138,6 +149,8 @@
   // ---------------------------------------------------------------------
   function buildDetail(body, ev, root) {
     const b = DC.buildingById[ev.building], m = DC.meterById[ev.meter];
+    const evidenceView = DC.investigationEvidence(ev), lens = evidenceView.lens;
+    body.setAttribute("data-investigation-view", lens);
     const status = DC.eventStatus(ev);
     const statusSel = el("select", { class: "mini-select", "aria-label": "Investigation status", onchange: (e) => { DC.statusStore.set(ev.id, e.target.value); DC.setState({}); } },
       DC.STATUSES.map((s) => el("option", { value: s.id, text: s.label, selected: s.id === status ? true : null })));
@@ -153,17 +166,22 @@
       el("div", { style: { marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center" } }, DC.statusPill(status))));
 
     body.prepend(el("nav", { class: "breadcrumbs", "aria-label": "Breadcrumbs" }, el("a", { href: "#investigate", text: "← Back to anomaly list" }), el("a", { href: "#buildings/" + b.id, text: "View " + b.name })));
-    body.querySelector(".detail-head h3").textContent = DC.CATEGORY_LABEL[ev.category] || DC.typeById[ev.type].label;
+    body.querySelector(".detail-head h3").textContent = DC.CATEGORY_LABEL[ev.category] || DC.typeById[ev.type]?.label || "Detected event";
     body.querySelector(".ids").textContent = `${b.name} · ${m.id} · ${DC.time.stamp(ev.start)} → ${DC.time.stamp(ev.end)} (end exclusive)`;
     const fact = (k, v, note) => el("div", { class: "fact" }, el("div", { class: "k", text: k }), el("div", { class: "v", text: v }), el("div", { class: "muted", text: note || "" }));
-    const facts = DC.eventFacts(ev), peak = facts.peak;
+    const facts = evidenceView.facts, peak = facts.peak;
     const deviationT = peak?.t ?? ev.start, deviation = peak?.residual ?? null;
     const value = v => DC.fmt.one(v) + " " + facts.unit;
+    const forecastBounds = peak ? [DC.q(m.id, "q01", peak.t, ev.detector), DC.q(m.id, "q99", peak.t, ev.detector)] : [];
+    const forecastRange = forecastBounds.length === 2 && forecastBounds.every(Number.isFinite) ? forecastBounds.map(value).join(" to ") : "unavailable";
     body.append(el("div", { class: "facts summary-facts" },
       fact("Duration", DC.fmt.hours(ev.duration_h), "Hourly samples · [start, end)"),
-      fact("Peak deviation", DC.fmt.signed(deviation, " " + facts.unit), DC.time.stamp(deviationT)),
+      fact("Peak deviation", peak ? DC.fmt.signed(deviation, " " + facts.unit) : "Unavailable", peak ? DC.time.stamp(deviationT) : "No paired reading and forecast"),
       fact("Estimated excess use", facts.excess == null ? "Unavailable" : DC.fmt.signed(facts.excess, " kWh"), "Net hourly residual sum; withheld for missing or suspect readings"),
       fact("Operational priority", ev.priority.toFixed(0) + " / 100", "Dashboard heuristic; not a fault probability")));
+    if (evidenceView.forecastPairs < ev.end - ev.start) body.append(el("p", { class: "note-box", text: `Forecast comparison incomplete: ${evidenceView.forecastPairs} of ${ev.end - ev.start} samples have a usable reading and forecast. Missing forecasts are unavailable, not zero.` }));
+    const comparison = buildMeterComparison(ev);
+    body.append(el("div", { class: "event-actions" }, comparison.button, el("p", { text: "Compare aligned readings with up to two peer meters." })));
 
     const physical = el("details", { class: "disclosure" }, el("summary", { text: "Physical evidence & review provenance" }),
       el("div", { class: "facts" },
@@ -176,23 +194,39 @@
 
     const inner = el("div", { class: "grid cols-12" });
     body.append(inner);
-    const left = el("div", { class: "span-12 stack" }), right = el("div", { class: "span-12 stack" });
+    const left = el("div", { class: "span-12 stack" }), right = el("div", { class: "span-12 event-interpretation" });
+    const interpretation = el("section", { class: "interpretation-summary", "aria-label": "Event interpretation" });
+    right.append(interpretation);
     inner.append(left, right);
 
-    const pad = Math.max(48, Math.min(120, ev.duration_h));
+    const pad = lens === "point" ? 12 : Math.max(48, Math.min(120, ev.duration_h));
     const t0 = Math.max(DC.META.detector_start, ev.start - pad), t1 = Math.min(DC.META.n, ev.end + pad);
     const mainEl = el("div", { class: "chart" }), scoreEl = el("div", { class: "chart" }), statusEl = el("div", { class: "chart" }), wxEl = el("div", { class: "chart" }), ctxEl = el("div", { class: "chart" });
-    const context = el("details", { class: "disclosure" }, el("summary", { text: "Weather, occupancy & meter quality" }));
+    const context = el("details", { class: "disclosure", open: lens === "context" }, el("summary", { text: "Weather, occupancy & meter quality" }));
     const diagnostics = el("details", { class: "disclosure" }, el("summary", { text: "Advanced technical details" }));
     const evidence = el("div", { class: "stack" });
     diagnostics.append(evidence);
     left.append(el("div", { class: "chart-title", text: "Actual vs. expected electricity demand (kW)" }), mainEl,
       ui().legend([{ kind: "line", color: DC.css("--actual"), label: "Actual" }, { kind: "dash", color: DC.css("--expected"), label: "Expected" }, { kind: "box", color: DC.css("--band-inner"), label: "80% / 98% forecast bands" }, { kind: "type", type: ev.type, label: "Selected event" }]),
-      el("p", { class: "muted", text: `Highlighted interval: ${DC.time.stamp(ev.start)} → ${DC.time.stamp(ev.end)} (exclusive). Peak deviation ${DC.fmt.signed(deviation, " " + facts.unit)} at ${DC.time.stamp(deviationT)}. Simulated campus wall time; hourly cadence.` }));
-    right.append(el("h3", { text: "Why was this flagged?" }), el("p", { text: `Actual demand departed from the median forecast by up to ${DC.fmt.signed(deviation, " " + facts.unit)} during a ${DC.fmt.hours(ev.duration_h)} ${DC.BEHAVIOR_LABEL[ev.behavior].toLowerCase()} pattern. The exported peak normalized score is ${ev.novelty.toFixed(2)}× the detection threshold. Rounded, capped exported scores do not reconstruct every alert decision.` }),
-      el("h3", { text: "Understanding this anomaly" }), el("p", { text: DC.typeById[ev.type].desc + ". This describes a detected pattern, not a confirmed cause." }),
-      el("p", { text: "Next step: compare operating schedules, meter quality and the available context before recording a review decision." }));
-    context.append(el("div", { class: "chart-title", text: "Meter status" }), statusEl, el("div", { class: "chart-title", text: "Outdoor temperature (°C)" }), wxEl, el("div", { class: "chart-title", text: m.kind === "pv" ? "Irradiance (W/m²)" : "Simulated occupancy index" }), ctxEl);
+      el("p", { class: "muted", text: `Event window: ${DC.time.stamp(ev.start)} → ${DC.time.stamp(ev.end)} (exclusive). ${peak ? `Peak deviation ${DC.fmt.signed(deviation, " " + facts.unit)} at ${DC.time.stamp(deviationT)}.` : "Peak deviation unavailable; no paired reading and forecast."} Simulated campus wall time; hourly cadence.` }));
+    if (lens === "point") left.append(el("p", { class: "reading-summary", text: peak ? `${value(peak.actual)} observed · ${value(peak.expected)} expected · ${DC.time.stamp(peak.t)} · nominal 98% forecast range: ${forecastRange}` : "Paired observation and forecast unavailable." }));
+    interpretation.append(el("h3", { text: "Why was this flagged?" }), el("p", { text: `${peak ? `The largest paired demand departure is ${DC.fmt.signed(deviation, " " + facts.unit)}.` : "Paired demand evidence is unavailable."} The detected ${DC.BEHAVIOR_LABEL[ev.behavior] || ev.behavior || "unclassified"} interval lasts ${DC.fmt.hours(ev.duration_h)}.` }),
+      el("h3", { text: "Understanding this anomaly" }), el("p", { text: (DC.typeById[ev.type]?.desc || "Detected departure from expected behavior") + ". This describes a detected pattern, not a confirmed cause." }),
+      el("p", { class: "next-step", text: "Next step: " + NEXT_STEPS[lens] }));
+    const qualityPane = el("section", { class: "quality-evidence", "aria-label": "Meter quality evidence" }, el("div", { class: "chart-title", text: "Meter status" }), statusEl);
+    if (lens === "quality") {
+      left.prepend(qualityPane);
+      qualityPane.append(el("p", { class: "quality-summary", text: `${evidenceView.quality.missing} missing / zero flags · ${evidenceView.quality.stuck} stuck flags · ${evidenceView.quality.unavailable} unavailable readings · ${evidenceView.quality.other} other quality flags. Counts may overlap. Impact estimate: ${facts.excess == null ? "unavailable" : "available for this interval"}.` }));
+      qualityPane.append(el("p", { class: "muted", text: "The demand chart below includes suspect readings for inspection. It does not establish a consumption fault. Energy impact is withheld when measurements are missing or flagged." }));
+    } else context.append(qualityPane);
+    context.append(el("div", { class: "chart-title", text: "Outdoor temperature (°C)" }), wxEl, el("div", { class: "chart-title", text: m.kind === "pv" ? "Irradiance (W/m²)" : "Simulated occupancy index" }), ctxEl);
+    if (lens === "pattern") {
+      const history = el("section", { class: "pattern-evidence", "aria-label": "Historical pattern evidence" }, el("h3", { text: "Historical comparison" }));
+      const historyChart = el("div", { class: "chart" }); history.append(historyChart); left.prepend(history);
+      drawHistory(historyChart, history, ev);
+    }
+    if (lens === "context") left.append(context);
+    left.append(comparison.panel);
     evidence.append(physical);
     evidence.append(el("div", { class: "chart-title", text: "Normalized anomaly score / threshold (not probability)" }), scoreEl);
 
@@ -203,7 +237,7 @@
       expl.append(el("li", {}, el("span", { class: "tag", text: x.type.replace("_", " ") }), el("span", { text: x.text }),
         el("span", { class: "verdict " + (x.supports ? "" : "muted"), text: x.supports ? "Supports" : "Doesn't explain" })));
     }
-    right.append(el("div", { class: "chart-title", text: "Possible explanations" }), expl,
+    interpretation.append(el("div", { class: "chart-title", text: "Possible explanations" }), expl,
       el("div", { class: "note-box" }, "Explanations are hypotheses from weather, occupancy and schedule context. They are not a confirmed cause."));
 
     const d = ev.detection, det = DC.detectorById[ev.detector];
@@ -250,7 +284,10 @@
       el("button", { class: "btn", type: "button", text: "Save notes", onclick: () => { feedback.textContent = DC.notesStore.set(ev.id, notes.value) ? "Saved in this browser." : "Browser storage unavailable; copy your notes before leaving."; } }), feedback,
       el("p", { class: "muted", text: "Decisions and notes are stored only in this browser. They are operator annotations, not verified ground truth or model-training labels." }));
     statusSel.id = "review-status";
-    right.append(anomalyGuide(ev), review, context, diagnostics);
+    interpretation.append(anomalyGuide(ev));
+    right.append(review);
+    if (lens !== "context") right.append(context);
+    right.append(diagnostics);
     review.append(el("p", { class: "muted", text: DC.statusStore.persistent() ? "" : "Browser storage is unavailable; annotations may be lost on reload." }));
     evidence.append(el("p", { text: "Raw peak score unavailable in this export; normalized scores are rounded and capped at 99×." }), el("p", { text: "Detector overlap: " + DC.D.events.filter(e => e.meter === ev.meter && e.start < ev.end && ev.start < e.end).map(e => e.id + " (" + e.detector + ")").join(", ") }), el("p", { text: "Forecast quantiles at deviation peak: " + ["q01", "q10", "q50", "q90", "q99"].map(k => k + " " + DC.fmt.kw(DC.q(m.id, k, deviationT))).join(" · ") }));
 
@@ -261,10 +298,11 @@
       const ov = ui().overlays([ev], (t) => DC.actual(ev.meter, t), ev.id);
       DC.charts.timeSeries(mainEl, {
         t0, t1, height: 330,
+        ariaLabel: "Event demand and forecast evidence",
         band: [{ lo: (t) => DC.q(m.id, "q01", t), hi: (t) => DC.q(m.id, "q99", t), color: DC.css("--band") }, { lo: (t) => DC.q(m.id, "q10", t), hi: (t) => DC.q(m.id, "q90", t), color: DC.css("--band-inner") }],
         series: [{ get: (t) => DC.q(m.id, "q50", t), color: DC.css("--expected"), dash: "5 4", width: 1.5 }, { get: (t) => DC.actual(m.id, t), color: DC.css("--actual"), width: 2 }],
         vlines: [{ t: ev.start, label: "Start" }, { t: ev.end, label: "End (exclusive)" }],
-        intervals: [{ start: ev.start, end: ev.end, color: DC.typeColor(ev.type), selected: true, ev }], markers: [{ t: deviationT, v: DC.actual(m.id, deviationT), color: DC.typeColor(ev.type), shape: DC.typeById[ev.type].shape, selected: true, ev }],
+        intervals: lens === "point" ? [] : [{ start: ev.start, end: ev.end, color: DC.typeColor(ev.type), selected: true, ev }], markers: peak ? [{ t: deviationT, v: DC.actual(m.id, deviationT), color: DC.typeColor(ev.type), shape: DC.typeById[ev.type]?.shape || "circle", selected: true, ev }] : [],
         tooltip: (t, hit) => {
           if (hit && hit.ev && hit.ev.id !== ev.id) return ui().eventTooltip(hit.ev);
           const a = DC.actual(m.id, t), e = DC.q(m.id, "q50", t);
@@ -293,14 +331,14 @@
       const cols = [];
       for (let t = t0; t < t1; t++) cols.push({ t, label: DC.time.hour(t) === 0 ? DC.time.day(t) : "" });
       DC.charts.heatmap(statusEl, {
-        rows: [{ id: m.id, label: m.id }], cols, labelW: 48, cellH: 14,
+        rows: [{ id: m.id, label: m.id }], cols, labelW: 80, cellH: 14,
         cell: (r, c) => {
-          const v = m.dq[c.t];
-          const fill = v === 1 ? DC.css("--sev-critical") : v === 2 ? DC.css("--sev-medium") : DC.css("--surface-3");
-          return { fill, clickable: false, tooltip: { title: DC.time.stamp(c.t), rows: [{ kind: "box", color: fill, value: v === 1 ? "Missing / zero" : v === 2 ? "Stuck value" : "OK", label: "meter status" }] } };
+          const v = m.dq?.[c.t], unavailable = !Number.isFinite(m.actual[c.t]) || v == null;
+          const fill = v === 1 || unavailable ? DC.css("--sev-critical") : v === 2 ? DC.css("--sev-medium") : DC.css("--surface-3");
+          return { fill, clickable: false, tooltip: { title: DC.time.stamp(c.t), rows: [{ kind: "box", color: fill, value: v === 1 ? "Missing / zero" : v === 2 ? "Stuck value" : unavailable ? "Reading / status unavailable" : v === 0 ? "OK" : "Other quality flag", label: "meter status" }] } };
         },
       });
-      statusEl.append(ui().legend([{ kind: "box", color: DC.css("--surface-3"), label: "OK" }, { kind: "box", color: DC.css("--sev-critical"), label: "Missing / zero" }, { kind: "box", color: DC.css("--sev-medium"), label: "Stuck value" }]));
+      statusEl.append(ui().legend([{ kind: "box", color: DC.css("--surface-3"), label: "OK" }, { kind: "box", color: DC.css("--sev-critical"), label: "Missing / zero / unavailable" }, { kind: "box", color: DC.css("--sev-medium"), label: "Stuck value" }]));
       const temp = DC.D.weather?.temp;
       const tNorm = (t) => { let s = 0, n = 0; for (let k = 1; k <= 14; k++) if (t - 24 * k >= 0) { s += temp[t - 24 * k]; n++; } return n ? s / n : null; };
       if (temp) DC.charts.timeSeries(wxEl, {
@@ -331,24 +369,115 @@
         });
       }
     });
+    return lens;
   }
 
-  function anomalyGuide(ev) {
-    const rows = [
-      ["Point", "One observation differs sharply from expected behavior; for example, a demand spike lasting one sample."],
-      ["Collective", "A sequence is unusual as a whole, even if individual readings are not extreme; for example, several hours of elevated demand."],
-      ["Contextual", "A reading is unusual in its context; for example, afternoon demand levels occurring overnight."],
-      ["Seasonal / pattern", "A recurring shape changes; for example, weekend demand follows a weekday pattern."],
-      ["Trend / level shift", "Demand drifts or moves to a different sustained level; for example, rising overnight baseline consumption. This prototype does not separately classify trend events."],
-      ["Data integrity", "Readings are missing, stuck or suspect; for example, exactly repeated meter values for many samples. This is a data-quality category."],
-    ];
-    return el("details", { class: "note-box" }, el("summary", { text: `Understand this classification: ${DC.BEHAVIOR_LABEL[ev.behavior] || ev.behavior} behavior · ${DC.CATEGORY_LABEL[ev.category] || ev.category}` }),
-      el("p", { text: "Temporal behavior describes how measurements change over time. Operational categories describe the observed issue, not a proven cause. These teaching examples do not diagnose this event." }),
-      el("dl", { class: "kv" }, rows.flatMap(([name, desc]) => [el("dt", { text: name }), el("dd", { text: desc })])),
-      el("p", {}, "Terminology: ",
-        el("a", { href: "https://doi.org/10.3390/app14031194", text: "Guato Burgos et al. (2024)" }), "; ",
-        el("a", { href: "https://datasets-benchmarks-proceedings.neurips.cc/paper/2021/hash/ec5decca5ed3d6b8079e2e7e7bacc9f2-Abstract-round1.html", text: "Lai et al. (2021)" }), ". Operational evaluation: ",
-        el("a", { href: "https://arxiv.org/abs/2402.10802", text: "Si et al., TimeSeriesBench" }), "."));
+  function buildMeterComparison(ev) {
+    if (!comparisonViews.has(ev.id)) comparisonViews.set(ev.id, { scope: "subgrid", meterIds: null, mode: "demand", window: "context", cursor: ev.start, open: false });
+    const options = comparisonViews.get(ev.id);
+    const content = el("div", { class: "comparison-body" });
+    const summary = el("summary", { text: "Compare related meters" });
+    const panel = el("details", { id: "meter-comparison", class: "disclosure meter-comparison", open: options.open }, summary, content);
+    const button = el("button", { id: "comparison-launch", class: "btn primary comparison-launch", type: "button", "aria-controls": "meter-comparison", "aria-expanded": String(options.open), text: "Compare related meters →", onclick: () => {
+      panel.open = true;
+      if (!content.children.length) draw();
+      summary.focus({ preventScroll: true });
+      requestAnimationFrame(() => panel.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" }));
+    } });
+    panel.addEventListener("toggle", () => {
+      if (!panel.isConnected) return;
+      options.open = panel.open; button.setAttribute("aria-expanded", String(panel.open));
+      if (panel.open && !content.children.length) draw();
+    });
+    function change(patch) {
+      Object.assign(options, patch);
+      ui().refresh(content, draw);
+    }
+    function draw() {
+      DC.clear(content);
+      const comparison = DC.meterComparison(ev, options), { rows, t0, t1, unit } = comparison;
+      if (!Array.isArray(options.meterIds)) options.meterIds = rows.slice(1).map(row => row.meter.id);
+      const eligible = new Set(comparison.candidates.map(meter => meter.id)), seen = new Set();
+      options.meterIds = [0, 1].map(i => {
+        const id = options.meterIds[i];
+        if (!eligible.has(id) || seen.has(id)) return "";
+        seen.add(id); return id;
+      });
+      options.cursor = Math.max(t0, Math.min(t1 - 1, options.cursor));
+      const label = meter => `${DC.buildingById[meter.building].name} · ${meter.id}`;
+      const field = (name, control) => {
+        control.setAttribute("aria-label", name);
+        return el("label", { class: "comparison-field" }, el("span", { text: name }), control);
+      };
+      content.append(el("h3", { text: "Compare demand across meters" }),
+        el("p", { class: "comparison-purpose", text: "Check whether unusual readings are isolated to one meter or occur across several locations." }),
+        el("p", { class: "muted", text: `Choose up to two peer ${rows[0].meter.kind === "pv" ? "PV generation" : "main consumption"} meters. Every chart uses the same time and vertical scale, with ${comparison.detector.label} as its baseline.` }));
+      const controls = el("div", { class: "comparison-controls" });
+      controls.append(field("Comparison scope", el("select", { id: "comparison-scope", onchange: e => change({ scope: e.target.value, meterIds: null }) },
+        [["subgrid", "Same sub-grid"], ["campus", "Campus (same meter kind)"]].map(([value, text]) => el("option", { value, text, selected: value === options.scope })))));
+      for (let i = 0; i < 2; i++) {
+        const selected = options.meterIds[i] || "";
+        controls.append(field("Comparison meter " + (i + 1), el("select", { id: "comparison-meter-" + i, onchange: e => {
+          const ids = [options.meterIds[0] || "", options.meterIds[1] || ""]; ids[i] = e.target.value;
+          change({ meterIds: ids });
+        } }, el("option", { value: "", text: "None", selected: !selected }), comparison.candidates.map(meter => el("option", { value: meter.id, text: label(meter), selected: meter.id === selected, disabled: options.meterIds.includes(meter.id) && meter.id !== selected })))));
+      }
+      controls.append(field("Chart window", el("select", { id: "comparison-window", onchange: e => change({ window: e.target.value }) },
+        [["context", DC.META.sampling_interval === "1h" ? "Event ± 24 hours" : "Event ± 24 samples"], ["event", "Event only"]].map(([value, text]) => el("option", { value, text, selected: value === options.window })))));
+      content.append(controls, ui().segmented([["demand", `Demand (${unit})`], ["residual", `Deviation (${unit})`]], options.mode, mode => change({ mode }), "Meter comparison view"));
+      if (!comparison.candidates.length) content.append(el("p", { class: "empty", text: options.scope === "subgrid" ? "No other meter with the same kind and unit is available in this sub-grid. Choose Campus to look elsewhere." : "No other meter with the same kind and unit is available. Only the selected meter can be shown." }));
+      content.append(el("p", { class: "note-box", text: `Simulated meter/sub-grid relationships · ${options.scope === "subgrid" ? comparison.subgrid || "sub-grid unavailable" : "campus comparison"}. The shaded window is the reference event on every chart. Peer detections are listed separately below, independent of list filters and review status. Coincident changes do not establish a shared fault.` }));
+      const cursor = DC.charts.linkedCursor(options.cursor);
+      const timeLabel = el("output", { id: "comparison-time-label", for: "comparison-time" });
+      const timeControl = el("input", { id: "comparison-time", type: "range", min: t0, max: t1 - 1, step: 1, value: options.cursor, oninput: e => cursor.set(Number(e.target.value)) });
+      content.append(el("div", { class: "comparison-time" }, field("Inspect timestamp — drag, hover a chart, or use arrow keys", timeControl), timeLabel));
+      const readout = el("tbody"), rowCells = [];
+      for (const row of rows) {
+        const cells = ["actual", "expected", "residual", "quality"].map(() => el("td"));
+        readout.append(el("tr", { class: "static", "data-meter": row.meter.id }, el("th", { scope: "row", text: row.meter.id }), cells));
+        rowCells.push({ row, cells });
+      }
+      content.append(el("div", { class: "table-wrap comparison-readout" }, el("table", { "aria-label": "Meter readings at the shared timestamp" }, el("thead", {}, el("tr", {}, ["Meter", `Actual (${unit})`, `Expected (${unit})`, `Deviation (${unit})`, "Meter status"].map(text => el("th", { scope: "col", text })))), readout)));
+      cursor.subscribe(t => {
+        options.cursor = t; timeControl.value = t; timeControl.setAttribute("aria-valuetext", DC.time.stamp(t)); timeLabel.textContent = DC.time.stamp(t);
+        for (const { row, cells } of rowCells) {
+          const r = row.reading(t);
+          cells[0].textContent = r.actual == null ? "Unavailable" : DC.fmt.one(r.actual);
+          cells[1].textContent = r.expected == null ? "Unavailable" : DC.fmt.one(r.expected);
+          cells[2].textContent = r.residual == null ? "Unavailable" : DC.fmt.signed(r.residual);
+          cells[3].textContent = r.quality; cells[3].className = r.quality === "OK" ? "" : "quality-flag";
+        }
+      });
+      content.append(ui().legend(options.mode === "demand" ? [{ kind: "line", color: DC.css("--actual"), label: "Actual" }, { kind: "dash", color: DC.css("--expected"), label: "Expected" }, { kind: "box", color: DC.css("--band-inner"), label: "Nominal 80% forecast range" }] : [{ kind: "line", color: DC.css("--actual"), label: "Actual − expected" }, { kind: "dash", color: DC.css("--expected"), label: "Zero deviation" }]));
+      const charts = el("div", { class: "comparison-charts" }); content.append(charts);
+      const [yMin, yMax] = DC.comparisonScale(comparison, options.mode);
+      for (const row of rows) {
+        const chart = el("div", { class: "chart comparison-chart", "data-meter": row.meter.id });
+        const links = el("div", { class: "comparison-events" });
+        for (const event of row.events) links.append(el("a", { href: "#investigate/" + event.id, text: `${event.id} · ${DC.CATEGORY_LABEL[event.category] || DC.typeById[event.type]?.label || "Detected event"}${event.id === ev.id ? " (selected)" : ""}` }));
+        if (!row.events.length) links.append(el("span", { class: "muted", text: "No overlapping detection from this detector; this does not establish normal operation." }));
+        charts.append(el("article", { class: "comparison-row", "data-meter": row.meter.id },
+          el("h4", { text: label(row.meter) + (row.meter.id === ev.meter ? " · Selected meter" : "") }), chart,
+          el("p", { class: "comparison-evidence", text: `Reference-event interval: ${row.valid}/${row.total} samples have valid paired readings with OK meter status · energy difference: ${row.excess == null ? "Unavailable" : DC.fmt.signed(row.excess, " kWh")}. Quality flags or unavailable readings in the chart window: ${row.qualityTimes.length}.` }),
+          el("div", { class: "comparison-events-title", text: "Detected events overlapping the reference interval" }), links));
+        requestAnimationFrame(() => {
+          if (!chart.isConnected) return;
+          const valueAt = t => options.mode === "residual" ? row.reading(t).residual : row.reading(t).actual;
+          DC.charts.timeSeries(chart, { t0, t1, height: 175, yMin, yMax, zero: false, cursor,
+            ariaLabel: row.meter.id + " synchronized meter comparison",
+            shade: [{ start: ev.start, end: ev.end, color: DC.css("--accent-wash"), opacity: 1 }],
+            vlines: [{ t: ev.start, label: "Event start" }, { t: ev.end, label: "End" }],
+            band: options.mode === "demand" ? [{ lo: t => DC.q(row.meter.id, "q10", t, ev.detector), hi: t => DC.q(row.meter.id, "q90", t, ev.detector), color: DC.css("--band-inner") }] : [],
+            series: options.mode === "residual" ? [{ get: valueAt, color: DC.css("--actual") }] : [{ get: t => row.reading(t).expected, color: DC.css("--expected"), dash: "5 4" }, { get: valueAt, color: DC.css("--actual") }],
+            hlines: options.mode === "residual" ? [{ y: 0, color: DC.css("--expected"), dash: "4 3" }] : [],
+            markers: row.qualityTimes.map(t => ({ t, v: valueAt(t), shape: "cross", color: DC.css("--sev-critical") })),
+          });
+        });
+      }
+      content.append(el("p", { class: "muted", text: "Red crosses mark suspect readings when a value is available; absent values remain gaps. Energy difference is the signed sum of actual minus expected over the reference interval only, withheld unless every paired sample has OK meter status and the hourly kW convention applies. This retrospective comparison does not change detections or classify a shared cause." }));
+    }
+    if (options.open) draw();
+    return { panel, button };
   }
 
   function anomalyGuide(ev) {
@@ -383,7 +512,7 @@
       tooltip: (t) => ({ title: DC.time.stamp(t), rows: series.slice().reverse().map((s) => ({ color: s.color, value: DC.fmt.kw(s.get(t)), label: s.label })) }),
     }));
     body.append(ui().legend(series.slice().reverse().map((s) => ({ kind: "line", color: s.color, label: s.label }))));
-    body.append(el("div", { class: "card-foot", text: "A seasonal/pattern anomaly shows as a shape that departs from the earlier weeks; a weather-driven change usually shifts all hours together." }));
+    body.append(el("div", { class: "card-foot", text: "Compare shape and timing across prior weeks. Weather and operating schedules may differ; this retrospective comparison does not establish a cause." }));
   }
 
   DC.sections.investigate = { render, sortPriority: () => { view.sort = "priority"; } };

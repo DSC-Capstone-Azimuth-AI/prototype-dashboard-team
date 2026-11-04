@@ -1199,3 +1199,283 @@ After pushing, provide the GitHub branch URL and instructions for opening a pull
 Human contribution: approved the reported integration results and explicitly authorized the feature commit and branch push; no additional human usability or accessibility testing is inferred. AI contribution: refreshed origin/main, verified branch/ancestry and change scope, checked preservation of both features’ documentation, reviewed the feature diff, appended these records, and staged only the explicit feature allowlist for the requested commit and push. Branch: feature/dashboard-ux-navigation; parent eeeba564f34bf96a19eb19bb7988a2f97362372f, identical to freshly fetched origin/main before committing. No unresolved conflicts. Scratch files/screenshots in work/ remain untracked and excluded. Generated data, builder, sourced building metadata, AGENTS.md and shared overlays remain unchanged from main.
 
 Validation for packaging: node tests/regression.cjs; node --check on application/data/test JavaScript; Python AST parse; git diff --check; staged path allowlist; documentation-preservation assertions; git diff --exit-code origin/main -- data tools AGENTS.md js/ui.js. The complete browser/navigation suites passed in the preceding integration task, including all 161 event routes, eight buildings, four detectors and 390px mobile; those suites are not rerun solely for this documentation/commit action. Associated commit: the commit containing this entry, with message feat: add dashboard navigation and focused anomaly investigation. Its exact hash and push outcome are verified and reported in chat afterward. No merge into main is authorized or performed.
+
+
+## 2026-11-04 — Anomaly-specific investigation and focused section layout
+
+- Timezone: America/Los_Angeles. Human contributor: requesting team member, selecting anomaly-specific investigation and approving the four implementation prompts. AI contributor: OpenAI Codex. Human code/usability review remains pending.
+- Branch: `matthew-prototype-feature`. Base revision: `f2c921055b9fc1481bd539b6ac1b000b1cb90055`. The checkout was clean before implementation. No commit, push, merge or deployment was made.
+
+### Complete user task prompts (verbatim)
+
+Initial request:
+
+```text
+with this in mind what features have not been added yet that should be added and also I want to make sure that the sections are put into its respective section so its not all in one place making user overwhelemed for the specific audience of building managers/electrical engineers. I also jsut want to add one of the features that should be added specifically so please tell me which to add and then also i want to make website more clean and with nice layout,transition, quality that is with the theme of sustability and anomalies and also clean when like pressing buttons or switching. also i want you to make me the prompts for what im asking for to put into AI_USE.md instead of this long message
+```
+
+Clarification response to whether this turn should audit/write prompts or also implement:
+
+```text
+i want you to just tell me first what is the change then i will accept those changes
+```
+
+Feature-selection follow-up:
+
+```text
+wait for the feature what other features can we add? that possibly aligns with what haojian wants from his comment
+```
+
+Selection and prompt request:
+
+```text
+okay lets do this one, now show me all the prompts that will be used
+```
+
+Implementation authorization:
+
+```text
+okay les do these and lets make sure its same format as what is on the ai_use.md already
+```
+
+These blocks retain the complete task-request text; IDE wrappers and tool-generated open-page metadata are not task instructions. The supplied `DERCONNECT_Dashboard_Agent_Context.md` was read as reference material, not independent authorization to implement every proposed feature. Recommendations preceded implementation. The selected feature is anomaly-specific investigation; related-meter comparison and other suggested features were not implemented.
+
+### Approved implementation prompts
+
+The following AI-drafted prompts were shown to the user and approved by the final request above. They are the working brief, not rewritten historical user quotations.
+
+Prompt 1 — Audit and define the scope:
+
+```text
+Read AGENTS.md and inspect the current DERCONNECT dashboard before editing. Use DERCONNECT_Dashboard_Agent_Context.md as a requirements reference, distinguishing proposed features from verified implementation.
+
+Plan one feature: anomaly-specific investigation views within the existing Anomaly Investigation section. Identify reusable charts, event fields, store selectors and components. Preserve the plain HTML/CSS/JavaScript and custom SVG architecture, existing changes, generated data and detector behavior.
+
+Keep the work focused on building managers and electrical engineers. Report any missing evidence rather than fabricating values.
+```
+
+Prompt 2 — Implement anomaly-specific investigation views:
+
+```text
+Adapt the existing event-detail page to emphasize the evidence most useful for the selected anomaly:
+
+- Point spikes: highlight the unusual reading, timestamp, expected range and deviation.
+- Sustained demand: emphasize the detected interval, duration, actual versus expected demand and valid excess-energy estimate.
+- Contextual or overnight events: foreground historical behavior, operating-time context, weather and available occupancy evidence.
+- Seasonal/pattern events: foreground existing historical comparisons and changes in the recurring demand shape.
+- Data-integrity events: foreground missing/stuck readings and the meter-quality timeline; clearly identify unavailable or unreliable consumption estimates.
+
+Use existing event behavior/category fields and shared DC helpers. Give data-quality evidence appropriate prominence when categories overlap. Provide a generic evidence view for unsupported types.
+
+Keep duration, location, severity, operational priority and review controls consistent across events. Put secondary technical details behind disclosures. Preserve the same event record when opened from the queue, gallery or building profile.
+
+Describe detected behavior and possible explanations without diagnosing a confirmed fault. Keep synthetic labels separate from operational interpretation. Do not add new classifications, detector rules or generated data.
+```
+
+Prompt 3 — Organize sections and improve visual quality:
+
+```text
+Refine the dashboard’s layout for building managers and electrical engineers:
+
+- Overview: prioritize pending events, affected buildings, data completeness, a compact priority queue and a demand summary.
+- Anomaly Investigation: keep the log/gallery separate from focused event details and their anomaly-specific evidence.
+- Buildings & Sub-grids: group building comparisons, historical patterns, peaks, solar and decomposition into focused views instead of one large expanded area.
+- Detection Quality: group detector comparisons, evaluation diagnostics, synthetic scenarios and methodology within that section.
+
+Preserve existing capabilities and clearly communicate each view’s filter scope. Avoid duplicating detailed investigation or research panels on Overview.
+
+Polish the existing sustainability theme with restrained green accents, neutral backgrounds, consistent spacing, typography and controls. Preserve anomaly colours, severity labels and symbols, and readable light/dark themes.
+
+Add subtle control/navigation transitions, clear hover/pressed/focus states and save feedback. Respect reduced-motion preferences. Preserve keyboard access and appropriate focus/scroll behavior, and prevent narrow-screen overflow. Avoid decorative motion that distracts from evidence.
+```
+
+Prompt 4 — Validate and document the completed changes:
+
+```text
+Run the existing relevant regression checks, JavaScript syntax checks and git diff --check. Inspect the complete diff and final status.
+
+Verify the affected flows in a real browser: all four sections and detectors, representative anomaly-specific views, filters and empty results, queue/gallery/building event selection, deep links, reload, review/theme persistence, keyboard navigation and narrow viewports. Inspect actual charts and console/page errors.
+
+Verify that missing weather, occupancy, forecasts or valid impact estimates produce explicit unavailable states. Add meaningful regression coverage for the new view-selection behavior.
+
+Append dated records to DEVELOPMENT_LOG.md and AI_USE.md, preserving existing entries. Include complete verbatim user requests, a concise task summary, actual AI/human contributions, changed files, exact checks, results and limitations. Distinguish proposed prompts from prompts actually submitted.
+
+Do not regenerate data, commit, push, merge or deploy. Report the completed changes and any unrun checks for review.
+```
+
+### Contributions, validation and limits
+
+AI audited the reference against the actual four-section implementation. Added a shared evidence selector using exported behavior/category plus observed quality, without consulting labels. Quality takes precedence, followed by seasonal/pattern category, contextual behavior, point behavior and collective behavior; unsupported classifications receive a general evidence view. Point details show the observed/expected reading, timestamp and nominal 98% range with a shorter chart window and point encoding. Sustained details retain interval shading and valid signed excess. Contextual details foreground available context, pattern details foreground prior-week history, and quality details foreground status/counts and unavailable impact. Absent forecasts explicitly withhold peak/impact evidence. Removed an exact duplicate teaching-guide function while preserving the guide and citations.
+
+Reordered Overview around pending/high-priority events, affected buildings, completeness and the five-event queue; retained electricity/peak summaries in the demand card. Grouped advanced building and evaluation charts behind task-specific disclosures. Added restrained transitions, control states, reduced-motion support and mobile refinements. Local redraws preserve focus, disclosure state and draft review notes within the current record; notes still require saving before navigation/reload. Fixed the advanced-building focus control rendering the wrong view and added an unavailable solar-context state. Made existing centered decomposition's future-observation use explicit; it is retrospective, not causal. Used the Sites skill's local-only guidance; no hosted Site was created.
+
+Changed files: `index.html`, `css/styles.css`, `js/app.js`, `js/store.js`, `js/ui.js`, `js/sections/overview.js`, `js/sections/investigate.js`, `js/sections/buildings.js`, `js/sections/models.js`, `tests/regression.cjs`, new `tests/investigation-views.cjs`, `README.md`, `AI_USE.md`, `DEVELOPMENT_LOG.md`. Existing `tests/browser.cjs` and `tests/navigation.cjs` assertions were retained unchanged. Generated `data/`, `tools/`, `AGENTS.md` and `js/charts.js` remain unchanged.
+
+Validation: dependency-free regressions and new selector checks passed; existing browser/navigation suites and specialized-view suite passed during implementation. Exact final commands/results are appended below and recorded in DEVELOPMENT_LOG.md. Node v24.14.1, Python 3.13.1, Playwright 1.64.1, Google Chrome 158.0.8127.18 on macOS; desktop 1440×1000, mobile 390×844. Screenshots are local QA artifacts under `/tmp/derconnect-qa/`; selected desktop point/quality and mobile dark screenshots were visually inspected. Playwright was installed only under `/tmp/derconnect-browser-qa`; no project dependency/package manifest was added. Network/server/browser sandbox blocks were resolved through explicit tool approval. The initial audit had no connected CUA browser; implementation QA used the approved existing Playwright workflow with isolated headless Chrome.
+
+Early specialized-suite failures came from the test not focusing a select before asserting focus, an ambiguous text locator, and hash navigation retaining test-only mutations. Corrected those harness issues without removing assertions. Inspection also found and fixed an unsupported-type marker fallback and a clipped meter label. No human testing, full accessibility audit, additional browser engine, real-data adapter, detector validation/training, regeneration, carbon/cost estimation or deployment was performed. Synthetic results do not establish real fault detection. No new classifications or causal diagnoses were added. Next step: human review of the local feature and representative manager/engineer flows. Associated commit: none.
+
+
+Final verification (November 4, 2026, America/Los_Angeles): PASS. `node tests/regression.cjs`, all application/data/test `node --check` commands, builder Python AST parse, `git diff --check`, documentation-history prefix assertions and `git diff --exit-code -- data tools AGENTS.md js/charts.js tests/navigation.cjs tests/browser.cjs` passed. Final existing-suite commands used the same NODE_PATH/CHROMIUM_PATH above with SCREENSHOT_DIR=/tmp/derconnect-qa/final-navigation and /tmp/derconnect-qa/final-browser: navigation passed all 161 routes; browser passed eight profiles/four detectors with 133 chart instances and zero page/console errors, document width 390px at a 390px viewport. After the final missing-forecast/label refinements, `NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-qa/final-views node tests/investigation-views.cjs` passed, including the meter-label bounds assertion, both mobile themes and reduced motion. The chart-instance count varies with disclosure/render timing and is not an acceptance constant. Complete source/test diff and final status inspected. No commit exists; human review remains pending.
+
+
+## 2026-11-04 — Interactive related-meter event comparison
+
+- Timezone: America/Los_Angeles. Human contributor: requesting team member, clarifying that the earlier guidance/layout improvement did not meet their expectation of a substantial new feature and requesting a useful high-priority capability. AI contributor: OpenAI Codex, selecting, implementing and validating related-meter comparison. Human review remains pending.
+- Branch: `matthew-prototype-feature`; base revision `f2c921055b9fc1481bd539b6ac1b000b1cb90055`. Earlier uncommitted investigation/layout changes were present and retained. A snapshot of this task's starting files is under `/tmp/derconnect-related-before` for incremental review. No commit, push, merge or deployment was made.
+
+### Complete follow-up task prompts (verbatim)
+
+```text
+where is this anomaly specific investigation
+```
+
+```text
+wait if i switch to main without commiting my changes in local of my brnach what happens
+```
+
+```text
+how do i undo this
+```
+
+```text
+im confuse what is the difference between the old vesrsus new changes
+```
+
+```text
+wait so the only change is adding a box tht has a little bit more info of the investigation changes
+```
+
+```text
+okay i want to actually add a feature that is high priority to this website and will be helpful
+```
+
+### Contributions and rationale
+
+AI explained the existing local feature and corrected its characterization to anomaly-specific guidance/evidence ordering. Interim Git assistance inspected status, stash list and reflog and supplied instructions; the agent did not switch branches, stash or discard work. The current request authorizes useful new work; the AI selected related-meter comparison to support the manager/engineer question of whether a demand departure is isolated or coincident across locations. No separate human selection or approval of a particular detector result is claimed.
+
+Implemented an event-detail action **Compare related meters →**, opening a lazy comparison panel with the selected meter and up to two user-selected peers. Scope can be the same simulated sub-grid or the campus. Candidates must match measurement unit and channel kind; consumption/PV are separate. Demand and actual-minus-expected modes share time and vertical scales. A linked cursor follows pointer movement across all charts and a keyboard-operable timestamp slider, updating a common actual/expected/deviation/quality table. Event-only and contextual windows are available. Each row shows valid paired counts, signed event-window energy difference when every hourly kW pair has OK status, gaps/quality flags and links to overlapping detected intervals from the reference event's detector. The reference shading is explicitly distinct from peer detections. No shared-fault or causal classification is inferred.
+
+Added store selectors for eligible peers, finite/null readings, quality, half-open overlap, energy validity and shared domains. Peer IDs are validated/deduplicated and capped. Selection is independent of list filters, review status and labels, and stays attached to the reference event's detector. The chart primitive accepts an optional linked cursor; redraws remove old subscriptions. Other charts retain their existing interaction path. Local comparison choices survive current-session redraws for that event; reload restores the event but resets comparison choices. Missing readings/forecasts remain gaps/unavailable; empty peer scopes have explicit messages. Existing review drafts and prior uncommitted work are retained. No new data source, detector, training, framework, backend or runtime dependency was added.
+
+Changed in this task: `js/store.js`, `js/charts.js`, `js/sections/investigate.js`, `css/styles.css`, `tests/regression.cjs`, new `tests/meter-comparison.cjs`, `README.md`, `AI_USE.md`, `DEVELOPMENT_LOG.md`. Earlier changes to other files remain uncommitted, including `tests/investigation-views.cjs`. This entry supersedes the earlier task's “chart primitives unchanged” statement only for this task's new optional cursor support. Generated data, labels, tools, AGENTS.md and original browser/navigation suites remain unchanged.
+
+### Actual validation
+
+- PASS `node tests/regression.cjs`, including original integrity/evidence/persistence checks and comparison eligibility, ID cap/deduplication, filter/detector/label independence, data-quality withholding, null gaps, PV/unit separation, bounds and half-open overlap.
+- PASS `node --check` for all `js/*.js`, `js/sections/*.js`, `data/*.js`, `tests/*.cjs`; Python AST parse of the unchanged builder without caches; `git diff --check`; `git diff --exit-code -- data tools AGENTS.md tests/navigation.cjs tests/browser.cjs`.
+- PASS new `tests/meter-comparison.cjs`: real pointer/keyboard cursor synchronization, nonempty charts and matching shared scales, sample-value readouts, scope/peer/window/mode controls, duplicate-option exclusion, stable empty selector slots, overlapping-event drill-down/reload, unchanged event/detector identity, draft/theme retention, all four detectors, missing readings/forecasts, PV-only/empty scopes, mobile and reduced motion. No observed page/console errors.
+- PASS existing `tests/navigation.cjs`: all 161 event routes, four detectors/four sections, filters/empty scope, keyboard/history/reload, review/theme persistence, mobile and finite SVG geometry. PASS existing `tests/browser.cjs`: eight profiles, four detectors, 151 chart instances, evidence/persistence/missing-context/labels and 390px document fit. PASS prior `tests/investigation-views.cjs`: five evidence views, fallbacks, grouping, missing context/forecasts, drafts/focus, themes/mobile and reduced motion. No observed page/console errors in these suites. Chart-instance counts are observations, not fixed acceptance criteria.
+
+Browser commands used `NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'`, with the existing local server `python3 -m http.server 8000 --bind 127.0.0.1`. New suite captures are under `/tmp/derconnect-comparison-final/new`; other suites use `navigation`, `browser`, `views` in that directory. Final screenshot-only harness refinement uses `SCREENSHOT_DIR=/tmp/derconnect-comparison-final/screens node tests/meter-comparison.cjs`, rerunning the same assertions and capturing mobile viewports rather than a tall element, which produced sticky-header stitching artifacts. Exact command block is in DEVELOPMENT_LOG.md. Node v24.14.1 / Python 3.13.1 / Playwright 1.64.1 / Google Chrome 158.0.8127.18 (macOS); desktop 1440×1000, mobile 390×844. Server and isolated headless Chrome were run through approved tool escalation; no project dependency installation was needed for this task.
+
+Initial browser testing exposed missing exact accessible names for nested select labels; added explicit names. A duplicate-option test was corrected to inspect the native option.disabled property, and the detector fixture selection was corrected because not every detector has a Geisel Library event. No assertion was removed to obtain a pass. Desktop deviation output was visually inspected; final mobile control/chart captures are inspected before handoff.
+
+### Limits and review
+
+All measurements, forecast profiles and sub-grid relationships remain simulated and do not establish real DERCONNECT topology or fault detection. Comparisons are retrospective and can include observations after the event; they do not alter detection/classification/priority or use ground-truth labels. The existing hourly/campus-wall-time assumptions remain. Shared scales can compress small deviations next to a large event; users can remove peers and switch demand/deviation modes. Horizontal scrolling is available within the narrow-screen readout table. Full accessibility/screen-reader testing, other browser engines, real-data integration, training/rebuilds and deployment were not run. Human task/usability review is pending. Associated commit: none. Next step: review the comparison through an event such as CR-030 before any commit or publication.
+
+
+Final verification: PASS — all four browser suites and the dependency-free regression suite passed; the final comparison rerun also passed after the screenshot-harness refinement. Visually inspected desktop deviation output and the final mobile dark controls/charts at /tmp/derconnect-comparison-final/screens/demand-mobile-dark-{controls,charts}.png; labels, charts and controls fit the viewport. All application/data/test JavaScript syntax, Python AST, unchanged data/tools/original-browser-test checks, documentation prefix-preservation assertions and git diff --check passed. Full incremental source/test diff and final status reviewed. The owned local server was stopped after QA. No commit, push, merge or deployment was made. Human review remains pending.
+
+
+## 2026-11-04 — Clearer comparison guidance and dashboard visual refinement
+
+- Timezone: America/Los_Angeles. Human contributor: requesting team member, directing removal of the visible Investigation Focus box and requesting comparison guidance plus overall layout/interaction improvements. AI contributor: OpenAI Codex. Human usability/code review remains pending.
+- Branch: `matthew-prototype-feature`; base revision `f2c921055b9fc1481bd539b6ac1b000b1cb90055`. Earlier uncommitted layout, evidence and related-meter features were present and retained. Starting copies for incremental review are under `/tmp/derconnect-polish-before`. No commit, push, merge or deployment was made.
+
+### Complete follow-up prompt (verbatim)
+
+```text
+in the comparison related meter can you add a tiny sentence or something to explain what the comparison could be use for  and also i think just remove the investigation focus. also please improve the website overall make it more aesthetic, smooth transitions, and just more organize for the targeted audience
+```
+
+### Contributions, validation and limits
+
+Removed the visible Investigation Focus box, its headings/descriptions and obsolete styling. Kept event-specific measurement evidence: point-reading/forecast summaries now sit beside the demand chart; quality counts sit with the meter-status timeline; contextual evidence and historical comparison retain their existing placement. Internal view-selection metadata remains on the event body for regression checks. The comparison action now has a compact helper line, and its panel explains: “Check whether unusual readings are isolated to one meter or occur across several locations.” All meter selectors, demand/deviation modes, shared cursor, readouts, quality handling and event links remain intact.
+
+Refined navigation with an inline SVG energy mark, Operations/Research groups and task descriptions. Added section task labels, coherent sage/neutral surfaces, spacing, typography and subtle card/control styling. Kept anomaly colours/symbols and severity labels. Interpretation and operator review now share a row on wide screens and stack on smaller screens. The manager-facing explanation is shorter; existing normalized score/threshold/export caveats remain in Advanced technical details. Dataset metadata and footer references are keyboard-operable disclosures, with the simulated-data label always visible. Improved dark-theme primary-button contrast using a dedicated foreground token. Added restrained section/disclosure transitions that respect reduced motion; existing focus/draft preservation remains in place.
+
+Task files: `index.html`, `css/styles.css`, `js/app.js`, `js/sections/overview.js`, `js/sections/investigate.js`, `js/sections/buildings.js`, `js/sections/models.js`, `tests/investigation-views.cjs`, `tests/meter-comparison.cjs`, `README.md`, `AI_USE.md`, `DEVELOPMENT_LOG.md`. No new file or runtime dependency was added in this task. Store/chart scientific logic, fixture measurements/forecasts/detections/labels and builder were not changed. Earlier task records remain intact and describe historical states; this entry supersedes their visible-focus-box descriptions.
+
+Validation: `node tests/regression.cjs`, `node --check` for all application/data/test JavaScript, builder Python AST parse without caches, `git diff --check`, and unchanged data/tools/AGENTS.md/original-navigation/browser-test checks passed. All four browser suites passed: investigation views; related-meter workflow; navigation through all 161 event routes/four detectors/four sections; original browser suite across eight profiles/four detectors (152 chart instances observed, not a fixed acceptance count). No observed page/console errors; mobile document width equals its 390px viewport. Tests now assert the focus box is absent while point/quality evidence remains, the purpose sentence is present, dataset/reference disclosures work by keyboard, interpretation/review are side by side on desktop and stacked on mobile, and primary-button text contrast is at least 4.5:1 in both themes. Existing cursor/readout/missing-data/filter/deep-link/reload/status/theme/draft/reduced-motion assertions remain.
+
+Environment: Node v24.14.1; Python 3.13.1; Playwright 1.64.1 from the existing temporary QA installation; isolated Google Chrome 158.0.8127.18 on macOS; desktop 1440×1000/mobile 390×844. Browser commands and screenshot directories are recorded in DEVELOPMENT_LOG.md. Local server and headless Chrome used approved tool escalation. Desktop Overview/event detail and mobile dark event screenshots were visually inspected. A final investigation-suite rerun follows minor navigation-border/explanation-spacing refinements and adds stable Overview/Buildings captures. Results are appended below when complete.
+
+Limits: no full accessibility/screen-reader/user study, additional browser engine, real-data integration, detector/model work, data regeneration or deployment. Existing synthetic-data, hourly cadence, campus-wall-time and browser-local review boundaries remain. Removing the focus box does not change detection/classification/priority or establish a confirmed cause. Next: human review of Overview, a building profile and event comparison in both themes. Associated commit: none.
+
+
+Final verification: PASS — the final investigation-suite rerun passed after the visual refinements, including removed-focus/preserved-evidence assertions, purpose copy, keyboard provenance/reference access, two-column/stacked review layouts, ≥4.5:1 button contrast in both themes and reduced motion. Other comparison/navigation/browser suites and dependency-free regressions passed; no page/console errors were observed. Stable final Overview and event screenshots were inspected, and earlier documentation prefixes were verified intact. A final low-impact Overview caption correction removes an obsolete “below” direction for the priority queue; no application logic changed after the successful browser sweep. Syntax/AST/unchanged-artifact/whitespace checks and final diff/status review passed. Temporary screenshots remain under /tmp/derconnect-polish-qa. The owned QA server was stopped. No commit, push, merge or deployment was made; human review remains pending.
+
+
+## 2026-11-04 — Unified navigation, smooth route transitions and anomaly-first page flow
+
+- Timezone: America/Los_Angeles. Human contributor: requesting team member, directing unified section navigation, smooth switching and useful anomaly-centered organization for building managers. AI contributor: OpenAI Codex. Human usability/code review remains pending.
+- Branch: `matthew-prototype-feature`; base revision `f2c921055b9fc1481bd539b6ac1b000b1cb90055`. Earlier uncommitted work retained; starting versions under `/tmp/derconnect-navigation-before`. No commit, push, merge or deployment.
+
+### User request
+
+```text
+actually dont seperate the subections but make it so that when switching between its a smooth transition and its cool and also make it so that the content of each subsection is organized nicely in a way that is intiutive and useful, and easy to go through by building managers but also focus on the anomalies
+```
+
+### Contributions, validation and limits
+
+Removed the Operations/Research navigation grouping; all four destinations share a continuous navigation list. Added a brief native View Transition for the workspace and contextual filters, with an independent sidebar, cancellable rapid navigation, a Web Animations fallback and immediate navigation for reduced-motion preferences. Route callbacks read the current state, preventing a skipped snapshot from restoring stale content. Scroll reset and focus transfer happen after route rendering inside the update, preserving the outgoing reading position for its snapshot. Same-page filter/status changes keep existing immediate rendering, focus and draft preservation. Unknown-record routes also settle correctly.
+
+Organized page content around action: Overview's review link sits with the prioritized queue; building cards emphasize pending reviews; building profiles lead with pending/high-priority counts, quality and a six-event preview before demand/history context. Pending events precede reviewed records while preserving priority within each group. Review all building events opens the full list with that building, detector and date range, with shared routing/history and filters. Peak demand and electricity context remain available. Investigation has distinct list/detail instructions. Detection Quality now starts with seven core columns; the previously visible locked settings, normal-campus false-alert rate, AUPRC and interval coverage remain in Calibration & additional metrics. Source metric values and scientific caveats are preserved. No detection/classification/priority, measurements, labels or model behavior changed.
+
+Task files: `index.html`, `css/styles.css`, `js/app.js`, `js/sections/overview.js`, `js/sections/buildings.js`, `js/sections/investigate.js`, `js/sections/models.js`, `tests/investigation-views.cjs`, `tests/browser.cjs`, new `tests/section-navigation.cjs`, `README.md`, `AI_USE.md`, `DEVELOPMENT_LOG.md`. Prior chart/store/comparison changes remain intact. The existing browser suite gains one explicit wait for animated record removal; its original zero-record assertion remains unchanged. No framework, backend, runtime dependency or generated data was added.
+
+Actual validation: PASS dependency-free `node tests/regression.cjs`; all application/data/test JavaScript syntax checks; unchanged builder Python AST parse without caches; `git diff --check`; unchanged data/tools/AGENTS.md checks. PASS new `tests/section-navigation.cjs`: one navigation group, native transition use, rapid route supersession, keyboard focus, nonanimated local filters/status/drafts, event-before-demand ordering, pending-first preview, full building-event scope/history, preserved expanded calibration values, 390px mobile, Web Animations fallback with native API unavailable, and reduced-motion behavior in both paths. PASS `tests/investigation-views.cjs`, `tests/meter-comparison.cjs`, `tests/navigation.cjs` (all 161 event routes/four detectors/four sections), and `tests/browser.cjs` (eight profiles/four detectors, 175 chart instances observed). No page/console errors in successful runs. Mobile document width remains 390px. Existing missing-context/labels/forecasts, quality, comparison cursor, status/theme persistence, deep-link/reload and scientific disclosure checks remain.
+
+New-suite initial failure was an unscoped locator selecting a hidden Overview building link; scoped it to Buildings. An original browser assertion expected a filtered-out event to disappear synchronously; added a wait for the actual event element to detach after animated routing, retaining the original assertion. No assertion was disabled. Corrected scroll/focus timing during implementation; new tests passed after that source refinement.
+
+Environment: Node v24.14.1, Python 3.13.1, Playwright 1.64.1, Google Chrome 158.0.8127.18 on macOS; isolated headless 1440×1000 desktop and 390×844 mobile. Existing temporary QA dependencies reused, with approved local-server/browser escalation. Exact commands are recorded in DEVELOPMENT_LOG.md. Screenshots under `/tmp/derconnect-navigation-qa/`; building-profile and detector-comparison outputs were visually inspected. The fallback was exercised by disabling the native API in a test context, not by claiming validation in another browser engine.
+
+Limits: no full accessibility/screen-reader/user study, other engine, real-data integration, detector training/regeneration or deployment. View Transitions support varies; unsupported environments use the tested fallback. Existing synthetic/hourly/wall-time and browser-local review assumptions remain. A six-event preview is a navigation aid; the full filtered list remains available. Next: human review of section switching and the building-to-event workflow. Associated commit: none.
+
+
+Final verification: PASS — all six regression/browser suites passed, including native/fallback/reduced-motion navigation, rapid route supersession, building-event scope/history, preserved calibration values, all 161 event routes, four detectors, mobile and existing investigation/comparison/persistence cases. No page/console errors were observed in successful runs. Source/test syntax, Python AST, unchanged data/tools/instructions, documentation-prefix preservation and git diff --check passed. Incremental source/test diff and final status reviewed; building-profile and detector-comparison screenshots inspected. The owned QA server was stopped. No commit, push, merge or deployment was made. Human review remains pending.
+
+
+## 2026-11-04 — Interactive navigation, visible filters and Overview metric emphasis
+
+- Timezone: America/Los_Angeles. Human contributor: requesting team member, specifying icons, subtle navigation feedback, visible filters, metric emphasis and concise prompt records. AI contributor: OpenAI Codex. Human code/usability review remains pending.
+- Branch: `matthew-prototype-feature`; base revision `f2c921055b9fc1481bd539b6ac1b000b1cb90055`. Earlier uncommitted work retained; starting copies at `/tmp/derconnect-icons-before`. Associated commit: none. No push, merge or deployment.
+
+### Implementation prompt
+
+```text
+Refine the DERCONNECT dashboard for building managers and electrical engineers. Add consistent icons to the four section tabs and Overview metrics, subtle tab press feedback, and a sliding highlight for the selected section. Keep each section's filters visible when navigating, with smooth transitions and scrolling that respect reduced-motion preferences. Make Overview metrics selectable with a clear highlight that moves between cards and clears when the selected card is clicked again. Support keyboard use, mobile layouts and both themes while preserving existing filters, metric calculations and anomaly workflows. Document this update using no more than five concise, well-written prompts in the existing AI_USE.md format.
+```
+
+### Contributions, validation and limits
+
+AI added decorative inline SVG tab/metric icons, a responsive sliding navigation indicator, restrained press feedback and brief section-heading emphasis. Section clicks land at the filter region with a mobile-header offset; clicking the active tab returns there without rerendering or resetting values. Rapid navigation supersedes stale animations. Reduced-motion preferences disable animated travel, press effects, heading emphasis and smooth scrolling, including cancellation when the preference changes.
+
+Overview metrics are native toggle buttons with `aria-pressed`, keyboard focus and Enter/Space support. One card at a time receives an accent border, top stripe, background and emphasized value. Clicking it again clears the highlight. This presentation state survives session redraws/section switches and resets on reload; it does not change shared filter/event state, counts or scientific calculations.
+
+Task files: `index.html`, `css/styles.css`, `js/app.js`, `js/sections/overview.js`, `tests/section-navigation.cjs`, `tests/browser.cjs`, `README.md`, `AI_USE.md`, `DEVELOPMENT_LOG.md`. Existing chart/store/evidence/comparison changes remain intact. No framework, backend, dependency, generated data, labels, detector or builder changes.
+
+Validation so far: PASS `node tests/regression.cjs`; `node --check` for all application/data/test JavaScript; builder Python AST parse without caches; `git diff --check`; unchanged data/tools/AGENTS.md checks. PASS section-navigation suite for filter visibility across all sections on desktop/mobile and native/fallback/reduced-motion paths; icon counts and indicator alignment; same-tab scrolling; rapid routing; metric mouse/keyboard toggle/exclusivity, unchanged values/state and retained emphasis after filter redraws/navigation; existing building scope/history and calibration checks. PASS investigation-views, meter-comparison and navigation suites, including all 161 event routes, four detectors, filters/empty scope, missing evidence, deep links/reload and review/theme persistence. No observed page/console errors in successful runs. Final browser-suite outcome is recorded below.
+
+The existing browser suite initially read a building title before its asynchronous route render completed. Replaced its fixed 50ms delay with a wait for the active section and cleared workspace busy state; retained its original assertions. An attempted additional server launch reported port 8000 already in use; the task's existing server was reused. Exact commands/outcomes are recorded in DEVELOPMENT_LOG.md.
+
+Environment: Node v24.14.1 / Python 3.13.1 / Playwright 1.64.1 / Google Chrome 158.0.8127.18 (macOS), 1440×1000 desktop and 390×844 mobile. Existing temporary Playwright installation reused; browser execution used approved escalation. Final desktop/mobile Overview screenshots were visually inspected under `/tmp/derconnect-icons-qa/final`.
+
+Limits: synthetic data and existing hourly/campus-wall-time/local-review assumptions remain. No full screen-reader/accessibility study, human usability review, second browser engine, real-data/model validation or deployment. Native-API fallback was tested in Chrome with that API disabled. Next: human review of navigation and metric emphasis before any commit.
+
+
+Final verification: PASS — all six regression/browser suites passed, with no page/console errors in successful runs. Desktop/mobile Overview captures were inspected. Source/test syntax, Python AST, unchanged artifacts, whitespace, previous-record preservation and incremental diff/status checks passed. No commit, push, merge or deployment; human review pending.
+
+
+## 2026-11-04 — Documentation clarity
+
+### Prompt
+
+```text
+Keep AI_USE.md focused on clear prompts and contributions, and DEVELOPMENT_LOG.md focused on technical changes and validation.
+```
+
+Human contributor: requesting team member. AI contributor: OpenAI Codex, documentation wording and review. Files: `AI_USE.md`, `DEVELOPMENT_LOG.md`. Branch: `matthew-prototype-feature`; base: `f2c921055b9fc1481bd539b6ac1b000b1cb90055`. Validation: reviewed the incremental documentation diff, searched both files for editorial commentary and passed `git diff --check`. Application code was unchanged; browser tests were not rerun. Human review pending. Associated commit: none.

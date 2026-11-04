@@ -59,6 +59,14 @@
     return f;
   };
   const yFmtDefault = (v) => DC.fmt.compact(v);
+  // Each comparison owns its cursor; no global interaction leaks between charts.
+  function linkedCursor(initial) {
+    let value = initial;
+    const listeners = new Set();
+    return { get: () => value, set(t) { value = t; listeners.forEach(fn => fn(t)); },
+      subscribe(fn) { listeners.add(fn); fn(value); return () => listeners.delete(fn); } };
+  }
+  const cursorCleanups = new WeakMap();
 
   function width(el) { return Math.max(240, Math.floor(el.clientWidth || el.getBoundingClientRect().width || 600)); }
 
@@ -80,6 +88,8 @@
   // Time series
   // ======================================================================
   function timeSeries(el, o) {
+    cursorCleanups.get(el)?.();
+    cursorCleanups.delete(el);
     DC.clear(el);
     const W = width(el), H = o.height || 240;
     const m = { l: o.compact ? 4 : 48, r: o.compact ? 4 : 12, t: o.compact ? 4 : 8, b: o.compact ? 4 : 22 };
@@ -218,8 +228,13 @@
     }
 
     // interaction
-    if (o.tooltip || o.onClick) {
+    if (o.tooltip || o.onClick || o.cursor) {
       const cross = S("line", { class: "crosshair", y1: m.t, y2: m.t + ih, opacity: 0 }, svg);
+      if (o.cursor) cursorCleanups.set(el, o.cursor.subscribe(t => {
+        const visible = Number.isFinite(t) && t >= t0 && t < t1;
+        cross.setAttribute("opacity", visible ? 1 : 0);
+        if (visible) { cross.setAttribute("x1", x(t)); cross.setAttribute("x2", x(t)); cross.setAttribute("data-time", t); }
+      }));
       const overlay = S("rect", { x: m.l, y: m.t, width: iw, height: ih, class: "hit" }, svg);
       overlay.style.cursor = o.onClick ? "pointer" : "crosshair";
       const locate = (evt) => {
@@ -237,13 +252,14 @@
       };
       overlay.addEventListener("mousemove", (evt) => {
         const { t, hit } = locate(evt);
-        cross.setAttribute("x1", x(t)); cross.setAttribute("x2", x(t)); cross.setAttribute("opacity", 1);
+        if (o.cursor) o.cursor.set(t);
+        else { cross.setAttribute("x1", x(t)); cross.setAttribute("x2", x(t)); cross.setAttribute("opacity", 1); }
         if (o.tooltip) {
           const c = o.tooltip(t, hit);
           if (c) tip.show(evt, c); else tip.hide();
         }
       });
-      overlay.addEventListener("mouseleave", () => { cross.setAttribute("opacity", 0); tip.hide(); });
+      overlay.addEventListener("mouseleave", () => { if (!o.cursor) cross.setAttribute("opacity", 0); tip.hide(); });
       if (o.onClick) overlay.addEventListener("click", (evt) => { const { t, hit } = locate(evt); o.onClick(t, hit); });
     }
     return { x, y, svg };
@@ -446,5 +462,5 @@
       if (node.getBoundingClientRect().width > 0 && renderers.has(node)) renderers.get(node)();
     }));
   }, true);
-  DC.charts = { timeSeries: reusable(timeSeries), hbar: reusable(hbar), heatmap: reusable(heatmap), scatter: reusable(scatter), timeline: reusable(timeline), tip, niceTicks };
+  DC.charts = { timeSeries: reusable(timeSeries), hbar: reusable(hbar), heatmap: reusable(heatmap), scatter: reusable(scatter), timeline: reusable(timeline), linkedCursor, tip, niceTicks };
 })();

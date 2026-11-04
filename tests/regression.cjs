@@ -92,3 +92,68 @@ assert.equal(ctx.DC.notesStore.get('CR-001'), 'Memory-only note');
 const names = JSON.parse(fs.readFileSync(path.join(root, 'tools/building_metadata.json'), 'utf8'));
 for (const b of d.buildings) assert.equal(b.name, names[b.id].name);
 console.log('PASS: verified demonstration labels and combined dataset-scoped review-note migration/fallback.');
+
+// Anomaly-specific evidence uses exported behavior/category, never evaluation labels.
+ctx = load(); dc = ctx.DC;
+for (const [id, lens] of [['CR-005', 'point'], ['CR-014', 'sustained'], ['CR-001', 'context'], ['CR-004', 'pattern'], ['CR-010', 'quality']]) {
+  const event = dc.eventById(id), before = JSON.stringify(event);
+  assert.equal(dc.investigationEvidence(event).lens, lens, id);
+  assert.equal(JSON.stringify(event), before, 'presentation must not rewrite detection');
+  assert.equal(load({ labels: false }).DC.investigationEvidence(event).lens, lens, 'labels do not select the view');
+}
+const point = dc.eventById('CR-005'), pointMeter = dc.meterById[point.meter];
+pointMeter.dq[point.start] = 2;
+assert.equal(dc.investigationEvidence(point).lens, 'quality', 'quality precedes point classification');
+assert.equal(dc.investigationEvidence(point).quality.stuck, 1);
+assert.equal(dc.investigationEvidence(point).facts.excess, null);
+pointMeter.dq[point.start] = 0; pointMeter.actual[point.start] = null;
+assert.equal(dc.investigationEvidence(point).lens, 'quality', 'unflagged nulls still need quality review');
+assert.equal(dc.investigationEvidence(point).quality.unavailable, 1);
+assert.equal(dc.investigationEvidence(point).facts.excess, null);
+ctx = load(); dc = ctx.DC;
+const contextual = dc.eventById('CR-001'), series = dc.detectorById[contextual.detector].series[contextual.meter];
+for (let t = contextual.start; t < contextual.end; t++) series.q50[t - dc.META.detector_start] = null;
+assert.equal(dc.investigationEvidence(contextual).forecastPairs, 0);
+assert.equal(dc.investigationEvidence(contextual).facts.peak, null);
+assert.equal(dc.investigationEvidence(contextual).facts.excess, null);
+assert.equal(dc.investigationEvidence(contextual).lens, 'context', 'absent forecasts do not fabricate meter faults');
+assert.equal(dc.investigationEvidence({ ...contextual, type: 'peak', category: 'unknown', behavior: 'unknown' }).lens, 'general');
+console.log('PASS: five evidence views, category precedence, label independence, unchanged detections, suspect/null readings, absent forecasts and generic fallback.');
+
+// Related-meter comparison isolates data scope, detector, intervals and reliability.
+ctx = load(); dc = ctx.DC;
+const reference = dc.eventById('CR-030');
+let comparison = dc.meterComparison(reference);
+assert.deepEqual(Array.from(comparison.rows, r => r.meter.id), ['LIB-MAIN', 'ENG-MAIN']);
+assert.equal(comparison.t0, reference.start - 24);
+assert.equal(comparison.t1, reference.end + 24);
+assert(comparison.rows.every(row => row.meter.kind === 'main' && row.meter.unit === 'kW'));
+assert(comparison.rows.every(row => row.events.every(e => e.detector === reference.detector && e.start < reference.end && reference.start < e.end)));
+const expected = JSON.stringify(comparison.rows.map(row => ({ id: row.meter.id, excess: row.excess, valid: row.valid, events: row.events.map(e => e.id) })));
+dc.setState({ ...dc.DEFAULT, detector: dc.D.detectors[1].id, building: 'REC', status: 'false_alarm' });
+assert.equal(JSON.stringify(dc.meterComparison(reference).rows.map(row => ({ id: row.meter.id, excess: row.excess, valid: row.valid, events: row.events.map(e => e.id) }))), expected, 'list filters do not leak into selected-event comparisons');
+const noLabels = load({ labels: false }).DC;
+assert.equal(JSON.stringify(noLabels.meterComparison(noLabels.eventById(reference.id)).rows.map(row => ({ id: row.meter.id, excess: row.excess, valid: row.valid, events: row.events.map(e => e.id) }))), expected, 'evaluation labels do not feed comparisons');
+comparison = dc.meterComparison(reference, { scope: 'campus', meterIds: ['ENG-PV', 'missing', 'REC-MAIN', 'REC-MAIN', 'LAB-MAIN', 'ADM-MAIN'], window: 'event' });
+assert.deepEqual(Array.from(comparison.rows, r => r.meter.id), ['LIB-MAIN', 'REC-MAIN', 'LAB-MAIN'], 'reject incompatible, duplicate and invalid IDs; cap at three');
+assert.equal(comparison.t0, reference.start); assert.equal(comparison.t1, reference.end);
+const peer = dc.meterById['ENG-MAIN'];
+peer.dq[reference.start] = 2;
+let row = dc.meterComparison(reference).rows[1];
+assert.equal(row.excess, null); assert(row.valid < row.total);
+assert.equal(row.reading(reference.start).quality, 'Stuck');
+peer.actual[reference.start] = null;
+assert.equal(dc.meterComparison(reference).rows[1].reading(reference.start).actual, null);
+assert.equal(dc.meterComparison(reference).rows[1].reading(reference.start).residual, null, 'absent readings are gaps, not zeros');
+peer.unit = 'W'; assert.equal(dc.meterComparison(reference).rows.length, 1, 'unit mismatch excluded');
+assert.deepEqual(Array.from(dc.meterComparison(reference, { meterIds: [] }).rows, r => r.meter.id), ['LIB-MAIN']);
+const pvEvent = dc.D.events.find(e => dc.meterById[e.meter].kind === 'pv');
+const pv = dc.meterComparison(pvEvent, { scope: 'campus' });
+assert(pv.rows.every(r => r.meter.kind === 'pv'));
+const touching = { ...reference, id: 'TEST-TOUCHING', meter: 'LIB-MAIN', start: reference.end, end: reference.end + 1 };
+dc.D.events.push(touching);
+assert(!dc.meterComparison(reference).rows[0].events.some(e => e.id === touching.id), 'half-open touching intervals do not overlap');
+for (const mode of ['demand', 'residual']) assert(dc.comparisonScale(pv, mode).every(Number.isFinite));
+assert.equal(dc.meterComparison({ ...reference, start: 1, end: 2 }).t0, 0);
+assert.equal(dc.meterComparison({ ...reference, start: dc.META.n - 2, end: dc.META.n }).t1, dc.META.n);
+console.log('PASS: related-meter bounds, comparable channels, ID validation/cap, detector/filter/label independence, quality withholding, null gaps, PV separation and half-open overlap.');

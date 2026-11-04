@@ -12,6 +12,7 @@
     }
     const [t0, t1] = DC.range();
     root.append(el("div", { class: "section-head" },
+      el("div", { class: "section-eyebrow", text: "Research & validation" }),
       el("h2", { id: "h-models", text: "Detection Quality" }),
       el("p", { text: "How well each detector finds the injected synthetic events, how often it raises false alarms on normal behaviour, and the evidence behind each threshold. Settings were chosen on a separate development campus and locked before this test." })));
     root.append(el("p", { class: "note-box", text: "Research view: detector comparison metrics describe the full synthetic evaluation run. Time and scope filters affect diagnostic panels, not the comparison denominators. Unmatched detections are evaluation outcomes, not verified operational false alarms." }));
@@ -21,30 +22,37 @@
     // ---------- comparison table ----------
     const ct = ui().card("Detector comparison", `Synthetic test campus · ${L.labels.length} injected events · click a row to switch the dashboard's detector`, { span: 12 });
     grid.append(ct.card);
-    const tbody = el("tbody");
+    const tbody = el("tbody"), settingsBody = el("tbody");
     for (const d of D.detectors) {
       const e = E[d.id], s = e.selection;
       tbody.append(el("tr", { class: d.id === cur ? "selected" : "", tabindex: "0", onkeydown: k => { if (k.key === "Enter") DC.setState({ detector: d.id, selected: null }); }, onclick: () => DC.setState({ detector: d.id, selected: null }) },
         el("td", {}, el("b", { text: d.label }), el("div", { class: "muted", style: { fontSize: "12px" }, text: d.source })),
-        el("td", { class: "mono", text: `${s.score} · FPR ${s.target_fpr} · run ${s.events.min_run} · gap ${s.events.merge_gap} · rel ${s.events.release_threshold_ratio}` }),
         el("td", { class: "num", text: e.test.event_precision.toFixed(2) }),
         el("td", { class: "num", text: e.test.event_recall.toFixed(2) }),
         el("td", { class: "num" }, el("b", { text: e.test.event_f1.toFixed(2) })),
         el("td", { class: "num", text: `${e.test.event_tp} / ${e.test.event_fp} / ${e.test.event_fn}` }),
         el("td", { class: "num", text: e.test.detection_delay == null ? "—" : e.test.detection_delay.toFixed(1) + " h" }),
-        el("td", { class: "num", text: e.false_alerts_per_1000.toFixed(1) }),
+        el("td", { class: "num", text: e.false_alerts_per_1000.toFixed(1) })));
+      settingsBody.append(el("tr", { class: "static" },
+        el("td", { text: d.label }),
+        el("td", { class: "mono", text: `${s.score} · FPR ${s.target_fpr} · run ${s.events.min_run} · gap ${s.events.merge_gap} · rel ${s.events.release_threshold_ratio}` }),
         el("td", { class: "num", text: `${e.normal.false_alerts_per_1000.toFixed(1)}`, title: `target ${(s.target_fpr * 1000).toFixed(0)} per 1,000` }),
         el("td", { class: "num", text: e.auprc == null ? "—" : e.auprc.toFixed(2) }),
         el("td", { class: "num", text: `${e.coverage_80.toFixed(2)} / ${e.coverage_98.toFixed(2)}` })));
     }
-    ct.body.append(el("div", { class: "table-wrap" }, el("table", {},
-      el("thead", {}, el("tr", {}, ["Detector", "Locked settings (chosen on campus-dev)", "Precision", "Recall", "F1", "TP / FP / FN", "Delay", "False alerts /1k", "Normal campus /1k", "AUPRC", "Cov 80 / 98"].map((h, i) => el("th", { class: i > 1 ? "num" : "", text: h })))), tbody)));
+    ct.body.append(el("div", { class: "table-wrap" }, el("table", { "data-detection-summary": "" },
+      el("thead", {}, el("tr", {}, ["Detector", "Precision", "Recall", "F1", "TP / FP / FN", "Delay", "False alerts /1k"].map((h, i) => el("th", { class: i ? "num" : "", text: h })))), tbody)));
     ct.body.append(el("div", { class: "card-foot", text: "Event metrics follow the repo: a detection is correct if it overlaps a label, one detection per label, delay = first overlapping hour − label start. False alerts count raw flagged hours per 1,000 normal hours. 'Normal campus' is a third simulation with no injected events. Coverage should be near 0.80 / 0.98 for a calibrated band." }));
+    ct.body.append(el("details", { class: "disclosure" }, el("summary", { text: "Calibration & additional metrics" }),
+      el("div", { class: "table-wrap" }, el("table", { "data-detection-settings": "" },
+        el("thead", {}, el("tr", {}, ["Detector", "Locked settings (chosen on campus-dev)", "Normal campus /1k", "AUPRC", "Cov 80 / 98"].map(text => el("th", { text })))), settingsBody))));
 
     // ---------- P / R / F1 small multiples ----------
+    const comparisonCharts = [];
     for (const [key, label] of [["event_precision", "Precision"], ["event_recall", "Recall"], ["event_f1", "F1"]]) {
       const c = ui().card(label, "Event-level, synthetic test", { span: 4 });
       grid.append(c.card);
+      comparisonCharts.push(c.card);
       const ch = el("div", { class: "chart" });
       c.body.append(ch);
       requestAnimationFrame(() => DC.charts.hbar(ch, {
@@ -223,6 +231,12 @@
       el("dt", { text: "Splits" }), el("dd", { text: `history ${DC.time.day(0)} · residual scale ${DC.time.day(M.detector_start)} · threshold calibration ${DC.time.day(M.calibration_start)} · evaluation from ${DC.time.day(M.clean_prefix)}` }),
       el("dt", { text: "Selection" }), el("dd", { text: "162 candidates (3 scores × 3 target FPRs × min_run × merge_gap × release) on campus-dev; best event F1 with normal FPR ≤ 2× target" }),
       el("dt", { text: "Built" }), el("dd", { text: `${M.built_at} from ${M.source_repo}` })));
+    for (const [title, cards] of [
+      ["Comparison charts", comparisonCharts],
+      ["Evaluation diagnostics", [pk.card, nc.card, gt.card, ms.card, fp.card, tr.card]],
+      ["Synthetic scenarios", [sg.card]],
+      ["Methodology & provenance", [fb.card, md.card]],
+    ]) grid.append(el("details", { class: "disclosure span-12 analysis-group" }, el("summary", { text: title }), el("div", { class: "grid cols-12" }, cards)));
   }
 
   DC.sections.models = { render };
