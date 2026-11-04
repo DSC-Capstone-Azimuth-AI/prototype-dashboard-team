@@ -4,6 +4,8 @@
   const DC = window.DC, el = DC.el, ui = () => DC.ui;
   DC.sections = DC.sections || {};
 
+  let showEvents = false, diagnosticsOpen = false;
+
   function kpi(label, value, unit, note, hero) {
     return el("div", { class: "card kpi" + (hero ? " hero" : "") },
       el("div", { class: "label", text: label }),
@@ -20,8 +22,8 @@
     const buildings = DC.scopeBuildings();
 
     root.append(el("div", { class: "section-head" },
-      el("h2", { id: "h-overview", text: "Overview & system health" }),
-      el("p", { text: "Current electricity behaviour against the detector's expected baseline, where anomalies are concentrated, and which events to look at first." })));
+      el("h2", { id: "h-overview", text: "Overview" }),
+      el("p", { text: "Understand campus electricity use and choose the next event to review." })));
 
     // ---------- KPIs ----------
     const high = open.filter((e) => e.severity === "critical" || e.severity === "high");
@@ -30,34 +32,42 @@
     let missing = 0, stuck = 0;
     for (const m of meters) for (let t = t0; t < t1; t++) { if (m.dq[t] === 1) missing++; else if (m.dq[t] === 2) stuck++; }
     const excess = DC.sum(open.filter((e) => e.excess_kwh > 0).map((e) => e.excess_kwh));
+    const mains = meters.filter(m => m.kind === "main");
+    const aggregate = ui().scopeSeries(mains);
+    let peak = 0;
+    for (let t = t0; t < t1; t++) peak = Math.max(peak, aggregate.actual(t));
     root.append(el("div", { class: "kpis" },
-      kpi("Active anomalies", DC.fmt.int(open.length), null, `${events.length} detected · ${events.length - open.length} dismissed`, true),
-      kpi("High-priority events", DC.fmt.int(high.length), null, `${high.filter((e) => e.severity === "critical").length} critical · ${high.filter((e) => e.severity === "high").length} high`),
-      kpi("Affected buildings", DC.fmt.int(affected.size), `/ ${buildings.length}`, affected.size ? Array.from(affected).join(", ") : "None in range"),
-      kpi("Meter data completeness", (comp * 100).toFixed(1), "%", `${missing} missing · ${stuck} stuck readings`),
-      kpi("Estimated excess energy", DC.fmt.compact(excess), "kWh", "Open events, above expected baseline")));
+      kpi("Total electricity use", mains.length ? DC.fmt.compact(DC.sum(mains.map(m => DC.energy(m, t0, t1)))) : "Unavailable", "kWh", "Main meters · hourly simulated demand"),
+      kpi("Peak demand", mains.length ? DC.fmt.compact(peak) : "Unavailable", "kW", "Simultaneous main-meter total"),
+      kpi("Events requiring review", DC.fmt.int(open.length), null, `${high.length} high or critical priority`),
+      kpi("Affected buildings", affected.size, null, "Buildings with pending events")));
+    root.append(el("a", { class: "btn primary action-link", href: "#investigate", text: "Review priority events →", onclick: event => { event.preventDefault(); DC.reviewQueue(); } }));
 
     const grid = el("div", { class: "grid cols-12" });
     root.append(grid);
 
     // ---------- Actual vs expected ----------
     const series = ui().scopeSeries(meters);
-    const ts = ui().card("Actual vs. expected consumption", `${series.label} · expected = ${DC.det().label} median forecast`, { span: 8 });
+    const ts = ui().card("Actual vs. expected consumption", `${series.label} · expected = ${DC.det().label} median forecast`, { span: 12 });
     grid.append(ts.card);
+    ts.tools.append(el("label", { class: "muted" }, el("input", { type: "checkbox", checked: showEvents, onchange: event => { showEvents = event.target.checked; render(root); } }), " Show anomaly overlays"));
     const chartEl = el("div", { class: "chart" });
     ts.body.append(chartEl);
-    const typesPresent = DC.TYPES.filter((t) => events.some((e) => e.type === t.id));
+    const typesPresent = DC.TYPES.filter((t) => showEvents && events.some((e) => e.type === t.id));
     const leg = [
       { kind: "line", color: DC.css("--actual"), label: "Measured" },
       { kind: "dash", color: DC.css("--expected"), label: "Expected" },
     ];
     if (series.single) leg.push({ kind: "box", color: DC.css("--band-inner"), label: "80% / 98% forecast band" });
     ts.body.append(ui().legend(leg.concat(typesPresent.map((t) => ({ kind: "type", type: t.id, label: t.label })))));
-    ts.body.append(el("div", { class: "card-foot", text: "Shaded intervals mark sustained events, symbols mark each event's peak. Grey columns are known normal changes (negative controls). Click an event to open it." }));
+    ts.body.append(el("div", { class: "card-foot", text: showEvents ? "Shaded intervals mark sustained events; symbols mark score peaks. Grey windows are synthetic negative controls. Click an event to open it." : "Hourly simulated electricity demand in kW. Enable anomaly overlays for additional context, or open a priority event below." }));
 
     // ---------- Type distribution ----------
     const dist = ui().card("Anomaly type distribution", "Events in the current filters, by primary type", { span: 4 });
-    grid.append(dist.card);
+    const diagnostics = el("details", { class: "disclosure span-12", open: diagnosticsOpen }, el("summary", { text: "System diagnostics: anomaly types & meter heatmap" }), el("div", { class: "grid cols-12" }, dist.card));
+    grid.append(diagnostics);
+    diagnostics.addEventListener("toggle", () => { if (diagnostics.isConnected) diagnosticsOpen = diagnostics.open; });
+    diagnostics.append(el("p", { class: "muted", text: `Meter completeness: ${DC.fmt.pct(comp, 1)} · ${missing} missing / zero samples · ${stuck} stuck samples. Open-event positive excess: ${DC.fmt.kwh(excess)} (whole detected intervals; overlapping detections may double count).` }));
     const distEl = el("div", { class: "chart" });
     dist.body.append(distEl);
     const sevEl = el("div", { class: "chart", style: { marginTop: "10px" } });
@@ -65,7 +75,7 @@
 
     // ---------- Heatmap ----------
     const hm = ui().card("Building / meter anomaly heatmap", "Highest severity per meter and day · grouped by sub-grid · click a cell to open its top event", { span: 12 });
-    grid.append(hm.card);
+    diagnostics.querySelector(".grid").append(hm.card);
     const hmEl = el("div", { class: "chart" });
     hm.body.append(hmEl);
     hm.body.append(ui().legend(DC.SEVERITIES.slice().reverse().map((v) => ({ kind: "box", color: DC.sevColor(v.id), label: v.label })).concat([{ kind: "box", color: DC.css("--surface-3"), label: "No event" }])));
@@ -80,13 +90,13 @@
     const controls = DC.D.normal_controls.map((c) => ({ start: c.start, end: c.end, label: c.name }));
     DC.charts.timeSeries(chartEl, {
       t0, t1, height: 300,
-      shade: controls,
+      shade: showEvents ? controls : [],
       band: series.single ? [{ lo: series.lo, hi: series.hi, color: DC.css("--band") }, { lo: series.lo80, hi: series.hi80, color: DC.css("--band-inner") }] : [],
       series: [
         { get: series.expected, color: DC.css("--expected"), dash: "5 4", width: 1.5 },
         { get: series.actual, color: DC.css("--actual"), width: 1.6 },
       ],
-      intervals: ov.intervals, markers: ov.markers,
+      intervals: showEvents ? ov.intervals : [], markers: showEvents ? ov.markers : [],
       yFormat: (v) => DC.fmt.compact(v) + "",
       ariaLabel: "Measured and expected kW over time with anomaly overlays",
       tooltip: (t, hit) => {
@@ -152,8 +162,14 @@
       ariaLabel: "Heatmap of anomaly severity by meter and day",
     });
 
+    const breakdown = ui().card("Electricity use by building", "Main meters · selected period", { span: 12 });
+    grid.append(breakdown.card);
+    for (const b of buildings) {
+      const m = DC.mainMeter(b.id);
+      breakdown.body.append(el("a", { class: "building-summary", href: "#buildings/" + b.id }, el("span", { text: b.name }), el("b", { text: m ? DC.fmt.kwh(DC.energy(m, t0, t1)) : "No measurements" })));
+    }
     // queue
-    const queue = DC.sortEvents(open, "priority").slice(0, 10);
+    const queue = DC.sortEvents(open, "priority").slice(0, 5);
     if (!queue.length) q.body.append(el("div", { class: "empty", text: "No open events in the current filters." }));
     else {
       const tbody = el("tbody");
@@ -169,7 +185,7 @@
           el("td", {}, DC.statusPill(DC.eventStatus(e)))));
       }
       q.body.append(el("div", { class: "table-wrap" }, el("table", {},
-        el("thead", {}, el("tr", {}, ["Severity", "Score", "Event", "Type", "Start", "Duration", "Excess kWh", "Status"].map((h, i) => el("th", { class: [1, 5, 6].includes(i) ? "num" : "", text: h })))), tbody)));
+        el("thead", {}, el("tr", {}, ["Severity", "Priority", "Event", "Type", "Start", "Duration", "Excess kWh", "Status"].map((h, i) => el("th", { class: [1, 5, 6].includes(i) ? "num" : "", text: h })))), tbody)));
       q.body.append(el("div", { class: "card-foot", text: `Showing ${queue.length} of ${open.length} open events. Priority is operational (deviation, duration, energy); novelty score is kept separate in the event record.` }));
     }
   }

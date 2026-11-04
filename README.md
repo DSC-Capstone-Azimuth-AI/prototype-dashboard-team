@@ -22,17 +22,30 @@ python3 -m http.server 8000   # then visit http://localhost:8000
 
 ## What's in it
 
-| Section | Contents (doc section 6) |
+| Destination | Purpose |
 |---|---|
-| **1 · Overview & system health** | KPIs (active anomalies, high-priority events, affected buildings, meter data completeness, estimated excess energy) · actual vs. expected chart with anomaly overlays and forecast band · meter × day severity heatmap · anomaly type distribution · prioritized queue |
-| **2 · Anomaly investigation** | Sortable event log **and** a SarSim0 Fig. 8–style event gallery (both open the same record) · event record with before/during/after chart, anomaly score vs. threshold, meter status timeline, temperature and occupancy (or irradiance for PV) · data-derived evidence and detector overlap · browser-local review status and notes · explanations · detection details · historical comparison (previous 3 weeks) · magnitude vs. duration scatter |
-| **3 · Building & sub-grid analysis** | Building comparison (consumption, anomaly frequency, excess energy) · building × week frequency/severity heatmap · sub-grid health table · deviation-from-expected heatmap (day × hour) · typical daily profile · peak demand vs. normal operating peak · load decomposition (trend / weekly pattern / residual) · solar generation vs. weather-informed expectation · power-quality placeholder (needs voltage/frequency data) |
-| **4 · Detection model evaluation** | Detector comparison (precision, recall, F1, delay, false alerts, AUPRC, interval coverage) · detection by injected event type · false alarms on normal changes (heat wave, open house, no-anomaly campus) · predicted intervals vs. synthetic ground truth · missed events · false-positive analysis · score/threshold transparency · forecasting backbone results from `docs/results.md` · synthetic scenario gallery · scenario record (generator, seeds, interval) |
+| **Overview** | Four selected-period electricity/review metrics, one actual-versus-expected chart, five priority events, building consumption links. Type/severity charts and meter heatmap remain under System diagnostics. |
+| **Buildings** | Searchable directory with consumption, pending priority, meters and completeness. Open `#buildings/LIB` for a dedicated profile with demand, historical means, simulated channels and linked anomalies. Advanced building/sub-grid analysis retains comparisons, heatmaps, daily profiles, peaks, decomposition and solar views. |
+| **Anomaly Investigation** | Filtered, sortable event list or optional gallery. Every event opens a separate `#investigate/CR-030` detail route: four key facts, highlighted demand chart, evidence, definition and browser-local operator review/notes. Weather, quality, score/threshold, forecast quantiles, detector overlap, synthetic labels, history and scatter remain in disclosures. |
+| **Detection Quality** | Detector comparisons, precision/recall/F1, false-positive analysis, synthetic scenarios, threshold diagnostics and ground-truth comparisons. Comparison metrics describe the complete evaluation run; diagnostic panels retain their existing scope. |
 
-**Shared filters** (time range, sub-grid, building, meter, anomaly type, severity, status,
-detector) apply to every view. Clicking a type bar, severity bar, heatmap cell, building bar
-or feeder row filters or opens events too. The URL hash (`#investigate/CR-030`) links to an
-event record.
+Navigation uses URL hashes and supports browser Back/Forward and detail reloads. Page-specific filter scopes are retained during navigation in the current session. A detail URL identifies its record independently of list filters; returning to the list restores that list's scope. Filter scopes themselves are not serialized across reloads. Unknown record IDs show an explicit unavailable state.
+
+Filters are contextual: Overview exposes time/building; Buildings exposes time and search; the anomaly list exposes date/building/priority/status; Detection Quality exposes detector/time. Additional controls remain in **Advanced filters**. Event details hide list filters. Priority labels are dashboard heuristics, and normalized detector scores are not probabilities of a fault.
+
+Review decisions and notes use localStorage, with no server or training-label synchronization. Explicit Save notes reports storage availability. A review decision does not prove a diagnosis. PR #2’s dataset-scoped review storage and status IDs are retained. Notes from the earlier uncommitted UX version migrate into that same review store for this dataset. Existing status records still load.
+
+### Browser regression checks
+
+Serve the checkout, then run (requires Playwright and Chromium):
+
+```bash
+python3 -m http.server 8000 --bind 127.0.0.1
+node tests/navigation.cjs http://127.0.0.1:8000
+# Optional: SCREENSHOT_DIR=work/screenshots node tests/navigation.cjs
+```
+
+`CHROMIUM_PATH` overrides `/usr/bin/chromium`. Playwright is a test-only dependency; browser users still need no build step or external libraries. The regression covers routing/history/reload, contextual filters, review/notes, peak evidence, all four detectors/destinations, disclosures, missing records/measurements, gallery, dates, theme and 390px layout.
 
 ### Visual encoding
 
@@ -42,7 +55,7 @@ event record.
 - **Measured / expected**: neutral ink so anomalies stand out. Measured is a solid line,
   expected (median forecast) is dashed, with 80% and 98% forecast bands.
 - Isolated events use **point markers**; sustained events use **shaded intervals**.
-- Light and dark themes (follows the OS setting; the toggle remembers your choice).
+- Light and dark themes (light default; the toggle remembers your choice).
 
 ## Data pipeline
 
@@ -58,7 +71,7 @@ data/derconnect-data.js     meters, weather, occupancy, forecasts, events, evalu
 data/synthetic-labels.js    injected ground truth + matches (evaluation only)
 ```
 
-Regenerate (needs `numpy` and `pandas`; torch is not required for the included detectors):
+Regenerate (requires `numpy` and `pandas`; torch is not required for the included detectors):
 
 ```bash
 python3 tools/build_data.py --repo ../chronos2-sarsim0-anomaly-team
@@ -174,9 +187,10 @@ meters at 2-second cadence and 236 submeters; this fixture remains hourly and re
 | REC | RIMAC | [Facility Services](https://facilityservices.ucsd.edu/information/density.html) |
 
 Filter edits clear an excluded selection. Opening a queue/gallery record updates the hash and
-adds browser history. Opening an event outside the current scope explicitly resets conflicting
-filters, as do direct links and history. Direct links and history restore the event's detector and reset conflicting
-filters to the monitoring scope. No event is selected automatically. A research label or contextual
+adds browser history. Dedicated details restore the event's detector and an explicit inclusive
+scope; returning to the list restores its independent list scope. The Overview review action
+seeds that list from the Overview filters and ranks pending events by priority. No event is
+selected automatically. A research label or contextual
 hypothesis never sets a human review state. New records are Unreviewed; explicit legacy browser
 reviews are retained. Annotations use a dataset-scoped localStorage key, with in-memory fallback
 and disclosure if storage fails. Save notes explicitly before changing views. Reviews do not
@@ -195,7 +209,7 @@ with separate overlapping intervals from other detectors. These scores are not c
 probabilities. Exported scores are rounded/capped at 99×; the score plot additionally clips at 6×.
 Exact per-sample alert flags, raw score arrays, actual detection timestamps and operational delay
 are unavailable. Prediction bands are nominal quantiles, not fault confidence. Operator ground-truth
-assessment remains Not evaluated; synthetic matches remain in the research evaluation section.
+assessment remains Not evaluated; synthetic matches are separate research evidence in an advanced disclosure and Detection Quality.
 
 Teaching explanations draw on [Guato Burgos et al. (2024)](https://doi.org/10.3390/app14031194),
 [Lai et al. (2021)](https://datasets-benchmarks-proceedings.neurips.cc/paper/2021/hash/ec5decca5ed3d6b8079e2e7e7bacc9f2-Abstract-round1.html),
@@ -210,6 +224,7 @@ node tests/regression.cjs
 python3 -m http.server 8000 --bind 127.0.0.1
 # In another shell, with Playwright installed and Chromium at /usr/bin/chromium:
 node tests/browser.cjs
+node tests/navigation.cjs
 ```
 
 Optional browser-test environment variables: `DASHBOARD_URL`, `CHROMIUM_PATH`, `SCREENSHOT_DIR`.
@@ -217,5 +232,4 @@ Browser tests do not add a runtime dependency to the dashboard. See DEVELOPMENT_
 actual validation outcomes. The dashboard still requires an adapter for irregular timestamps,
 other sample cadences, optional channels across all views, real meter mappings and producer alert
 flags. Existing time helpers display campus wall time using UTC arithmetic, not a real UTC conversion.
-The model-evaluation section continues to assume this labeled synthetic benchmark; it is not a
-general unlabeled real-data evaluation view.
+Detection Quality displays this labeled synthetic benchmark, with an unavailable state when evaluation evidence or labels are missing; it does not compute unlabeled real-data performance.

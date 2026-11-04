@@ -77,3 +77,18 @@ meter.actual[event.start] = null; assert.equal(ctx.DC.eventFacts(event).excess, 
 ctx = load({ blocked: true }); assert.equal(ctx.DC.statusStore.set('CR-030', 'insufficient', 'kept in memory'), false);
 assert.equal(ctx.DC.statusStore.note('CR-030'), 'kept in memory');
 console.log(`PASS: ${d.buildings.length} buildings, ${d.meters.length} meters, ${d.events.length} events; ${distinctPeaks} distinct score/deviation peak timestamps; filters, units, missing labels, persistence and blocked storage.`);
+
+// Combined-feature regressions: UX notes use PR #2's dataset-scoped store, including migration.
+ctx = load(); dc = ctx.DC;
+storage.set('derconnect.notes.v1.CR-001', 'Note from the uncommitted UX preview');
+assert.equal(dc.notesStore.get('CR-001'), 'Note from the uncommitted UX preview');
+assert.equal(dc.statusStore.note('CR-001'), 'Note from the uncommitted UX preview');
+assert(!storage.has('derconnect.notes.v1.CR-001'));
+assert.equal(dc.notesStore.set('CR-001', ''), true);
+assert.equal(load().DC.notesStore.get('CR-001'), '');
+ctx = load({ blocked: true });
+assert.equal(ctx.DC.notesStore.set('CR-001', 'Memory-only note'), false);
+assert.equal(ctx.DC.notesStore.get('CR-001'), 'Memory-only note');
+const names = JSON.parse(fs.readFileSync(path.join(root, 'tools/building_metadata.json'), 'utf8'));
+for (const b of d.buildings) assert.equal(b.name, names[b.id].name);
+console.log('PASS: verified demonstration labels and combined dataset-scoped review-note migration/fallback.');

@@ -13,8 +13,8 @@
   DC.subgridById = Object.fromEntries(D.subgrids.map((s) => [s.id, s]));
   DC.detectorById = Object.fromEntries(D.detectors.map((d) => [d.id, d]));
   DC.labelById = Object.fromEntries(L.labels.map((l) => [l.label_id, l]));
-  DC.mainMeter = (bId) => DC.meterById[bId + "-MAIN"];
-  DC.pvMeter = (bId) => DC.meterById[bId + "-PV"];
+  DC.mainMeter = (bId) => D.meters.find((m) => m.building === bId && m.kind === "main");
+  DC.pvMeter = (bId) => D.meters.find((m) => m.building === bId && m.kind === "pv");
   DC.meterName = (id) => {
     const m = DC.meterById[id];
     if (!m) return id;
@@ -24,7 +24,7 @@
   const DEFAULT = {
     section: "overview", range: "monitor", t0: M.clean_prefix, t1: M.n,
     subgrid: "all", building: "all", meter: "all", type: "all", severity: "all", status: "all",
-    detector: D.detectors[0].id, selected: null,
+    detector: D.detectors[0].id, selected: null, profile: null, routeId: null,
   };
   DC.DEFAULT = DEFAULT;
   DC.state = Object.assign({}, DEFAULT);
@@ -100,15 +100,12 @@
     subgrid: "all", building: "all", meter: "all", type: "all", severity: "all", status: "all",
     range: "custom", t0: Math.min(M.clean_prefix, ev.start), t1: Math.max(M.n, ev.end), detector: ev.detector,
   });
-  DC.openEvent = (id, go = true) => {
-    const ev = DC.eventById(id);
-    if (!ev) return;
-    const scope = DC.events().some((e) => e.id === id) ? {} : DC.eventScope(ev);
-    const hash = "#investigate/" + encodeURIComponent(id);
-    if (location.hash !== hash) history.pushState(null, "", hash);
-    DC.setState({ ...scope, selected: id, section: "investigate" });
-    if (go) requestAnimationFrame(() => document.getElementById("event-detail")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  DC.navigate = (section, id) => {
+    const hash = "#" + section + (id ? "/" + encodeURIComponent(id) : "");
+    if (location.hash === hash) DC.route(); else location.hash = hash;
   };
+  DC.openEvent = (id) => { if (DC.eventById(id)) DC.navigate("investigate", id); };
+  DC.openBuilding = (id) => { if (DC.buildingById[id]) DC.navigate("buildings", id); };
   // Maximum absolute residual is distinct from maximum detector score.
   DC.eventFacts = (ev) => {
     const m = DC.meterById[ev.meter];

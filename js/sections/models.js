@@ -7,10 +7,14 @@
   function render(root) {
     DC.clear(root);
     const D = DC.D, L = DC.L, E = D.evaluation, cur = DC.state.detector;
+    if (!E || D.detectors.some(d => !E[d.id]) || !L.labels.length) {
+      root.append(el("h2", { id: "h-models", text: "Detection Quality" }), el("p", { class: "empty", text: "Synthetic evaluation evidence is unavailable for this dataset. An unlabeled detection cannot be classified as a false positive." })); return;
+    }
     const [t0, t1] = DC.range();
     root.append(el("div", { class: "section-head" },
-      el("h2", { id: "h-models", text: "Detection model evaluation" }),
+      el("h2", { id: "h-models", text: "Detection Quality" }),
       el("p", { text: "How well each detector finds the injected synthetic events, how often it raises false alarms on normal behaviour, and the evidence behind each threshold. Settings were chosen on a separate development campus and locked before this test." })));
+    root.append(el("p", { class: "note-box", text: "Research view: detector comparison metrics describe the full synthetic evaluation run. Time and scope filters affect diagnostic panels, not the comparison denominators. Unmatched detections are evaluation outcomes, not verified operational false alarms." }));
     const grid = el("div", { class: "grid cols-12" });
     root.append(grid);
 
@@ -20,7 +24,7 @@
     const tbody = el("tbody");
     for (const d of D.detectors) {
       const e = E[d.id], s = e.selection;
-      tbody.append(el("tr", { class: d.id === cur ? "selected" : "", onclick: () => DC.setState({ detector: d.id, selected: null }) },
+      tbody.append(el("tr", { class: d.id === cur ? "selected" : "", tabindex: "0", onkeydown: k => { if (k.key === "Enter") DC.setState({ detector: d.id, selected: null }); }, onclick: () => DC.setState({ detector: d.id, selected: null }) },
         el("td", {}, el("b", { text: d.label }), el("div", { class: "muted", style: { fontSize: "12px" }, text: d.source })),
         el("td", { class: "mono", text: `${s.score} · FPR ${s.target_fpr} · run ${s.events.min_run} · gap ${s.events.merge_gap} · rel ${s.events.release_threshold_ratio}` }),
         el("td", { class: "num", text: e.test.event_precision.toFixed(2) }),

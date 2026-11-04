@@ -30,7 +30,20 @@
     $("#f-from").min = $("#f-to").min = DC.time.isoDate(0);
     $("#f-from").max = $("#f-to").max = DC.time.isoDate(M.n - 1);
     if (b !== s.building || m !== s.meter) DC.setState({ building: b, meter: m }, { silent: true });
+    contextualFilters();
     summary();
+  }
+  function contextualFilters() {
+    const s = DC.state, detail = !!s.routeId;
+    const primary = s.section === "overview" ? ["range", "building"] : s.section === "investigate" ? ["range", "building", "severity", "status"] : s.section === "models" ? ["detector", "range"] : (s.profile ? ["range", "detector"] : ["range"]);
+    const filters = $("#filters");
+    filters.hidden = detail && s.section === "investigate";
+    for (const id of ["range", "subgrid", "building", "meter", "type", "severity", "status", "detector"]) {
+      const node = $("#f-" + id).closest(".filter");
+      (primary.includes(id) ? filters : $("#advanced-filter-body")).append(node);
+    }
+    $("#advanced-filters").hidden = !!s.profile;
+    filters.append($("#advanced-filters"), $("#f-reset"), $("#filter-summary"));
   }
   function rangeFor(v) {
     if (v === "7") return [M.n - 7 * 24, M.n];
@@ -39,7 +52,7 @@
     return [M.clean_prefix, M.n];
   }
   function summary() {
-    const n = DC.events().length;
+    const n = DC.state.profile ? DC.allEvents().filter(e => e.building === DC.state.profile && e.start < DC.state.t1 && DC.state.t0 < e.end).length : DC.events().length;
     const s = DC.state;
     $("#filter-summary").textContent = `${n} event${n === 1 ? "" : "s"} · ${DC.time.day(s.t0)} – ${DC.time.day(s.t1 - 1)} · ${DC.det().label}`;
   }
@@ -65,7 +78,7 @@
     on("#f-severity", (v) => DC.setState({ severity: v }));
     on("#f-status", (v) => DC.setState({ status: v }));
     on("#f-detector", (v) => DC.setState({ detector: v, selected: null }));
-    $("#f-reset").addEventListener("click", () => DC.setState(Object.assign({}, DC.DEFAULT, { section: DC.state.section })));
+    $("#f-reset").addEventListener("click", () => DC.setState(Object.assign({}, DC.DEFAULT, { section: DC.state.section, selected: DC.state.selected, profile: DC.state.profile, routeId: DC.state.routeId })));
   }
 
   // ---------- routing ----------
@@ -80,20 +93,41 @@
     buildFilters();
     const sec = DC.state.section;
     show(sec);
+    if (DC.state.routeId && ((sec === "investigate" && !DC.eventById(DC.state.routeId)) || (sec === "buildings" && !DC.buildingById[DC.state.routeId]))) {
+      DC.clear($("#sec-" + sec)).append(DC.el("h2", { id: "h-" + sec, text: "Record unavailable" }), DC.el("p", { text: "This ID is not in the loaded dataset." }), DC.el("a", { href: "#" + sec, text: "Back to " + (sec === "buildings" ? "buildings" : "anomaly list") })); return;
+    }
     try { DC.sections[sec].render($("#sec-" + sec)); } catch (err) { console.error(err); }
   }
+  const scopes = {};
+  const scopeKeys = ["range", "t0", "t1", "subgrid", "building", "meter", "type", "severity", "status", "detector"];
+  DC.reviewQueue = () => {
+    scopes.investigate = Object.assign({}, DC.DEFAULT, Object.fromEntries(scopeKeys.map(key => [key, DC.state[key]])), { status: "open" });
+    DC.sections.investigate.sortPriority();
+    DC.navigate("investigate");
+  };
   function fromHash() {
-    const [sec, id] = location.hash.replace("#", "").split("/");
-    const patch = { section: SECTIONS.includes(sec) ? sec : "overview", selected: null };
-    if (id && DC.eventById(id)) Object.assign(patch, DC.eventScope(DC.eventById(id)), { selected: id });
+    const [sec, raw] = location.hash.slice(1).split("/");
+    const section = SECTIONS.includes(sec) ? sec : "overview";
+    let id = null;
+    try { id = raw ? decodeURIComponent(raw) : null; } catch (_) { id = raw; }
+    const old = DC.state.section;
+    if (!DC.state.routeId) scopes[old] = Object.fromEntries(scopeKeys.map(k => [k, DC.state[k]]));
+    const patch = Object.assign({}, old !== section || (!id && DC.state.routeId) ? (scopes[section] || DC.DEFAULT) : {}, { section, selected: null, profile: null, routeId: id });
+    if (section === "investigate" && id && DC.eventById(id)) {
+      Object.assign(patch, DC.eventScope(DC.eventById(id)), { selected: id });
+    }
+    if (section === "buildings" && id && DC.buildingById[id]) patch.profile = id;
     DC.setState(patch);
+    window.scrollTo({ top: 0 });
+    $("#main-content").focus({ preventScroll: true });
   }
+  DC.route = fromHash;
 
   // ---------- theme ----------
   function wireTheme() {
     let saved = null;
     try { saved = localStorage.getItem("derconnect.theme"); } catch (e) { /* ignore */ }
-    if (saved) document.documentElement.setAttribute("data-theme", saved);
+    document.documentElement.setAttribute("data-theme", saved || "light");
     $("#theme-toggle").addEventListener("click", () => {
       const cur = document.documentElement.getAttribute("data-theme") ||
         (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
@@ -108,7 +142,7 @@
   function banner() {
     const el = $("#data-banner");
     el.append(
-      DC.el("b", { text: "Synthetic test campus" }),
+      DC.el("b", { text: "Simulated demonstration" }),
       DC.el("span", { text: `${D.buildings.length} buildings · ${D.meters.length} meters · hourly · ${DC.time.day(0)} – ${DC.time.day(M.n - 1)}, 2026` }),
       DC.el("span", { text: `Clean history before ${DC.time.day(M.clean_prefix)} · generator ${M.generator_version}, seed ${M.seed}` }),
       DC.el("span", { class: "muted", text: "Simulated readings, meters, feeders and PV. Real UCSD names are demonstration labels; DERCONNECT coverage is not verified." })
@@ -116,19 +150,14 @@
   }
 
   DC.sections = DC.sections || {};
-  DC.onChange((patch) => {
-    const hash = "#" + DC.state.section + (DC.state.section === "investigate" && DC.state.selected ? "/" + DC.state.selected : "");
-    if (location.hash !== hash) history.replaceState(null, "", hash);
+  DC.onChange(() => {
+    if (DC.state.section === "investigate" && DC.state.routeId && DC.eventById(DC.state.routeId) && !DC.state.selected) {
+      history.replaceState(null, "", "#investigate");
+      fromHash(); return;
+    }
     render();
   });
   window.addEventListener("hashchange", fromHash);
-  document.querySelectorAll(".tabs a").forEach((a) => a.addEventListener("click", (e) => {
-    e.preventDefault();
-    const hash = "#" + a.dataset.section + (a.dataset.section === "investigate" && DC.state.selected ? "/" + DC.state.selected : "");
-    if (location.hash !== hash) history.pushState(null, "", hash);
-    DC.setState({ section: a.dataset.section });
-    window.scrollTo({ top: 0 });
-  }));
   let resizeTimer = null;
   let lastW = window.innerWidth;
   window.addEventListener("resize", () => {
@@ -138,6 +167,9 @@
     resizeTimer = setTimeout(render, 150);
   });
 
+  const advanced = DC.el("details", { id: "advanced-filters" }, DC.el("summary", { text: "Advanced filters" }), DC.el("div", { id: "advanced-filter-body", class: "advanced-filter-body" }));
+  $("#filters").append(advanced);
+  $(".skip-link").addEventListener("click", event => { event.preventDefault(); $("#main-content").focus(); $("#main-content").scrollIntoView(); });
   wireFilters();
   wireTheme();
   banner();

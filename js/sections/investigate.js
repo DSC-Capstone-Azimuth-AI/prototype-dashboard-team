@@ -11,27 +11,29 @@
     DC.clear(root);
     const events = DC.sortEvents(DC.events(), view.sort);
     const selId = DC.state.selected;
-
     root.append(el("div", { class: "section-head" },
-      el("h2", { id: "h-investigate", text: "Anomaly investigation" }),
-      el("p", { text: "Pick an event from the log or the gallery (both open the same record), then compare it against expected behaviour, history, weather and occupancy." })));
+      el("h2", { id: "h-investigate", text: selId ? "Event investigation" : "Anomaly investigation" }),
+      el("p", { text: "Find an event to review, then open its evidence and record your investigation." })));
 
     const grid = el("div", { class: "grid cols-12" });
     root.append(grid);
 
-    // ---------- Log / gallery ----------
-    const lg = ui().card(view.mode === "log" ? "Anomaly event log" : "Anomaly event gallery",
-      view.mode === "log" ? `${events.length} events · click a row to open its record`
-        : "Event-centred panels aligned to onset (after SarSim0 Fig. 8) · measured line, dashed expected baseline, shaded event window", { span: 12 });
-    grid.append(lg.card);
-    const sortSel = el("select", { class: "mini-select", "aria-label": "Sort events", onchange: (e) => { view.sort = e.target.value; render(root); } },
-      SORTS.map(([v, t]) => el("option", { value: v, text: "Sort: " + t, selected: v === view.sort ? true : null })));
-    lg.tools.append(sortSel, ui().segmented([["log", "Log"], ["gallery", "Gallery"]], view.mode, (v) => { view.mode = v; render(root); }, "Event view"));
-    if (view.mode === "gallery") lg.tools.prepend(ui().segmented([["kw", "kW"], ["norm", "Normalized"]], view.scale, (v) => { view.scale = v; render(root); }, "Gallery scale"));
-    if (!events.length) lg.body.append(el("div", { class: "empty", text: "No events match the current filters." }));
-    else if (view.mode === "log") lg.body.append(logTable(events, selId, root));
-    else lg.body.append(gallery(events, selId));
+    if (!selId) {
+      // ---------- Log / gallery ----------
+      const lg = ui().card(view.mode === "log" ? "Anomaly event log" : "Anomaly event gallery",
+        view.mode === "log" ? `${events.length} events · click a row to open its record`
+          : "Event-centred panels aligned to onset (after SarSim0 Fig. 8) · measured line, dashed expected baseline, shaded event window", { span: 12 });
+      grid.append(lg.card);
+      const sortSel = el("select", { class: "mini-select", "aria-label": "Sort events", onchange: (e) => { view.sort = e.target.value; render(root); } },
+        SORTS.map(([v, t]) => el("option", { value: v, text: "Sort: " + t, selected: v === view.sort ? true : null })));
+      lg.tools.append(sortSel, ui().segmented([["log", "Log"], ["gallery", "Gallery"]], view.mode, (v) => { view.mode = v; render(root); }, "Event view"));
+      if (view.mode === "gallery") lg.tools.prepend(ui().segmented([["kw", "kW"], ["norm", "Normalized"]], view.scale, (v) => { view.scale = v; render(root); }, "Gallery scale"));
+      if (!events.length) lg.body.append(el("div", { class: "empty", text: "No events match the current filters." }));
+      else if (view.mode === "log") lg.body.append(logTable(events, selId, root));
+      else lg.body.append(gallery(events, selId));
 
+      return;
+    }
     // ---------- Detail ----------
     const ev = selId ? DC.eventById(selId) : null;
     const detail = ui().card("Event record", ev ? "" : "Select an event", { span: 12, id: "h-detail" });
@@ -44,7 +46,8 @@
     // ---------- Historical comparison + scatter ----------
     const hist = ui().card("Historical comparison", `Same window in the previous three weeks · ${DC.meterName(ev.meter)}`, { span: 6 });
     const sc = ui().card("Magnitude vs. duration", "Short, sharp spikes vs. long sustained events · all events in filters", { span: 6 });
-    grid.append(hist.card, sc.card);
+    const secondary = el("details", { class: "disclosure span-12" }, el("summary", { text: "Historical comparison & event distribution" }), el("div", { class: "grid cols-12" }, hist.card, sc.card));
+    grid.append(secondary);
     const histEl = el("div", { class: "chart" }), scEl = el("div", { class: "chart" });
     hist.body.append(histEl); sc.body.append(scEl);
     drawHistory(histEl, hist.body, ev);
@@ -62,28 +65,26 @@
   function logTable(events, selId, root) {
     const cols = [
       ["Event", null], ["Start", "time"], ["Location", null], ["Type", null], ["Duration", "duration"],
-      ["Severity", "priority"], ["Peak dev.", null], ["Excess kWh", "impact"], ["Novelty", "novelty"], ["Status", null],
+      ["Severity", "priority"], ["Dev. / typical load", null], ["Status", null],
     ];
     const thead = el("thead", {}, el("tr", {}, cols.map(([label, key], i) => {
       const th = el("th", { class: (key ? "sortable " : "") + ([4, 6, 7, 8].includes(i) ? "num" : ""), scope: "col" }, label);
       if (key) {
-        if (view.sort === key) th.append(el("span", { class: "arrow", text: "▼" }));
-        th.addEventListener("click", () => { view.sort = key; render(root); });
+        DC.clear(th).append(el("button", { class: "sort-button", type: "button", text: label + (view.sort === key ? " ▼" : ""), onclick: () => { view.sort = key; render(root); } }));
+        th.setAttribute("aria-sort", view.sort === key ? "descending" : "none");
       }
       return th;
     })));
     const tbody = el("tbody");
     for (const e of events) {
       tbody.append(el("tr", { class: e.id === selId ? "selected" : "", tabindex: "0", "data-id": e.id, onclick: () => DC.openEvent(e.id, false), onkeydown: (k) => k.key === "Enter" && DC.openEvent(e.id, false) },
-        el("td", { class: "mono", text: e.id }),
+        el("td", {}, el("a", { href: "#investigate/" + e.id, text: e.id })),
         el("td", { text: DC.time.short(e.start) }),
         el("td", {}, el("div", { text: DC.buildingById[e.building].name }), el("div", { class: "muted", style: { fontSize: "12px" }, text: `${e.meter} · ${e.subgrid}` })),
         el("td", {}, DC.typeChip(e.type), el("div", { class: "muted", style: { fontSize: "12px", marginTop: "2px" }, text: DC.CATEGORY_LABEL[e.category] })),
         el("td", { class: "num", text: DC.fmt.hours(e.duration_h) }),
         el("td", {}, DC.sevBadge(e.severity), el("span", { class: "muted", style: { marginLeft: "6px" }, text: e.priority.toFixed(0) })),
         el("td", { class: "num", text: DC.fmt.signed(e.peak_dev_pct, "%") }),
-        el("td", { class: "num", text: e.excess_kwh == null ? "n/a" : DC.fmt.int(e.excess_kwh) }),
-        el("td", { class: "num", text: e.novelty.toFixed(1) + "×" }),
         el("td", {}, DC.statusPill(DC.eventStatus(e)))));
     }
     return el("div", { class: "table-wrap tall" }, el("table", {}, thead, tbody));
@@ -149,52 +150,51 @@
           el("span", { class: "chip", text: "Behaviour: " + DC.BEHAVIOR_LABEL[ev.behavior] }),
           el("span", { class: "chip", text: "Operational: " + DC.CATEGORY_LABEL[ev.category] }),
           DC.sevBadge(ev.severity))),
-      el("div", { style: { marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center" } }, el("label", { class: "muted", text: "Status" }), statusSel)));
+      el("div", { style: { marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center" } }, DC.statusPill(status))));
 
+    body.prepend(el("nav", { class: "breadcrumbs", "aria-label": "Breadcrumbs" }, el("a", { href: "#investigate", text: "← Back to anomaly list" }), el("a", { href: "#buildings/" + b.id, text: "View " + b.name })));
+    body.querySelector(".detail-head h3").textContent = DC.CATEGORY_LABEL[ev.category] || DC.typeById[ev.type].label;
+    body.querySelector(".ids").textContent = `${b.name} · ${m.id} · ${DC.time.stamp(ev.start)} → ${DC.time.stamp(ev.end)} (end exclusive)`;
+    const fact = (k, v, note) => el("div", { class: "fact" }, el("div", { class: "k", text: k }), el("div", { class: "v", text: v }), el("div", { class: "muted", text: note || "" }));
     const facts = DC.eventFacts(ev), peak = facts.peak;
-    const note = el("textarea", { id: "review-note", rows: "3", maxlength: "2000", "aria-label": "Review note" });
-    note.value = DC.statusStore.note(ev.id);
-    const saved = el("span", { role: "status", class: "muted" });
-    body.append(el("div", { class: "note-box review-box" },
-      el("label", { for: "review-note", text: "Operator review note (optional)" }), note,
-      el("button", { type: "button", class: "btn", text: "Save note", onclick: () => {
-        const ok = DC.statusStore.set(ev.id, DC.eventStatus(ev), note.value);
-        saved.textContent = ok ? "Saved in this browser." : "Storage unavailable: kept only until this page closes.";
-      } }), saved,
-      el("p", { text: "Review decisions and notes are browser-local and do not synchronize across users. They are operator annotations, not verified ground truth, and do not retrain or calibrate the detector." }),
-      el("p", { text: DC.statusStore.persistent() ? "" : "Browser storage is unavailable; annotations may be lost on reload." })));
-    body.append(el("div", { class: "note-box", text: "Simulated event · Campus wall-time labels (2026); hourly sampling. Meter, feeder, equipment and occupancy associations are synthetic. A statistical anomaly does not establish equipment failure, theft or a cyberattack." }));
-    const fact = (k, v, small) => el("div", { class: "fact" }, el("div", { class: "k", text: k }), el("div", { class: "v" }, v, small ? el("small", { text: " " + small }) : null));
-    const value = (v) => DC.fmt.one(v) + " " + facts.unit;
-    body.append(el("div", { class: "facts" },
-      fact("Building", b.name), fact("Synthetic meter / feeder", ev.meter, ev.subgrid || "Unknown"),
-      fact("Start (inclusive)", DC.time.stamp(ev.start)), fact("End (exclusive)", DC.time.stamp(ev.end)),
-      fact("Duration", DC.fmt.hours(ev.duration_h)),
-      fact("Highest observed reading", facts.observedPeak ? value(facts.observedPeak.actual) : "Unavailable", facts.observedPeak ? `${DC.time.stamp(facts.observedPeak.t)} · expected ${value(DC.q(m.id, "q50", facts.observedPeak.t, ev.detector))}` : ""),
-      fact("Measured at largest deviation", peak ? value(peak.actual) : "Unavailable", peak ? DC.time.stamp(peak.t) + (peak.suspect ? " · suspect meter reading" : "") : "No valid measured / expected pair"),
-      fact("Expected at same timestamp", peak ? value(peak.expected) : "Unavailable"),
-      fact("Largest absolute deviation", peak ? value(Math.abs(peak.residual)) : "Unavailable", peak ? `signed ${DC.fmt.signed(peak.residual)}; ${peak.percent == null ? "percentage unavailable" : DC.fmt.signed(peak.percent, "% of expected")}` : ""),
-      fact("Estimated net excess energy", facts.excess == null ? "Unavailable" : DC.fmt.signed(facts.excess, " kWh"), "Hourly kW residual sum; withheld for missing or suspect readings"),
-      fact("Operational priority", ev.priority.toFixed(0), "/ 100 · heuristic, not probability"),
-      fact("Detection strength", ev.novelty.toFixed(2) + "×", "peak normalized score / threshold; not confidence"),
-      fact("Review status", DC.statusById[status].label), fact("Ground-truth assessment", "Not evaluated", "Research labels are separate from operator review")));
-    body.append(anomalyGuide(ev));
+    const deviationT = peak?.t ?? ev.start, deviation = peak?.residual ?? null;
+    const value = v => DC.fmt.one(v) + " " + facts.unit;
+    body.append(el("div", { class: "facts summary-facts" },
+      fact("Duration", DC.fmt.hours(ev.duration_h), "Hourly samples · [start, end)"),
+      fact("Peak deviation", DC.fmt.signed(deviation, " " + facts.unit), DC.time.stamp(deviationT)),
+      fact("Estimated excess use", facts.excess == null ? "Unavailable" : DC.fmt.signed(facts.excess, " kWh"), "Net hourly residual sum; withheld for missing or suspect readings"),
+      fact("Operational priority", ev.priority.toFixed(0) + " / 100", "Dashboard heuristic; not a fault probability")));
+
+    const physical = el("details", { class: "disclosure" }, el("summary", { text: "Physical evidence & review provenance" }),
+      el("div", { class: "facts" },
+        fact("Highest observed reading", facts.observedPeak ? value(facts.observedPeak.actual) : "Unavailable", facts.observedPeak ? DC.time.stamp(facts.observedPeak.t) : ""),
+        fact("Measured at largest deviation", peak ? value(peak.actual) : "Unavailable", peak ? DC.time.stamp(peak.t) + (peak.suspect ? " · suspect meter reading" : "") : "No valid pair"),
+        fact("Expected at same timestamp", peak ? value(peak.expected) : "Unavailable"),
+        fact("Deviation relative to expected", peak?.percent == null ? "Unavailable" : DC.fmt.signed(peak.percent, "%")),
+        fact("Ground-truth assessment", "Not evaluated", "Synthetic research labels are separate from operator review")),
+      el("p", { class: "muted", text: "Simulated event. Meter, feeder, equipment and occupancy associations are synthetic. A statistical anomaly does not establish equipment failure, theft or a cyberattack." }));
 
     const inner = el("div", { class: "grid cols-12" });
     body.append(inner);
-    const left = el("div", { class: "span-8 stack" }), right = el("div", { class: "span-4 stack" });
+    const left = el("div", { class: "span-12 stack" }), right = el("div", { class: "span-12 stack" });
     inner.append(left, right);
 
     const pad = Math.max(48, Math.min(120, ev.duration_h));
     const t0 = Math.max(DC.META.detector_start, ev.start - pad), t1 = Math.min(DC.META.n, ev.end + pad);
     const mainEl = el("div", { class: "chart" }), scoreEl = el("div", { class: "chart" }), statusEl = el("div", { class: "chart" }), wxEl = el("div", { class: "chart" }), ctxEl = el("div", { class: "chart" });
-    left.append(
-      el("div", { class: "chart-title", text: `Measured vs. expected (kW) · before, during and after` }), mainEl,
-      ui().legend([{ kind: "line", color: DC.css("--actual"), label: "Measured" }, { kind: "dash", color: DC.css("--expected"), label: "Expected (median forecast)" }, { kind: "box", color: DC.css("--band-inner"), label: "80% / 98% band" }, { kind: "type", type: ev.type, label: "This event" }, { kind: "box", color: DC.css("--surface-3"), label: "Other events" }]),
-      el("div", { class: "chart-title", text: `Anomaly score ÷ threshold (${ev.detection.score.replace(/_/g, " ")}) · flagged above 1` }), scoreEl,
-      el("div", { class: "chart-title", text: "Meter status" }), statusEl,
-      el("div", { class: "chart-title", text: "Outdoor temperature (°C)" }), wxEl,
-      el("div", { class: "chart-title", text: m.kind === "pv" ? "Irradiance (W/m²)" : `Occupancy index · ${b.name}` }), ctxEl);
+    const context = el("details", { class: "disclosure" }, el("summary", { text: "Weather, occupancy & meter quality" }));
+    const diagnostics = el("details", { class: "disclosure" }, el("summary", { text: "Advanced technical details" }));
+    const evidence = el("div", { class: "stack" });
+    diagnostics.append(evidence);
+    left.append(el("div", { class: "chart-title", text: "Actual vs. expected electricity demand (kW)" }), mainEl,
+      ui().legend([{ kind: "line", color: DC.css("--actual"), label: "Actual" }, { kind: "dash", color: DC.css("--expected"), label: "Expected" }, { kind: "box", color: DC.css("--band-inner"), label: "80% / 98% forecast bands" }, { kind: "type", type: ev.type, label: "Selected event" }]),
+      el("p", { class: "muted", text: `Highlighted interval: ${DC.time.stamp(ev.start)} → ${DC.time.stamp(ev.end)} (exclusive). Peak deviation ${DC.fmt.signed(deviation, " " + facts.unit)} at ${DC.time.stamp(deviationT)}. Simulated campus wall time; hourly cadence.` }));
+    right.append(el("h3", { text: "Why was this flagged?" }), el("p", { text: `Actual demand departed from the median forecast by up to ${DC.fmt.signed(deviation, " " + facts.unit)} during a ${DC.fmt.hours(ev.duration_h)} ${DC.BEHAVIOR_LABEL[ev.behavior].toLowerCase()} pattern. The exported peak normalized score is ${ev.novelty.toFixed(2)}× the detection threshold. Rounded, capped exported scores do not reconstruct every alert decision.` }),
+      el("h3", { text: "Understanding this anomaly" }), el("p", { text: DC.typeById[ev.type].desc + ". This describes a detected pattern, not a confirmed cause." }),
+      el("p", { text: "Next step: compare operating schedules, meter quality and the available context before recording a review decision." }));
+    context.append(el("div", { class: "chart-title", text: "Meter status" }), statusEl, el("div", { class: "chart-title", text: "Outdoor temperature (°C)" }), wxEl, el("div", { class: "chart-title", text: m.kind === "pv" ? "Irradiance (W/m²)" : "Simulated occupancy index" }), ctxEl);
+    evidence.append(physical);
+    evidence.append(el("div", { class: "chart-title", text: "Normalized anomaly score / threshold (not probability)" }), scoreEl);
 
     // right column: explanations, detection details, ground truth
     const expl = el("ul", { class: "explain" });
@@ -207,7 +207,7 @@
       el("div", { class: "note-box" }, "Explanations are hypotheses from weather, occupancy and schedule context. They are not a confirmed cause."));
 
     const d = ev.detection, det = DC.detectorById[ev.detector];
-    right.append(el("div", { class: "chart-title", text: "Detection details" }), el("dl", { class: "kv" },
+    evidence.append(el("div", { class: "chart-title", text: "Detection details" }), el("dl", { class: "kv" },
       el("dt", { text: "Detector" }), el("dd", { text: det.label }),
       el("dt", { text: "Implementation" }), el("dd", { text: det.source }),
       el("dt", { text: "Baseline" }), el("dd", { text: "Median (q0.50) forecast; band q0.01–q0.99" }),
@@ -220,7 +220,7 @@
     const scoreT = ev.score_peak_t ?? ev.peak_t;
     const actual = DC.actual(ev.meter, scoreT), expected = DC.q(ev.meter, "q50", scoreT, ev.detector);
     const score = DC.q(ev.meter, "score", scoreT, ev.detector);
-    right.prepend(el("div", { class: "chart-title", text: "Why was this flagged?" }),
+    evidence.append(el("div", { class: "chart-title", text: "Why was this flagged?" }),
       el("div", { class: "note-box evidence", text:
         `${det.label} exported this detected interval from ${DC.time.stamp(ev.start)} to ${DC.time.stamp(ev.end)} (${DC.fmt.hours(ev.duration_h)}). ` +
         `At the score peak (${DC.time.stamp(scoreT)}), observed = ${value(actual)}, median expected = ${value(expected)}, residual = ${Number.isFinite(expected) ? DC.fmt.signed(actual - expected) + " " + facts.unit : "unavailable"}. ` +
@@ -228,21 +228,43 @@
         `The displayed sample ratio is ${score == null ? "unavailable" : score.toFixed(2) + "×"}; ${score == null ? "threshold comparison unavailable" : score > 1 ? "above the normalized threshold of 1" : "not above 1 after export rounding"}. ` +
         "Scores are rounded and capped at 99× in the export; exact sample alert flags are unavailable. Grouping may include gaps or readings below threshold. Detection timestamp and operational detection delay are unavailable." }),
       el("div", { class: "note-box", text: "Forecast bands describe prediction uncertainty, not the probability of a fault. Weather and occupancy provide retrospective context; only the context-regression baseline uses them as forecasting inputs. Higher sensitivity may find more issues while increasing alert burden; the appropriate balance depends on operational costs. Review dismissals do not measure precision or recall." }));
-    right.append(el("div", { class: "chart-title", text: "Other detectors on this meter and interval" }),
+    evidence.append(el("div", { class: "chart-title", text: "Other detectors on this meter and interval" }),
       el("ul", {}, DC.detectorOverlap(ev).map(({ detector, events }) => el("li", { text:
         `${detector.label}: ${events.length ? events.map((e) => e.id).join(", ") : "No overlapping detected interval"}` }))),
       el("p", { class: "muted", text: "Overlap compares exported intervals, independent of current filters. Agreement is not fault confirmation; research evaluation is in Detection model evaluation." }));
 
+
+    const match = DC.matchFor(ev.id);
+    const lab = match ? DC.labelById[match.label_id] : null;
+    evidence.append(el("div", { class: "chart-title", text: "Synthetic ground truth (evaluation only)" }),
+      el("div", { class: "note-box" }, lab
+        ? [el("b", { text: `${lab.label_id} · ${DC.LABEL_KIND[lab.kind] || lab.kind}` }), ` injected ${DC.time.short(lab.start)} for ${DC.fmt.hours(lab.end - lab.start)}, magnitude ${DC.fmt.signed(lab.magnitude_kw, " kW")}. Detected after ${match.delay_h} h.`]
+        : [el("b", { text: "No matched evaluation label." }), " No matched evaluation label is available for this record. This alone does not establish a false alarm. Labels never feed detection or priority."]));
+
+    const review = el("section", { class: "review-panel", "aria-label": "Operator review" });
+    const notes = el("textarea", { id: "review-notes", rows: "4", maxlength: "2000", placeholder: "Record evidence, checks and follow-up actions…" });
+    notes.value = DC.notesStore.get(ev.id);
+    const feedback = el("span", { role: "status", class: "muted" });
+    review.append(el("h3", { text: "Operator review" }), el("label", { for: "review-status", text: "Review decision" }), statusSel,
+      el("label", { for: "review-notes", text: "Investigation notes" }), notes,
+      el("button", { class: "btn", type: "button", text: "Save notes", onclick: () => { feedback.textContent = DC.notesStore.set(ev.id, notes.value) ? "Saved in this browser." : "Browser storage unavailable; copy your notes before leaving."; } }), feedback,
+      el("p", { class: "muted", text: "Decisions and notes are stored only in this browser. They are operator annotations, not verified ground truth or model-training labels." }));
+    statusSel.id = "review-status";
+    right.append(anomalyGuide(ev), review, context, diagnostics);
+    review.append(el("p", { class: "muted", text: DC.statusStore.persistent() ? "" : "Browser storage is unavailable; annotations may be lost on reload." }));
+    evidence.append(el("p", { text: "Raw peak score unavailable in this export; normalized scores are rounded and capped at 99×." }), el("p", { text: "Detector overlap: " + DC.D.events.filter(e => e.meter === ev.meter && e.start < ev.end && ev.start < e.end).map(e => e.id + " (" + e.detector + ")").join(", ") }), el("p", { text: "Forecast quantiles at deviation peak: " + ["q01", "q10", "q50", "q90", "q99"].map(k => k + " " + DC.fmt.kw(DC.q(m.id, k, deviationT))).join(" · ") }));
+
+    evidence.append(el("h4", { text: "Baseline configuration & contextual statistics" }),
+      el("pre", { class: "technical-json", text: JSON.stringify({ baseline: det.settings, context: ev.context || null, offhours_share: ev.offhours_share }, null, 2) }));
+
     requestAnimationFrame(() => {
-      const others = DC.allEvents().filter((e) => e.meter === ev.meter && e.id !== ev.id && e.start < t1 && t0 < e.end);
       const ov = ui().overlays([ev], (t) => DC.actual(ev.meter, t), ev.id);
-      const otherIv = others.map((e) => ({ start: e.start, end: e.end, color: DC.css("--muted"), ev: e }));
       DC.charts.timeSeries(mainEl, {
-        t0, t1, height: 250,
+        t0, t1, height: 330,
         band: [{ lo: (t) => DC.q(m.id, "q01", t), hi: (t) => DC.q(m.id, "q99", t), color: DC.css("--band") }, { lo: (t) => DC.q(m.id, "q10", t), hi: (t) => DC.q(m.id, "q90", t), color: DC.css("--band-inner") }],
         series: [{ get: (t) => DC.q(m.id, "q50", t), color: DC.css("--expected"), dash: "5 4", width: 1.5 }, { get: (t) => DC.actual(m.id, t), color: DC.css("--actual"), width: 2 }],
-        intervals: otherIv.concat([{ start: ev.start, end: ev.end, color: DC.typeColor(ev.type), selected: true, ev }]), markers: ov.markers,
         vlines: [{ t: ev.start, label: "Start" }, { t: ev.end, label: "End (exclusive)" }],
+        intervals: [{ start: ev.start, end: ev.end, color: DC.typeColor(ev.type), selected: true, ev }], markers: [{ t: deviationT, v: DC.actual(m.id, deviationT), color: DC.typeColor(ev.type), shape: DC.typeById[ev.type].shape, selected: true, ev }],
         tooltip: (t, hit) => {
           if (hit && hit.ev && hit.ev.id !== ev.id) return ui().eventTooltip(hit.ev);
           const a = DC.actual(m.id, t), e = DC.q(m.id, "q50", t);
@@ -280,22 +302,22 @@
       });
       statusEl.append(ui().legend([{ kind: "box", color: DC.css("--surface-3"), label: "OK" }, { kind: "box", color: DC.css("--sev-critical"), label: "Missing / zero" }, { kind: "box", color: DC.css("--sev-medium"), label: "Stuck value" }]));
       const temp = DC.D.weather?.temp;
-      if (!temp) { wxEl.textContent = "Weather context unavailable."; ctxEl.textContent = "Occupancy / irradiance context unavailable."; return; }
       const tNorm = (t) => { let s = 0, n = 0; for (let k = 1; k <= 14; k++) if (t - 24 * k >= 0) { s += temp[t - 24 * k]; n++; } return n ? s / n : null; };
-      DC.charts.timeSeries(wxEl, {
+      if (temp) DC.charts.timeSeries(wxEl, {
         t0, t1, height: 110, zero: false,
         intervals: ov.intervals.map((iv) => ({ ...iv, selected: false })),
         series: [{ get: tNorm, color: DC.css("--expected"), dash: "4 3", width: 1.3 }, { get: (t) => temp[t], color: DC.css("--t-collective"), width: 1.6 }],
         yFormat: (v) => v.toFixed(0) + "°",
-        tooltip: (t) => ({ title: DC.time.stamp(t), rows: [{ color: DC.css("--t-collective"), value: DC.fmt.one(temp[t]) + " °C", label: "temperature" }, { color: DC.css("--expected"), kind: "dash", value: DC.fmt.one(tNorm(t)) + " °C", label: "14-day same-hour mean" }, { value: DC.fmt.pct(DC.D.weather.cloud?.[t]), label: "cloud cover" }] }),
+        tooltip: (t) => ({ title: DC.time.stamp(t), rows: [{ color: DC.css("--t-collective"), value: DC.fmt.one(temp[t]) + " °C", label: "temperature" }, { color: DC.css("--expected"), kind: "dash", value: DC.fmt.one(tNorm(t)) + " °C", label: "14-day same-hour mean" }, { value: DC.fmt.pct(DC.D.weather?.cloud?.[t]), label: "cloud cover" }] }),
       });
+      if (!temp) wxEl.textContent = "Weather context unavailable.";
       if (m.kind === "pv") {
         const ghi = DC.D.weather?.ghi;
         if (!ghi) { ctxEl.textContent = "Irradiance context unavailable."; return; }
         DC.charts.timeSeries(ctxEl, {
           t0, t1, height: 100, intervals: ov.intervals.map((iv) => ({ ...iv, selected: false })),
           series: [{ get: (t) => ghi[t], color: DC.css("--t-seasonal"), width: 1.6 }],
-          tooltip: (t) => ({ title: DC.time.stamp(t), rows: [{ color: DC.css("--t-seasonal"), value: DC.fmt.int(ghi[t]) + " W/m²", label: "irradiance" }, { value: DC.fmt.pct(DC.D.weather.cloud?.[t]), label: "cloud cover" }] }),
+          tooltip: (t) => ({ title: DC.time.stamp(t), rows: [{ color: DC.css("--t-seasonal"), value: DC.fmt.int(ghi[t]) + " W/m²", label: "irradiance" }, { value: DC.fmt.pct(DC.D.weather?.cloud?.[t]), label: "cloud cover" }] }),
         });
       } else {
         const occ = b.occupancy;
@@ -309,6 +331,24 @@
         });
       }
     });
+  }
+
+  function anomalyGuide(ev) {
+    const rows = [
+      ["Point", "One observation differs sharply from expected behavior; for example, a demand spike lasting one sample."],
+      ["Collective", "A sequence is unusual as a whole, even if individual readings are not extreme; for example, several hours of elevated demand."],
+      ["Contextual", "A reading is unusual in its context; for example, afternoon demand levels occurring overnight."],
+      ["Seasonal / pattern", "A recurring shape changes; for example, weekend demand follows a weekday pattern."],
+      ["Trend / level shift", "Demand drifts or moves to a different sustained level; for example, rising overnight baseline consumption. This prototype does not separately classify trend events."],
+      ["Data integrity", "Readings are missing, stuck or suspect; for example, exactly repeated meter values for many samples. This is a data-quality category."],
+    ];
+    return el("details", { class: "note-box" }, el("summary", { text: `Understand this classification: ${DC.BEHAVIOR_LABEL[ev.behavior] || ev.behavior} behavior · ${DC.CATEGORY_LABEL[ev.category] || ev.category}` }),
+      el("p", { text: "Temporal behavior describes how measurements change over time. Operational categories describe the observed issue, not a proven cause. These teaching examples do not diagnose this event." }),
+      el("dl", { class: "kv" }, rows.flatMap(([name, desc]) => [el("dt", { text: name }), el("dd", { text: desc })])),
+      el("p", {}, "Terminology: ",
+        el("a", { href: "https://doi.org/10.3390/app14031194", text: "Guato Burgos et al. (2024)" }), "; ",
+        el("a", { href: "https://datasets-benchmarks-proceedings.neurips.cc/paper/2021/hash/ec5decca5ed3d6b8079e2e7e7bacc9f2-Abstract-round1.html", text: "Lai et al. (2021)" }), ". Operational evaluation: ",
+        el("a", { href: "https://arxiv.org/abs/2402.10802", text: "Si et al., TimeSeriesBench" }), "."));
   }
 
   function anomalyGuide(ev) {
@@ -346,5 +386,5 @@
     body.append(el("div", { class: "card-foot", text: "A seasonal/pattern anomaly shows as a shape that departs from the earlier weeks; a weather-driven change usually shifts all hours together." }));
   }
 
-  DC.sections.investigate = { render };
+  DC.sections.investigate = { render, sortPriority: () => { view.sort = "priority"; } };
 })();

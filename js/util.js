@@ -57,7 +57,7 @@
   DC.TYPES = [
     { id: "point", label: "Point", shape: "circle", desc: "Sudden isolated spike or drop", viz: "Line chart with highlighted points" },
     { id: "collective", label: "Collective", shape: "square", desc: "Sustained abnormal demand", viz: "Shaded anomaly intervals" },
-    { id: "contextual", label: "Contextual", shape: "diamond", desc: "Normal-looking value, abnormal for its context", viz: "Actual vs expected with weather" },
+    { id: "contextual", label: "Contextual", shape: "diamond", desc: "Electricity use that is unusual for the circumstances, even if that demand would be normal at another time", viz: "Actual vs expected with weather" },
     { id: "seasonal", label: "Seasonal / pattern", shape: "triangle", desc: "Unusual overnight, weekend or shape change", viz: "Historical comparison and heatmap" },
     { id: "peak", label: "Peak demand", shape: "star", desc: "Demand above normal operating peak", viz: "Peak chart with thresholds" },
     { id: "data_integrity", label: "Data integrity", shape: "cross", desc: "Missing, stuck or suspicious readings", viz: "Meter status timeline" },
@@ -200,6 +200,23 @@
       return persistent;
     },
     clear: () => { store = {}; try { localStorage.removeItem(KEY); localStorage.removeItem("derconnect.status.v1"); } catch (e) { persistent = false; } },
+  };
+
+  // Preserve the UX note API while retaining PR #2's dataset-scoped review storage.
+  DC.notesStore = {
+    get: (id) => {
+      const note = DC.statusStore.note(id);
+      if (note) return note;
+      try {
+        const legacy = D.meta.dataset_id === "campus-test-seed-4200000" ? localStorage.getItem("derconnect.notes.v1." + id) : null;
+        if (legacy != null) {
+          if (DC.statusStore.set(id, DC.statusStore.get(id), legacy)) localStorage.removeItem("derconnect.notes.v1." + id);
+          return DC.statusStore.note(id);
+        }
+      } catch (_) { /* Keep in-memory review if storage is unavailable. */ }
+      return note;
+    },
+    set: (id, value) => DC.statusStore.set(id, DC.statusStore.get(id), value),
   };
 
   DC.sum = (a) => a.reduce((s, v) => s + (v || 0), 0);

@@ -434,5 +434,17 @@
     });
   }
 
-  DC.charts = { timeSeries, hbar, heatmap, scatter, timeline, tip, niceTicks };
+  // Hidden disclosures have no layout width. Redraw their charts after opening.
+  const renderers = new WeakMap();
+  const reusable = (draw) => (node, options) => {
+    renderers.set(node, () => draw(node, options));
+    draw(node, options);
+  };
+  document.addEventListener("toggle", (event) => {
+    if (event.target.tagName !== "DETAILS" || !event.target.open) return;
+    requestAnimationFrame(() => event.target.querySelectorAll(".chart").forEach(node => {
+      if (node.getBoundingClientRect().width > 0 && renderers.has(node)) renderers.get(node)();
+    }));
+  }, true);
+  DC.charts = { timeSeries: reusable(timeSeries), hbar: reusable(hbar), heatmap: reusable(heatmap), scatter: reusable(scatter), timeline: reusable(timeline), tip, niceTicks };
 })();
