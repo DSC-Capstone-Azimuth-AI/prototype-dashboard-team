@@ -25,7 +25,7 @@ python3 -m http.server 8000   # then visit http://localhost:8000
 | Section | Contents (doc section 6) |
 |---|---|
 | **1 · Overview & system health** | KPIs (active anomalies, high-priority events, affected buildings, meter data completeness, estimated excess energy) · actual vs. expected chart with anomaly overlays and forecast band · meter × day severity heatmap · anomaly type distribution · prioritized queue |
-| **2 · Anomaly investigation** | Sortable event log **and** a SarSim0 Fig. 8–style event gallery (both open the same record) · event record with before/during/after chart, anomaly score vs. threshold, meter status timeline, temperature and occupancy (or irradiance for PV) · detected / possible explanation / confirmed fault levels · editable investigation status · explanations · detection details · historical comparison (previous 3 weeks) · magnitude vs. duration scatter |
+| **2 · Anomaly investigation** | Sortable event log **and** a SarSim0 Fig. 8–style event gallery (both open the same record) · event record with before/during/after chart, anomaly score vs. threshold, meter status timeline, temperature and occupancy (or irradiance for PV) · data-derived evidence and detector overlap · browser-local review status and notes · explanations · detection details · historical comparison (previous 3 weeks) · magnitude vs. duration scatter |
 | **3 · Building & sub-grid analysis** | Building comparison (consumption, anomaly frequency, excess energy) · building × week frequency/severity heatmap · sub-grid health table · deviation-from-expected heatmap (day × hour) · typical daily profile · peak demand vs. normal operating peak · load decomposition (trend / weekly pattern / residual) · solar generation vs. weather-informed expectation · power-quality placeholder (needs voltage/frequency data) |
 | **4 · Detection model evaluation** | Detector comparison (precision, recall, F1, delay, false alerts, AUPRC, interval coverage) · detection by injected event type · false alarms on normal changes (heat wave, open house, no-anomaly campus) · predicted intervals vs. synthetic ground truth · missed events · false-positive analysis · score/threshold transparency · forecasting backbone results from `docs/results.md` · synthetic scenario gallery · scenario record (generator, seeds, interval) |
 
@@ -58,7 +58,7 @@ data/derconnect-data.js     meters, weather, occupancy, forecasts, events, evalu
 data/synthetic-labels.js    injected ground truth + matches (evaluation only)
 ```
 
-Regenerate (needs only `numpy`; torch is not required for the included detectors):
+Regenerate (needs `numpy` and `pandas`; torch is not required for the included detectors):
 
 ```bash
 python3 tools/build_data.py --repo ../chronos2-sarsim0-anomaly-team
@@ -118,7 +118,8 @@ buildings[] id, name, subgrid, profile, pv_kw, occupancy[n]
 meters[]    id, building, kind ("main"|"pv"), unit, actual[n], dq[n] (0 ok, 1 missing, 2 stuck)
 weather     temp[n], cloud[n], ghi[n]
 detectors[] id, label, source, settings, threshold, series{meterId: {q01,q10,q50,q90,q99,score}}  (from detector_start)
-events[]    id, detector, meter, building, subgrid, start, end, peak_t, type, behavior, category,
+events[]    id, detector, meter, building, subgrid, start, end, peak_t (legacy score peak),
+            score_peak_t, deviation_peak_t, type, behavior, category,
             severity, priority, novelty, peak_actual, peak_expected, peak_dev, excess_kwh,
             explanations[], context{}, detection{}, status
 evaluation  per-detector metrics (only when labels exist)
@@ -141,10 +142,80 @@ tools/build_data.py        data builder that wraps the anomaly team's detector c
 
 ## Notes and limits
 
-- All data is **simulated**. There are 8 fictional buildings and 3 PV arrays; the weather
+- All data is **simulated**. There are 8 real UCSD demonstration building names and 3 simulated PV arrays; the weather
   includes a heat wave and the calendar includes an open house as negative controls.
 - Investigation status is saved in your browser only (localStorage). A shared status would
   need a small backend.
 - Power-quality views are left out until voltage and frequency measurements exist (doc §4).
 - The SarSim0 gallery adapts the *small-multiple layout* of Oreshkin et al. (2026), App. G,
   Fig. 8. Those figures examine simulator coverage, not electrical faults.
+
+## Building labels and investigation (November 3, 2026)
+
+Eight existing synthetic building IDs are retained; no extra buildings or events were added.
+`tools/building_metadata.json` is the independently replaceable display-name/source catalog.
+The builder embeds it in the generated static data, so browser loading remains offline-capable.
+**Real names do not establish DERCONNECT coverage.** Meter IDs, meter relationships, feeder
+assignments, profiles, PV capacities, occupancy, weather, measurements and detections are simulated.
+For example, the York Hall label retains the old RES simulation profile; this does not describe
+York Hall's actual use. No official list of all 24 metered buildings was found in the consulted sources.
+[DERCONNECT capabilities](https://derconnect.ucsd.edu/testers/capabilities) reports 24 building
+meters at 2-second cadence and 236 submeters; this fixture remains hourly and represents eight examples.
+
+| Internal ID | Demonstration name | Official source |
+|---|---|---|
+| ENG | Jacobs Hall | [UCSD Maps](https://m.ucsd.edu/maps/list_nearby_points?ec=1&groupId=35&lat=32.87749&lng=-117.23528&rad=1600) |
+| LIB | Geisel Library | [UCSD Library](https://ucsd.libguides.com/c.php?g=1078052&p=7853974) |
+| LAB | Atkinson Hall | [Qualcomm Institute](https://qi.ucsd.edu/atkinson-hall/) |
+| STU | Price Center | [University Centers](https://universitycenters.ucsd.edu/visit/directory.html) |
+| DCA | San Diego Supercomputer Center | [Facility Services](https://facilityservices.ucsd.edu/information/density.html) |
+| RES | York Hall | [Facility Services](https://facilityservices.ucsd.edu/information/density.html) |
+| ADM | Center Hall | [UCSD Maps](https://m.ucsd.edu/maps/list_nearby_points?ec=1&groupId=35&lat=32.87749&lng=-117.23528&rad=1600) |
+| REC | RIMAC | [Facility Services](https://facilityservices.ucsd.edu/information/density.html) |
+
+Filter edits clear an excluded selection. Opening a queue/gallery record updates the hash and
+adds browser history. Opening an event outside the current scope explicitly resets conflicting
+filters, as do direct links and history. Direct links and history restore the event's detector and reset conflicting
+filters to the monitoring scope. No event is selected automatically. A research label or contextual
+hypothesis never sets a human review state. New records are Unreviewed; explicit legacy browser
+reviews are retained. Annotations use a dataset-scoped localStorage key, with in-memory fallback
+and disclosure if storage fails. Save notes explicitly before changing views. Reviews do not
+synchronize, retrain models, or establish independently verified truth.
+
+The operator record separates highest measured load, largest absolute residual, and peak detector
+score. Physical summaries come from the selected meter's exported series. Percent deviation uses
+expected demand at that timestamp; queue/scatter legacy `peak_dev_pct` remains relative to typical
+clean load and is labeled accordingly. Hourly kW residual sums estimate **net** excess kWh only
+when every sample/baseline is valid and readings have no data-quality flags. Missing/suspect data
+withholds this estimate. The selected chart marks the largest residual in the exported series;
+full-precision builder peaks can differ in ties introduced by export rounding.
+
+The evidence panel shows model, score, raw threshold, normalized ratio and grouping settings,
+with separate overlapping intervals from other detectors. These scores are not calibrated
+probabilities. Exported scores are rounded/capped at 99×; the score plot additionally clips at 6×.
+Exact per-sample alert flags, raw score arrays, actual detection timestamps and operational delay
+are unavailable. Prediction bands are nominal quantiles, not fault confidence. Operator ground-truth
+assessment remains Not evaluated; synthetic matches remain in the research evaluation section.
+
+Teaching explanations draw on [Guato Burgos et al. (2024)](https://doi.org/10.3390/app14031194),
+[Lai et al. (2021)](https://datasets-benchmarks-proceedings.neurips.cc/paper/2021/hash/ec5decca5ed3d6b8079e2e7e7bacc9f2-Abstract-round1.html),
+and [Si et al., TimeSeriesBench](https://arxiv.org/abs/2402.10802).
+Temporal behavior and operational category remain separate. Trend/level shift is educational,
+not a new inferred event class. No threshold controls or unlabeled precision/recall were added.
+
+### Regression checks
+
+```bash
+node tests/regression.cjs
+python3 -m http.server 8000 --bind 127.0.0.1
+# In another shell, with Playwright installed and Chromium at /usr/bin/chromium:
+node tests/browser.cjs
+```
+
+Optional browser-test environment variables: `DASHBOARD_URL`, `CHROMIUM_PATH`, `SCREENSHOT_DIR`.
+Browser tests do not add a runtime dependency to the dashboard. See DEVELOPMENT_LOG.md for
+actual validation outcomes. The dashboard still requires an adapter for irregular timestamps,
+other sample cadences, optional channels across all views, real meter mappings and producer alert
+flags. Existing time helpers display campus wall time using UTC arithmetic, not a real UTC conversion.
+The model-evaluation section continues to assume this labeled synthetic benchmark; it is not a
+general unlabeled real-data evaluation view.

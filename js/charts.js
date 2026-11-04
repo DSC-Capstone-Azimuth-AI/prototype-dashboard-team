@@ -186,6 +186,15 @@
       }
     }
 
+    // Explicit half-open event boundaries, independent of point/interval encoding.
+    for (const line of o.vlines || []) {
+      if (line.t < t0 || line.t >= t1) continue;
+      const px = x(line.t);
+      S("line", { x1: px, x2: px, y1: m.t, y2: m.t + ih, stroke: DC.css("--ink-2"), "stroke-dasharray": "3 3" }, svg);
+      const label = S("text", { x: px + 3, y: m.t + 12, fill: DC.css("--ink-2"), "font-size": 11 }, svg);
+      label.textContent = line.label;
+    }
+
     // lines
     for (const s of o.series || []) {
       let d = "", pen = false;

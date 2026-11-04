@@ -78,12 +78,13 @@
   ];
   DC.sevById = Object.fromEntries(DC.SEVERITIES.map((s) => [s.id, s]));
   DC.STATUSES = [
-    { id: "new", label: "Detected", open: true },
+    { id: "new", label: "Unreviewed", open: true },
     { id: "investigating", label: "Investigating", open: true },
-    { id: "explained", label: "Possible explanation", open: true },
-    { id: "confirmed", label: "Confirmed fault", open: true },
+    { id: "explained", label: "Expected or explained behavior", open: false },
+    { id: "confirmed", label: "Confirmed operational issue", open: true },
     { id: "false_alarm", label: "False alarm", open: false },
-    { id: "resolved", label: "Resolved", open: false },
+    { id: "insufficient", label: "Insufficient evidence", open: true },
+    { id: "resolved", label: "Resolved (legacy review)", open: false },
   ];
   DC.statusById = Object.fromEntries(DC.STATUSES.map((s) => [s.id, s]));
   DC.LABEL_KIND = {
@@ -179,13 +180,26 @@
   DC.statusPill = (id) => DC.el("span", { class: "status " + id }, (DC.statusById[id] || { label: id }).label);
 
   // ---------- local persistence for investigation status (per viewer) ----------
-  const KEY = "derconnect.status.v1";
-  let store = {};
-  try { store = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { store = {}; }
+  const KEY = "derconnect.review.v2." + (D.meta.dataset_id || `${D.meta.generator_version}:${D.meta.seed}:${D.meta.start}`);
+  let store = {}, persistent = true;
+  try {
+    store = JSON.parse(localStorage.getItem(KEY) || "{}") || {};
+    if (typeof store !== "object" || Array.isArray(store)) store = {};
+    // v1 held only explicit browser annotations, never detector-inferred statuses.
+    const legacy = JSON.parse(localStorage.getItem("derconnect.status.v1") || "{}");
+    for (const [id, status] of Object.entries(D.meta.dataset_id === "campus-test-seed-4200000" ? legacy || {} : {})) if (D.events.some((e) => e.id === id) && !store[id] && DC.statusById[status]) store[id] = { status, note: "" };
+  } catch (e) { persistent = false; }
   DC.statusStore = {
-    get: (id, fallback) => store[id] || fallback,
-    set: (id, v) => { store[id] = v; try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) { /* storage unavailable */ } },
-    clear: () => { store = {}; try { localStorage.removeItem(KEY); } catch (e) { /* ignore */ } },
+    get: (id, fallback = "new") => DC.statusById[store[id]?.status] ? store[id].status : fallback,
+    note: (id) => typeof store[id]?.note === "string" ? store[id].note : "",
+    persistent: () => persistent,
+    set: (id, status, note) => {
+      if (!DC.statusById[status]) return false;
+      store[id] = { status, note: note === undefined ? DC.statusStore.note(id) : String(note).slice(0, 2000) };
+      try { localStorage.setItem(KEY, JSON.stringify(store)); persistent = true; } catch (e) { persistent = false; }
+      return persistent;
+    },
+    clear: () => { store = {}; try { localStorage.removeItem(KEY); localStorage.removeItem("derconnect.status.v1"); } catch (e) { persistent = false; } },
   };
 
   DC.sum = (a) => a.reduce((s, v) => s + (v || 0), 0);

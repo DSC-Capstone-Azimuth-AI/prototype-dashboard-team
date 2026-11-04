@@ -32,6 +32,7 @@
   DC.onChange = (fn) => listeners.push(fn);
   DC.setState = (patch, opts = {}) => {
     Object.assign(DC.state, patch);
+    if (DC.state.selected && !DC.events().some((e) => e.id === DC.state.selected)) DC.state.selected = null;
     if (!opts.silent) listeners.forEach((fn) => fn(patch));
   };
 
@@ -42,7 +43,7 @@
     const det = detId ? DC.detectorById[detId] : DC.det();
     const s = det.series[meterId];
     if (!s || t < off) return null;
-    return s[key][t - off];
+    return s[key]?.[t - off] ?? null;
   };
   DC.actual = (meterId, t) => DC.meterById[meterId].actual[t];
 
@@ -65,7 +66,7 @@
 
   // ---------- events ----------
   const CAT_TO_TYPE = { peak_demand: "peak", seasonal_pattern: "seasonal", data_integrity: "data_integrity" };
-  DC.eventStatus = (ev) => DC.statusStore.get(ev.id, ev.status);
+  DC.eventStatus = (ev) => DC.statusStore.get(ev.id, "new");
   DC.matchesType = (ev, type) => type === "all" || ev.type === type || ev.behavior === type || CAT_TO_TYPE[ev.category] === type;
   DC.allEvents = (detId) => D.events.filter((e) => e.detector === (detId || DC.state.detector));
   DC.eventById = (id) => D.events.find((e) => e.id === id) || null;
@@ -94,18 +95,39 @@
     }[key] || ((a, b) => b.priority - a.priority);
     return list.slice().sort(by);
   };
+  // Direct links explicitly restore an event scope; filter edits clear excluded selections.
+  DC.eventScope = (ev) => ({
+    subgrid: "all", building: "all", meter: "all", type: "all", severity: "all", status: "all",
+    range: "custom", t0: Math.min(M.clean_prefix, ev.start), t1: Math.max(M.n, ev.end), detector: ev.detector,
+  });
   DC.openEvent = (id, go = true) => {
     const ev = DC.eventById(id);
     if (!ev) return;
-    DC.setState({ selected: id, ...(go ? { section: "investigate" } : {}) });
-    if (go) {
-      history.replaceState(null, "", "#investigate/" + id);
-      requestAnimationFrame(() => {
-        const d = document.getElementById("event-detail");
-        if (d) d.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-    }
+    const scope = DC.events().some((e) => e.id === id) ? {} : DC.eventScope(ev);
+    const hash = "#investigate/" + encodeURIComponent(id);
+    if (location.hash !== hash) history.pushState(null, "", hash);
+    DC.setState({ ...scope, selected: id, section: "investigate" });
+    if (go) requestAnimationFrame(() => document.getElementById("event-detail")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
+  // Maximum absolute residual is distinct from maximum detector score.
+  DC.eventFacts = (ev) => {
+    const m = DC.meterById[ev.meter];
+    let peak = null, observedPeak = null, excess = 0, valid = m.unit === "kW" && M.sampling_interval === "1h";
+    for (let t = ev.start; t < ev.end; t++) {
+      const actual = m.actual[t], expected = DC.q(m.id, "q50", t, ev.detector);
+      if (Number.isFinite(actual) && (!observedPeak || actual > observedPeak.actual)) observedPeak = { t, actual };
+      if (m.dq?.[t]) valid = false;
+      if (!Number.isFinite(actual) || !Number.isFinite(expected)) { valid = false; continue; }
+      const residual = actual - expected;
+      excess += residual;
+      if (!peak || Math.abs(residual) > Math.abs(peak.residual)) peak = { t, actual, expected, residual,
+        suspect: !!m.dq?.[t], percent: expected > 0 ? residual / expected * 100 : null };
+    }
+    return { peak, observedPeak, excess: valid ? excess : null, unit: m.unit || "unit unavailable" };
+  };
+  DC.detectorOverlap = (ev) => D.detectors.map((det) => ({ detector: det,
+    events: D.events.filter((e) => e.detector === det.id && e.meter === ev.meter && e.start < ev.end && ev.start < e.end),
+  }));
 
   // ---------- ground truth (evaluation only) ----------
   DC.matchFor = (evId, detId) => ((L.matches[detId || DC.state.detector] || {})[evId]) || null;
