@@ -28,13 +28,31 @@
   function segmented(options, value, onChange, label) {
     const box = el("div", { class: "seg", role: "group", "aria-label": label || "" });
     for (const [v, text] of options) {
-      box.append(el("button", { type: "button", "aria-pressed": String(v === value), onclick: () => onChange(v) }, text));
+      box.append(el("button", { type: "button", "data-focus-key": (label || "view") + ":" + v, "aria-pressed": String(v === value), onclick: () => onChange(v) }, text));
     }
     return box;
   }
 
+  // Local controls should keep their focus, disclosure state, draft and scroll position.
+  function refresh(root, draw) {
+    const active = document.activeElement;
+    const identify = node => node.id || node.getAttribute("data-focus-key") || node.getAttribute("aria-label");
+    const key = root.contains(active) ? identify(active) : null;
+    const disclosures = new Map(Array.from(root.querySelectorAll("details"), node => [node.querySelector("summary")?.textContent, node.open]));
+    const drafts = Array.from(root.querySelectorAll("textarea[id]"), node => [node.id, node.value]);
+    const x = window.scrollX, y = window.scrollY;
+    draw();
+    for (const node of root.querySelectorAll("details")) {
+      const name = node.querySelector("summary")?.textContent;
+      if (disclosures.has(name)) node.open = disclosures.get(name);
+    }
+    for (const [id, value] of drafts) { const node = document.getElementById(id); if (node && root.contains(node)) node.value = value; }
+    if (key) Array.from(root.querySelectorAll("button, select, input, textarea, a")).find(node => identify(node) === key)?.focus({ preventScroll: true });
+    window.scrollTo({ left: x, top: y, behavior: "instant" });
+  }
+
   function eventTooltip(ev, extra) {
-    const t = DC.typeById[ev.type];
+    const t = DC.typeById[ev.type] || { label: "Unclassified pattern" };
     const rows = [
       { glyph: ev.type, value: t.label, label: DC.CATEGORY_LABEL[ev.category] || "" },
       { color: DC.css("--actual"), value: DC.fmt.kw(ev.peak_actual), label: "measured at peak" },
@@ -101,5 +119,5 @@
     };
   }
 
-  DC.ui = { card, legend, segmented, eventTooltip, overlays, scopeSeries };
+  DC.ui = { card, legend, segmented, eventTooltip, overlays, scopeSeries, refresh };
 })();

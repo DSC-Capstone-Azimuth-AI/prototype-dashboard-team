@@ -122,9 +122,85 @@
     }
     return { peak, observedPeak, excess: valid ? excess : null, unit: m.unit || "unit unavailable" };
   };
+  // Presentation only: exported classifications and detection decisions stay unchanged.
+  // Quality takes precedence over temporal behavior; seasonal category precedes context.
+  DC.investigationEvidence = (ev) => {
+    const meter = DC.meterById[ev.meter], facts = DC.eventFacts(ev);
+    const quality = { missing: 0, stuck: 0, unavailable: 0, other: 0 };
+    let forecastPairs = 0;
+    for (let t = ev.start; t < ev.end; t++) {
+      const flag = meter.dq?.[t];
+      if (flag === 1) quality.missing++;
+      else if (flag === 2) quality.stuck++;
+      else if (flag) quality.other++;
+      if (!Number.isFinite(meter.actual[t])) quality.unavailable++;
+      if (Number.isFinite(meter.actual[t]) && Number.isFinite(DC.q(meter.id, "q50", t, ev.detector))) forecastPairs++;
+    }
+    const suspect = Object.values(quality).some(n => n > 0);
+    let lens = "general";
+    if (suspect || ev.category === "data_integrity" || ev.type === "data_integrity") lens = "quality";
+    else if (ev.category === "seasonal_pattern" || ev.type === "seasonal") lens = "pattern";
+    else if (ev.behavior === "contextual" || ev.type === "contextual") lens = "context";
+    else if (ev.behavior === "point" || ev.type === "point") lens = "point";
+    else if (ev.behavior === "collective" || ev.type === "collective") lens = "sustained";
+    return { lens, quality, forecastPairs, facts };
+  };
   DC.detectorOverlap = (ev) => D.detectors.map((det) => ({ detector: det,
     events: D.events.filter((e) => e.detector === det.id && e.meter === ev.meter && e.start < ev.end && ev.start < e.end),
   }));
+
+  // Compare observed evidence at the selected detector and event bounds, independent
+  // of list filters and research labels. Only like-for-like channels are eligible.
+  DC.comparisonReading = (meterId, t, detectorId) => {
+    const meter = DC.meterById[meterId];
+    const actual = meter?.actual?.[t], expected = DC.q(meterId, "q50", t, detectorId);
+    const observed = Number.isFinite(actual) ? actual : null;
+    const baseline = Number.isFinite(expected) ? expected : null;
+    const flag = meter?.dq?.[t];
+    return { actual: observed, expected: baseline,
+      residual: observed != null && baseline != null ? observed - baseline : null,
+      quality: flag === 0 && observed != null ? "OK" : flag === 1 ? "Missing / zero" : flag === 2 ? "Stuck" : "Unavailable / suspect" };
+  };
+  DC.meterComparison = (ev, options = {}) => {
+    const source = DC.meterById[ev.meter], scope = options.scope === "campus" ? "campus" : "subgrid";
+    const subgrid = DC.buildingById[source.building]?.subgrid;
+    const candidates = D.meters.filter(m => m.id !== source.id && m.kind === source.kind && m.unit === source.unit && !!m.unit &&
+      ["main", "pv"].includes(m.kind) && (scope === "campus" || (subgrid && DC.buildingById[m.building]?.subgrid === subgrid)))
+      .sort((a, b) => a.id.localeCompare(b.id));
+    const allowed = new Set(candidates.map(m => m.id));
+    const requested = Array.isArray(options.meterIds) ? options.meterIds : candidates.slice(0, 2).map(m => m.id);
+    const ids = [source.id, ...Array.from(new Set(requested)).filter(id => allowed.has(id)).slice(0, 2)];
+    const pad = options.window === "event" ? 0 : 24;
+    const t0 = Math.max(0, ev.start - pad), t1 = Math.min(M.n, ev.end + pad);
+    const total = ev.end - ev.start;
+    const rows = ids.map(id => {
+      const meter = DC.meterById[id], reading = t => DC.comparisonReading(id, t, ev.detector);
+      let pairs = 0, valid = 0, residualSum = 0;
+      for (let t = ev.start; t < ev.end; t++) {
+        const r = reading(t);
+        if (r.residual != null) pairs++;
+        if (r.quality === "OK" && r.residual != null) { valid++; residualSum += r.residual; }
+      }
+      const qualityTimes = [];
+      for (let t = t0; t < t1; t++) if (reading(t).quality !== "OK") qualityTimes.push(t);
+      return { meter, reading, pairs, valid, total, qualityTimes,
+        excess: valid === total && meter.unit === "kW" && M.sampling_interval === "1h" ? residualSum : null,
+        events: DC.allEvents(ev.detector).filter(e => e.meter === id && e.start < ev.end && ev.start < e.end) };
+    });
+    return { candidates, rows, t0, t1, subgrid, scope, detector: DC.detectorById[ev.detector], unit: source.unit || "unit unavailable" };
+  };
+  DC.comparisonScale = (comparison, mode) => {
+    let lo = Infinity, hi = -Infinity;
+    const take = v => { if (Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); } };
+    for (const row of comparison.rows) for (let t = comparison.t0; t < comparison.t1; t++) {
+      const r = row.reading(t);
+      if (mode === "residual") take(r.residual);
+      else { take(r.actual); take(r.expected); take(DC.q(row.meter.id, "q10", t, comparison.detector.id)); take(DC.q(row.meter.id, "q90", t, comparison.detector.id)); }
+    }
+    if (!Number.isFinite(lo)) return [0, 1];
+    if (mode === "residual") { const magnitude = Math.max(1, Math.abs(lo), Math.abs(hi)); return [-magnitude, magnitude]; }
+    return [Math.min(0, lo), Math.max(1, hi)];
+  };
 
   // ---------- ground truth (evaluation only) ----------
   DC.matchFor = (evId, detId) => ((L.matches[detId || DC.state.detector] || {})[evId]) || null;

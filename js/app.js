@@ -82,21 +82,141 @@
   }
 
   // ---------- routing ----------
+  const motionPreference = matchMedia("(prefers-reduced-motion: reduce)");
+  const reducedMotion = () => motionPreference.matches;
+  let sectionScrollPending = null;
+  const tabPressAnimations = new WeakMap();
+  let arrivalAnimation = null;
+  function syncNavigationIndicator(animate = true) {
+    const nav = $(".tabs"), active = nav.querySelector('[aria-current="page"]'), indicator = $("#nav-indicator");
+    if (!active) return;
+    const immediate = !animate || reducedMotion() || !nav.classList.contains("indicator-ready");
+    if (immediate) indicator.style.transition = "none";
+    indicator.hidden = false;
+    indicator.style.width = active.offsetWidth + "px";
+    indicator.style.height = active.offsetHeight + "px";
+    indicator.style.transform = `translate(${active.offsetLeft}px, ${active.offsetTop}px)`;
+    nav.classList.add("indicator-ready");
+    if (immediate) requestAnimationFrame(() => { indicator.style.transition = ""; });
+  }
+  function scrollToSelectedSection() {
+    if (sectionScrollPending !== DC.state.section || DC.state.routeId) return;
+    sectionScrollPending = null;
+    const section = $("#sec-" + DC.state.section), header = $(".app-header");
+    const filters = $("#filters"), landing = filters.hidden ? section : filters;
+    const inset = getComputedStyle(header).position === "sticky" ? header.getBoundingClientRect().height : 0;
+    const top = Math.max(0, window.scrollY + landing.getBoundingClientRect().top - inset - 16);
+    window.scrollTo({ top, behavior: reducedMotion() ? "instant" : "smooth" });
+    $("#main-content").focus({ preventScroll: true });
+    arrivalAnimation?.cancel();
+    if (!reducedMotion() && typeof section.animate === "function") {
+      const head = section.querySelector(".section-head");
+      if (head) arrivalAnimation = head.animate(
+        [{ backgroundColor: DC.css("--accent-wash"), boxShadow: `0 0 0 8px ${DC.css("--accent-wash")}` }, { backgroundColor: "transparent", boxShadow: "0 0 0 8px transparent" }],
+        { duration: 650, easing: "ease-out" });
+    }
+  }
+  $(".tabs").addEventListener("click", event => {
+    const link = event.target.closest("a[data-section]");
+    if (!link || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    if (!reducedMotion() && typeof link.animate === "function") {
+      tabPressAnimations.get(link)?.cancel();
+      tabPressAnimations.set(link, link.animate(
+        [{ transform: "scale(1)" }, { transform: "scale(.97)", offset: .25 }, { transform: "scale(1.02)", offset: .65 }, { transform: "scale(1)" }],
+        { duration: 260, easing: "cubic-bezier(.2,.7,.2,1)" }));
+    }
+    sectionScrollPending = link.dataset.section;
+    if (location.hash === link.getAttribute("href")) scrollToSelectedSection();
+    else DC.navigate(link.dataset.section);
+  });
+  motionPreference.addEventListener("change", event => {
+    if (!event.matches) return;
+    arrivalAnimation?.cancel();
+    for (const link of document.querySelectorAll(".tabs a")) tabPressAnimations.get(link)?.cancel();
+    navigationTransition?.skipTransition();
+    navigationAnimation?.cancel();
+    window.scrollTo({ top: window.scrollY, behavior: "instant" });
+  });
+  if (typeof ResizeObserver === "function") new ResizeObserver(() => syncNavigationIndicator(false)).observe($(".tabs"));
   function show(section) {
     for (const id of SECTIONS) {
       $("#sec-" + id).classList.toggle("active", id === section);
       const a = document.querySelector(`.tabs a[data-section="${id}"]`);
       if (id === section) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
     }
+    syncNavigationIndicator();
   }
-  function render() {
+  let lastRenderRoute = null;
+  let navigationTransition = null, navigationAnimation = null, routeFocusPending = false;
+  function finishRouteNavigation() {
+    if (!routeFocusPending) return;
+    routeFocusPending = false;
+    window.scrollTo({ top: 0, behavior: "instant" });
+    $("#main-content").focus({ preventScroll: true });
+  }
+  function renderContent() {
     buildFilters();
     const sec = DC.state.section;
     show(sec);
     if (DC.state.routeId && ((sec === "investigate" && !DC.eventById(DC.state.routeId)) || (sec === "buildings" && !DC.buildingById[DC.state.routeId]))) {
-      DC.clear($("#sec-" + sec)).append(DC.el("h2", { id: "h-" + sec, text: "Record unavailable" }), DC.el("p", { text: "This ID is not in the loaded dataset." }), DC.el("a", { href: "#" + sec, text: "Back to " + (sec === "buildings" ? "buildings" : "anomaly list") })); return;
+      DC.clear($("#sec-" + sec)).append(DC.el("h2", { id: "h-" + sec, text: "Record unavailable" }), DC.el("p", { text: "This ID is not in the loaded dataset." }), DC.el("a", { href: "#" + sec, text: "Back to " + (sec === "buildings" ? "buildings" : "anomaly list") }));
+      lastRenderRoute = sec + "/" + DC.state.routeId;
+      finishRouteNavigation(); return;
     }
-    try { DC.sections[sec].render($("#sec-" + sec)); } catch (err) { console.error(err); }
+    const route = sec + "/" + (DC.state.routeId || "");
+    const draw = () => DC.sections[sec].render($("#sec-" + sec));
+    try {
+      if (lastRenderRoute === route) DC.ui.refresh($("#sec-" + sec), draw); else draw();
+      lastRenderRoute = route;
+    } catch (err) { console.error(err); }
+    finishRouteNavigation();
+  }
+  function render() {
+    const route = DC.state.section + "/" + (DC.state.routeId || "");
+    const moving = lastRenderRoute != null && lastRenderRoute !== route;
+    navigationTransition?.skipTransition();
+    navigationTransition = null;
+    navigationAnimation?.cancel();
+    navigationAnimation = null;
+    if (!moving) sectionScrollPending = null;
+    if (!moving || reducedMotion()) {
+      renderContent();
+      $("#main-content").removeAttribute("aria-busy");
+      if (moving) scrollToSelectedSection();
+      return;
+    }
+    if (typeof document.startViewTransition === "function") {
+      // Callbacks always read the latest route so rapid clicks cannot restore stale UI.
+      const transition = document.startViewTransition(renderContent);
+      navigationTransition = transition;
+      $("#main-content").setAttribute("aria-busy", "true");
+      transition.ready.catch(() => {}); // A superseding navigation may skip this snapshot.
+      transition.finished.catch(() => {}).finally(() => {
+        if (navigationTransition === transition) {
+          navigationTransition = null;
+          $("#main-content").removeAttribute("aria-busy");
+          scrollToSelectedSection();
+        }
+      });
+    } else {
+      renderContent();
+      const section = $("#sec-" + DC.state.section);
+      if (typeof section.animate === "function") {
+        const animation = section.animate(
+          [{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "translateY(0)" }],
+          { duration: 220, easing: "cubic-bezier(.2,.7,.2,1)" });
+        navigationAnimation = animation;
+        $("#main-content").setAttribute("aria-busy", "true");
+        animation.finished.catch(() => {}).finally(() => {
+          if (navigationAnimation === animation) {
+            navigationAnimation = null;
+            $("#main-content").removeAttribute("aria-busy");
+            scrollToSelectedSection();
+          }
+        });
+      } else scrollToSelectedSection();
+    }
   }
   const scopes = {};
   const scopeKeys = ["range", "t0", "t1", "subgrid", "building", "meter", "type", "severity", "status", "detector"];
@@ -105,11 +225,21 @@
     DC.sections.investigate.sortPriority();
     DC.navigate("investigate");
   };
+  DC.reviewBuildingEvents = id => {
+    if (!DC.buildingById[id]) return;
+    scopes.investigate = Object.assign({}, DC.DEFAULT, {
+      range: DC.state.range, t0: DC.state.t0, t1: DC.state.t1,
+      building: id, detector: DC.state.detector,
+    });
+    DC.sections.investigate.sortPriority();
+    DC.navigate("investigate");
+  };
   function fromHash() {
     const [sec, raw] = location.hash.slice(1).split("/");
     const section = SECTIONS.includes(sec) ? sec : "overview";
     let id = null;
     try { id = raw ? decodeURIComponent(raw) : null; } catch (_) { id = raw; }
+    if (sectionScrollPending !== section || id) sectionScrollPending = null;
     const old = DC.state.section;
     if (!DC.state.routeId) scopes[old] = Object.fromEntries(scopeKeys.map(k => [k, DC.state[k]]));
     const patch = Object.assign({}, old !== section || (!id && DC.state.routeId) ? (scopes[section] || DC.DEFAULT) : {}, { section, selected: null, profile: null, routeId: id });
@@ -117,9 +247,8 @@
       Object.assign(patch, DC.eventScope(DC.eventById(id)), { selected: id });
     }
     if (section === "buildings" && id && DC.buildingById[id]) patch.profile = id;
+    routeFocusPending = true;
     DC.setState(patch);
-    window.scrollTo({ top: 0 });
-    $("#main-content").focus({ preventScroll: true });
   }
   DC.route = fromHash;
 
@@ -142,10 +271,10 @@
   function banner() {
     const el = $("#data-banner");
     el.append(
-      DC.el("b", { text: "Simulated demonstration" }),
-      DC.el("span", { text: `${D.buildings.length} buildings · ${D.meters.length} meters · hourly · ${DC.time.day(0)} – ${DC.time.day(M.n - 1)}, 2026` }),
-      DC.el("span", { text: `Clean history before ${DC.time.day(M.clean_prefix)} · generator ${M.generator_version}, seed ${M.seed}` }),
-      DC.el("span", { class: "muted", text: "Simulated readings, meters, feeders and PV. Real UCSD names are demonstration labels; DERCONNECT coverage is not verified." })
+      DC.el("details", { class: "dataset-details" },
+        DC.el("summary", {}, DC.el("b", { text: "Simulated demonstration" }), DC.el("span", { text: `${D.buildings.length} buildings · ${D.meters.length} meters · hourly · ${DC.time.day(0)} – ${DC.time.day(M.n - 1)}, 2026` })),
+        DC.el("p", { text: "Simulated readings, meters, feeders and PV. Real UCSD names are demonstration labels; DERCONNECT coverage is not verified." }),
+        DC.el("p", { text: `Clean history before ${DC.time.day(M.clean_prefix)} · generator ${M.generator_version}, seed ${M.seed}` }))
     );
   }
 

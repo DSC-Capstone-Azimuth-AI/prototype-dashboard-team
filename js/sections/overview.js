@@ -4,13 +4,36 @@
   const DC = window.DC, el = DC.el, ui = () => DC.ui;
   DC.sections = DC.sections || {};
 
-  let showEvents = false, diagnosticsOpen = false;
+  let showEvents = false, diagnosticsOpen = false, emphasizedMetric = null;
 
-  function kpi(label, value, unit, note, hero) {
-    return el("div", { class: "card kpi" + (hero ? " hero" : "") },
-      el("div", { class: "label", text: label }),
-      el("div", { class: "value" }, value, unit ? el("small", { text: unit }) : null),
-      note ? el("div", { class: "note", text: note }) : null);
+  function metricIcon(kind) {
+    const paths = {
+      review: ["M9 5H5v16h14V5h-4", "M9 3h6v4H9z", "M8 12h8M8 16h5"],
+      priority: ["m12 3 10 18H2L12 3Z", "M12 9v5M12 17h.01"],
+      buildings: ["M3 21h18M5 21V4h10v17M15 10h4v11M8 8h4M8 12h4M8 16h4"],
+      completeness: ["M4 5h16v14H4z", "m8 12 3 3 5-6"],
+    };
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 24 24"); svg.setAttribute("class", "metric-icon");
+    svg.setAttribute("aria-hidden", "true"); svg.setAttribute("focusable", "false");
+    for (const d of paths[kind]) {
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", d); svg.append(path);
+    }
+    return svg;
+  }
+  function kpi(label, value, unit, note, icon) {
+    return el("button", { type: "button", class: "card kpi metric-toggle", "data-metric": icon,
+      "data-focus-key": "overview-metric-" + icon, "aria-pressed": String(emphasizedMetric === icon),
+      onclick: event => {
+        emphasizedMetric = emphasizedMetric === icon ? null : icon;
+        for (const metric of event.currentTarget.parentElement.querySelectorAll(".metric-toggle")) {
+          metric.setAttribute("aria-pressed", String(metric.dataset.metric === emphasizedMetric));
+        }
+      } },
+      el("span", { class: "kpi-heading" }, el("span", { class: "label", text: label }), el("span", { class: "kpi-symbol" }, metricIcon(icon))),
+      el("span", { class: "value" }, value, unit ? el("small", { text: unit }) : null),
+      note ? el("span", { class: "note", text: note }) : null);
   }
 
   function render(root) {
@@ -22,8 +45,9 @@
     const buildings = DC.scopeBuildings();
 
     root.append(el("div", { class: "section-head" },
+      el("div", { class: "section-eyebrow", text: "Campus health" }),
       el("h2", { id: "h-overview", text: "Overview" }),
-      el("p", { text: "Understand campus electricity use and choose the next event to review." })));
+      el("p", { text: "See which buildings need attention, then choose an event to investigate." })));
 
     // ---------- KPIs ----------
     const high = open.filter((e) => e.severity === "critical" || e.severity === "high");
@@ -37,11 +61,11 @@
     let peak = 0;
     for (let t = t0; t < t1; t++) peak = Math.max(peak, aggregate.actual(t));
     root.append(el("div", { class: "kpis" },
-      kpi("Total electricity use", mains.length ? DC.fmt.compact(DC.sum(mains.map(m => DC.energy(m, t0, t1)))) : "Unavailable", "kWh", "Main meters · hourly simulated demand"),
-      kpi("Peak demand", mains.length ? DC.fmt.compact(peak) : "Unavailable", "kW", "Simultaneous main-meter total"),
-      kpi("Events requiring review", DC.fmt.int(open.length), null, `${high.length} high or critical priority`),
-      kpi("Affected buildings", affected.size, null, "Buildings with pending events")));
-    root.append(el("a", { class: "btn primary action-link", href: "#investigate", text: "Review priority events →", onclick: event => { event.preventDefault(); DC.reviewQueue(); } }));
+      kpi("Events requiring review", DC.fmt.int(open.length), null, `${high.length} high or critical priority`, "review"),
+      kpi("High / critical events", high.length, null, "Pending events in this scope", "priority"),
+      kpi("Affected buildings", affected.size, null, "Buildings with pending events", "buildings"),
+      kpi("Meter data completeness", meters.length ? DC.fmt.pct(comp, 1) : "Unavailable", null, `${missing} missing / zero · ${stuck} stuck samples`, "completeness")));
+    const reviewAction = el("a", { class: "btn primary action-link", href: "#investigate", text: "Review priority events →", onclick: event => { event.preventDefault(); DC.reviewQueue(); } });
 
     const grid = el("div", { class: "grid cols-12" });
     root.append(grid);
@@ -50,7 +74,7 @@
     const series = ui().scopeSeries(meters);
     const ts = ui().card("Actual vs. expected consumption", `${series.label} · expected = ${DC.det().label} median forecast`, { span: 12 });
     grid.append(ts.card);
-    ts.tools.append(el("label", { class: "muted" }, el("input", { type: "checkbox", checked: showEvents, onchange: event => { showEvents = event.target.checked; render(root); } }), " Show anomaly overlays"));
+    ts.tools.append(el("label", { class: "muted" }, el("input", { type: "checkbox", "data-focus-key": "overview-overlays", checked: showEvents, onchange: event => { showEvents = event.target.checked; ui().refresh(root, () => render(root)); } }), " Show anomaly overlays"));
     const chartEl = el("div", { class: "chart" });
     ts.body.append(chartEl);
     const typesPresent = DC.TYPES.filter((t) => showEvents && events.some((e) => e.type === t.id));
@@ -60,7 +84,7 @@
     ];
     if (series.single) leg.push({ kind: "box", color: DC.css("--band-inner"), label: "80% / 98% forecast band" });
     ts.body.append(ui().legend(leg.concat(typesPresent.map((t) => ({ kind: "type", type: t.id, label: t.label })))));
-    ts.body.append(el("div", { class: "card-foot", text: showEvents ? "Shaded intervals mark sustained events; symbols mark score peaks. Grey windows are synthetic negative controls. Click an event to open it." : "Hourly simulated electricity demand in kW. Enable anomaly overlays for additional context, or open a priority event below." }));
+    ts.body.append(el("div", { class: "card-foot", text: showEvents ? "Shaded intervals mark sustained events; symbols mark score peaks. Grey windows are synthetic negative controls. Click an event to open it." : "Hourly simulated electricity demand in kW. Enable anomaly overlays for additional context, or choose a priority event from the queue." }));
 
     // ---------- Type distribution ----------
     const dist = ui().card("Anomaly type distribution", "Events in the current filters, by primary type", { span: 4 });
@@ -82,7 +106,9 @@
 
     // ---------- Queue ----------
     const q = ui().card("Prioritized anomaly queue", "Open events ranked by priority (deviation, duration, energy impact)", { span: 12 });
-    grid.append(q.card);
+    q.tools.append(reviewAction);
+    grid.prepend(q.card);
+    ts.body.prepend(el("p", { class: "demand-summary", text: mains.length ? `${DC.fmt.kwh(DC.sum(mains.map(m => DC.energy(m, t0, t1))))} main-meter use · ${DC.fmt.kw(peak)} simultaneous peak · hourly simulated readings` : "Main-meter demand summary unavailable." }));
 
     // draw charts now that containers are attached
     const sel = s.selected;

@@ -267,3 +267,190 @@ Changed files relative to current main: index.html, css/styles.css, js/app.js, j
 - Branch feature/dashboard-ux-navigation; refreshed origin/main and confirmed HEAD equals eeeba564f34bf96a19eb19bb7988a2f97362372f before committing, including merged PR #2. Both main documentation histories and the UX/integration entries remain preserved. No unresolved index entries or unrelated tracked changes. work/ contains local screenshots/scratch artifacts and is excluded from staging.
 - Stage only the 16 feature application/documentation/test files. Preserve data/, tools/, AGENTS.md and js/ui.js unchanged. Recheck regression/syntax/AST, whitespace, documentation and exact staged scope; rely on the preceding successful complete browser/navigation runs because no application code changed for packaging.
 - Associated commit: the commit containing this entry, message feat: add dashboard navigation and focused anomaly investigation. Verify its contents and remote branch SHA after push; report actual results in chat. Push only origin/feature/dashboard-ux-navigation; no merge or push to main. Next step: open a pull request with base main and compare feature/dashboard-ux-navigation.
+
+
+## 2026-11-04 — Anomaly-specific investigation and focused section layout
+
+- Timezone: America/Los_Angeles. Human: requesting team member, selecting the feature and approving the four implementation prompts. AI: OpenAI Codex, audit, implementation, tests, visual inspection and records. Human code/usability review remains pending.
+- Branch `matthew-prototype-feature`; clean base `f2c921055b9fc1481bd539b6ac1b000b1cb90055`. Existing checkout used; no worktree, commit, push, merge or deployment. Earlier conversation requests and approved working prompts are retained in AI_USE.md using its dated heading, verbatim prompt, contribution/validation/limits format.
+- Rationale: align with the feedback recorded in the supplied context by foregrounding evidence appropriate to each anomaly instead of adding more general charts. Shared selector `DC.investigationEvidence` prioritizes quality, then seasonal category, context, point and collective behavior. It selects presentation from existing event fields/readings and never uses evaluation labels or alters detections. Unknown classifications use general evidence. Peak/impact remain unavailable without valid paired data; quality-invalid impact remains withheld.
+- Event details: point view highlights the paired reading/range and uses a shorter window/point encoding; sustained view retains interval/impact emphasis; contextual view opens weather/occupancy evidence before review; seasonal view moves prior-week history to primary evidence; quality view moves the status timeline/counts above demand. All entries still resolve to the same shared event record. Removed one byte-equivalent duplicate classification-guide function; kept the guide/citations. Existing historical causal-sounding text now describes a retrospective comparison.
+- Organization/polish: reordered Overview KPIs and queue while retaining demand/peak summaries; grouped building comparisons, patterns, peaks, decomposition and solar/availability; grouped evaluation charts, diagnostics, scenarios and methodology. Preserved filter-scope conventions, datasets and scientific encodings. Added 160ms transitions with reduced-motion support, consistent controls/focus states and narrow layout refinements. Local redraws preserve current-record drafts, focus, disclosure state and scroll. Save notes is still required before navigation/reload. Fixed the advanced-building focus renderer, missing-irradiance handling and duplicate heading ID. Explicitly disclosed the existing centered decomposition's future observations.
+- Changed files: index.html; css/styles.css; js/app.js, store.js, ui.js; all four js/sections/*.js; tests/regression.cjs; new tests/investigation-views.cjs; README.md; AI_USE.md; DEVELOPMENT_LOG.md. Existing navigation/browser assertions retained unchanged. Data, labels, generator, metadata, instructions and chart primitives are unchanged. No runtime dependency/framework/backend added. Sites skill used for local-only development guidance; hosted operations skipped per approved scope.
+
+Validation environment: Node v24.14.1; Python 3.13.1; Playwright 1.64.1 installed only at /tmp/derconnect-browser-qa; Google Chrome 158.0.8127.18 (macOS), isolated headless sessions at 1440×1000 and 390×844. Static server: `python3 -m http.server 8000 --bind 127.0.0.1`. Sandbox initially denied binding and Chrome launch, and npm initially failed DNS; tool-approved escalated retries succeeded. No checks or assertions were disabled to obtain a pass.
+
+Executed checks during implementation:
+
+```bash
+node tests/regression.cjs
+for file in js/*.js js/sections/*.js data/*.js tests/*.cjs; do node --check "$file" || exit; done
+python3 - <<'CHECK'
+import ast
+from pathlib import Path
+ast.parse(Path('tools/build_data.py').read_text())
+CHECK
+git diff --check
+git diff --exit-code -- data tools AGENTS.md js/charts.js
+NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-qa/navigation node tests/navigation.cjs
+NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-qa/browser node tests/browser.cjs
+NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-qa/views node tests/investigation-views.cjs
+```
+
+Results during implementation: all above checks passed after the documented harness corrections. Selector regressions cover five views, precedence, label independence, unchanged event values, flagged/null readings, missing forecasts and generic fallback. Navigation opened all 161 event routes across four detectors and checked all sections, filters, empty/missing scopes, custom dates, keyboard/history/reload, gallery, status/notes, themes and 390px fit. Existing browser suite checked eight profiles, four detectors, 141 chart instances and evidence/persistence/missing-context/labels paths without page/console errors. Specialized suite checked tailored chart ordering/encoding, missing forecasts/weather/occupancy/irradiance, generic fallback, draft/focus retention, grouped chart redraws, mobile themes, finite SVGs and reduced motion, without page/console errors. Early specialized-suite failures were focus simulation, ambiguous locator and leaked test-only mutations across hash navigations; fixed the harness without dropping coverage. Inspection additionally corrected a generic marker fallback and widened the quality timeline label margin. Final verification after the last source refinements is recorded below.
+
+Screenshots: /tmp/derconnect-qa/{navigation,browser,views}/, with final existing-suite captures under final-navigation/ and final-browser/. Visually inspected desktop point/quality details and mobile dark quality detail. These are temporary QA artifacts, not runtime assets. Full accessibility/screen-reader/user testing, other browsers, real measurements, adapter compatibility, model experiments, data rebuilds and deployment remain unrun. Existing hourly/campus-wall-time assumptions and diagnostic scope conventions remain. Synthetic evidence and operator annotations do not establish a verified fault. Next step: human review of the local feature; no commit exists.
+
+
+Final verification (November 4, 2026, America/Los_Angeles): PASS. `node tests/regression.cjs`, all application/data/test `node --check` commands, builder Python AST parse, `git diff --check`, documentation-history prefix assertions and `git diff --exit-code -- data tools AGENTS.md js/charts.js tests/navigation.cjs tests/browser.cjs` passed. Final existing-suite commands used the same NODE_PATH/CHROMIUM_PATH above with SCREENSHOT_DIR=/tmp/derconnect-qa/final-navigation and /tmp/derconnect-qa/final-browser: navigation passed all 161 routes; browser passed eight profiles/four detectors with 133 chart instances and zero page/console errors, document width 390px at a 390px viewport. After the final missing-forecast/label refinements, `NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-qa/final-views node tests/investigation-views.cjs` passed, including the meter-label bounds assertion, both mobile themes and reduced motion. The chart-instance count varies with disclosure/render timing and is not an acceptance constant. Complete source/test diff and final status inspected. No commit exists; human review remains pending.
+
+
+## 2026-11-04 — Interactive related-meter event comparison
+
+- Timezone: America/Los_Angeles. Human: requesting team member, requesting a useful high-priority feature after clarifying the earlier increment. AI: OpenAI Codex, feature selection, implementation, validation and records. Human review pending. User-authored follow-ups are recorded verbatim in AI_USE.md; no approval or contributor name is invented.
+- Branch `matthew-prototype-feature`, base `f2c921055b9fc1481bd539b6ac1b000b1cb90055`. Prior uncommitted work preserved; starting copies for incremental review under /tmp/derconnect-related-before. No new worktree, branch switch, stash, commit, push, merge or deployment. Interim Git support was read-only plus instructions.
+- Added **Compare related meters →** on each event detail. A lazy panel compares the source meter with at most two same-kind/same-unit peers, scoped to simulated sub-grid or campus. Shared time/vertical domains, demand/deviation modes, event/context windows, synchronized pointer cursor plus keyboard slider, common timestamp readouts, quality markers/gaps, valid paired counts/withheld energy differences and overlapping-detection links provide a new cross-meter investigation workflow. Reference shading does not claim a peer detection. No correlated-cause classification is added.
+- Data scope lives in the store, explicitly using the reference detector and half-open interval, independent of list filters/status and evaluation labels. No measurement/forecast/detection/label outputs changed. Shared charts gain only an optional per-comparison cursor with subscription cleanup on redraw. Local peer choices survive same-event redraws but reset on reload; the event permalink is preserved. Generation/consumption stay separate. Full reliability is required for signed hourly-kW energy sums; null readings/forecasts remain unavailable.
+- Task files: js/store.js, js/charts.js, js/sections/investigate.js, css/styles.css, tests/regression.cjs, new tests/meter-comparison.cjs, README.md, AI_USE.md, DEVELOPMENT_LOG.md. Earlier local changes in other files remain intact. Original browser/navigation test files, generated assets, builder, building metadata and AGENTS.md remain unchanged.
+
+Commands executed (Node v24.14.1, Python 3.13.1, Playwright 1.64.1, Google Chrome 158.0.8127.18 on macOS):
+
+```bash
+python3 -m http.server 8000 --bind 127.0.0.1
+node tests/regression.cjs
+for file in js/*.js js/sections/*.js data/*.js tests/*.cjs; do node --check "$file" || exit; done
+python3 - <<'CHECK'
+from pathlib import Path
+import ast
+ast.parse(Path('tools/build_data.py').read_text())
+CHECK
+git diff --check
+git diff --exit-code -- data tools AGENTS.md tests/navigation.cjs tests/browser.cjs
+NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-comparison-final/new node tests/meter-comparison.cjs
+NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-comparison-final/navigation node tests/navigation.cjs
+NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-comparison-final/browser node tests/browser.cjs
+NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-comparison-final/views node tests/investigation-views.cjs
+NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-comparison-final/screens node tests/meter-comparison.cjs
+```
+
+Results: regression, syntax, Python AST, unchanged-artifact and whitespace checks passed. Four browser suites passed in the final full sweep: new comparison workflow; navigation through all 161 event routes/four detectors/four sections; original browser suite across eight profiles/four detectors (151 chart instances observed); previous five-view investigation suite. Tests exercised readouts against underlying samples, linked cursors/shared scales, controls/modes/windows, peer event links/reload, drafts/status/theme, missing/flagged data/forecasts, empty scopes, PV separation, keyboard, 390px mobile, reduced motion and finite SVG geometry. No observed page/console errors. Desktop 1440×1000; mobile 390×844. Final new-suite rerun changes only the screenshot harness to capture mobile viewports, avoiding sticky-header artifacts from a tall element screenshot; its result and final record-preservation checks are appended below.
+
+Early browser failures: exact accessible names were absent on nested labels (source fixed); Playwright isDisabled did not reflect the option's native disabled property (assertion corrected to native property); a test assumed each detector had a Geisel event (fixture selection corrected to an available main-meter event for each detector). No detector/assertion/integrity/TLS policy was weakened. Intentional `diff -u` review against the snapshot exited 1 because files differ; standalone whitespace checks were subsequently run directly. Approved tool escalation was used for the local server and isolated Chrome. No runtime dependency was added.
+
+Screenshots under /tmp/derconnect-comparison-qa and /tmp/derconnect-comparison-final are temporary QA artifacts. Desktop deviation panel visually inspected; final mobile controls/charts are reviewed before handoff. Prior records remain preserved. No data regeneration, upstream access, real-meter topology validation, training, full accessibility/user review, other browser engine or deployment was performed. Existing hourly/campus-wall-time assumptions remain. Simulated coincidences are evidence to investigate, not a shared-fault diagnosis; absence of overlapping detections does not establish normal operation. Next: human review of CR-030 with same-sub-grid and campus peers. No associated commit exists.
+
+
+Final verification: PASS — all four browser suites and the dependency-free regression suite passed; the final comparison rerun also passed after the screenshot-harness refinement. Visually inspected desktop deviation output and the final mobile dark controls/charts at /tmp/derconnect-comparison-final/screens/demand-mobile-dark-{controls,charts}.png; labels, charts and controls fit the viewport. All application/data/test JavaScript syntax, Python AST, unchanged data/tools/original-browser-test checks, documentation prefix-preservation assertions and git diff --check passed. Full incremental source/test diff and final status reviewed. The owned local server was stopped after QA. No commit, push, merge or deployment was made. Human review remains pending.
+
+
+## 2026-11-04 — Clearer comparison guidance and dashboard visual refinement
+
+- Timezone: America/Los_Angeles. Human: requesting team member, directing the copy/removal/visual changes. AI: OpenAI Codex, implementation, QA and records. User request is recorded verbatim in AI_USE.md using its established dated-entry format. Human review remains pending.
+- Branch `matthew-prototype-feature`; base `f2c921055b9fc1481bd539b6ac1b000b1cb90055`. Prior uncommitted work preserved; incremental starting copies at /tmp/derconnect-polish-before. No commit, push, merge, worktree or deployment.
+- Removed the visible Investigation Focus component and its obsolete styles. Retained scientific evidence beside its charts: point paired-reading/range caption, quality summary/timeline, context and prior-week views. Internal view selection remains unchanged. Comparison panel now explains its purpose in one sentence; action has a short helper. All related-meter interaction/data behavior is retained.
+- Navigation distinguishes Operations from Research, with a code-native SVG energy mark and per-section task labels. Refined sage/neutral surfaces, type hierarchy, spacing, borders and control feedback. Side-by-side event interpretation/review stacks below 1150px. Manager-facing detection copy is shorter; technical score/threshold/export evidence remains in its existing disclosure. Dataset provenance/reference disclosures reduce persistent text while keeping the simulated-data label visible. Added correct dark-button foreground contrast, subtle reduced-motion-aware section/disclosure transitions, and preserved focus/draft behavior. No data, detector or model changes.
+- Task files: index.html; css/styles.css; js/app.js; four js/sections/*.js; tests/investigation-views.cjs; tests/meter-comparison.cjs; README.md; AI_USE.md; DEVELOPMENT_LOG.md. No new task file, framework/backend or runtime dependency. Earlier store/chart/test additions remain intact. Historical focus-box entries are preserved and superseded by this removal record.
+
+Validation environment: Node v24.14.1 / Python 3.13.1 / Playwright 1.64.1 / Google Chrome 158.0.8127.18 (macOS), 1440×1000 desktop and 390×844 mobile. Existing temporary Playwright installation reused; server/isolated headless Chrome launched with approved tool escalation.
+
+```bash
+python3 -m http.server 8000 --bind 127.0.0.1
+node tests/regression.cjs
+for file in js/*.js js/sections/*.js data/*.js tests/*.cjs; do node --check "$file" || exit; done
+python3 - <<'CHECK'
+import ast
+from pathlib import Path
+ast.parse(Path('tools/build_data.py').read_text())
+CHECK
+git diff --check
+git diff --exit-code -- data tools AGENTS.md tests/navigation.cjs tests/browser.cjs
+NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-polish-qa/views node tests/investigation-views.cjs
+NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-polish-qa/comparison node tests/meter-comparison.cjs
+NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-polish-qa/navigation node tests/navigation.cjs
+NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-polish-qa/browser node tests/browser.cjs
+NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-polish-qa/final node tests/investigation-views.cjs
+```
+
+Results: dependency-free regression/syntax/AST/whitespace/unchanged-artifact checks passed. All four browser suites passed without page/console errors. Navigation exercised all 161 event routes across four detectors and all sections, filters/empty scopes, keyboard/history/reload, review/theme and mobile. Original browser suite checked eight profiles/four detectors and 152 chart instances (observation, not a constant); 390px document fit passed. Investigation coverage retains all evidence/fallback/missing-context/draft cases and now asserts no visible focus component, preserved point/quality evidence, keyboard dataset/reference disclosures, desktop/mobile interpretation-review placement, both-theme primary-button contrast ≥4.5:1 and reduced motion. Comparison suite retains real linked pointer/keyboard cursors/readouts, scope/modes/windows, peer drill-down, labels/quality/unit/PV boundaries, themes and mobile, adding the purpose-copy assertion. No assertion was disabled to obtain a pass. Final investigation rerun after minor visual refinements and final record preservation checks are appended below.
+
+Visual QA: inspected desktop Overview and sustained-event page, plus mobile dark quality-event output; navigation, chart space and stacked/two-column review layouts are readable. Stable final Overview/Buildings/event captures are under /tmp/derconnect-polish-qa/final; these are temporary QA assets. No formal human usability/accessibility review, other browser engine, real measurements/adapters, model experiments/regeneration or deployment. Existing synthetic/hourly/wall-time assumptions remain. Next: human review of the local changes. Associated commit: none.
+
+
+Final verification: PASS — the final investigation-suite rerun passed after the visual refinements, including removed-focus/preserved-evidence assertions, purpose copy, keyboard provenance/reference access, two-column/stacked review layouts, ≥4.5:1 button contrast in both themes and reduced motion. Other comparison/navigation/browser suites and dependency-free regressions passed; no page/console errors were observed. Stable final Overview and event screenshots were inspected, and earlier documentation prefixes were verified intact. A final low-impact Overview caption correction removes an obsolete “below” direction for the priority queue; no application logic changed after the successful browser sweep. Syntax/AST/unchanged-artifact/whitespace checks and final diff/status review passed. Temporary screenshots remain under /tmp/derconnect-polish-qa. The owned QA server was stopped. No commit, push, merge or deployment was made; human review remains pending.
+
+
+## 2026-11-04 — Unified navigation, smooth route transitions and anomaly-first page flow
+
+- Timezone: America/Los_Angeles. Human: requesting team member, directing unified navigation, smooth switching and intuitive anomaly-centered content. AI: OpenAI Codex. Human review pending.
+- Branch `matthew-prototype-feature`, base `f2c921055b9fc1481bd539b6ac1b000b1cb90055`; previous local work preserved. Starting copies at /tmp/derconnect-navigation-before. No worktree, commit, push, merge or deployment.
+- Unified all four navigation entries. Added native workspace/filter View Transitions (120–260ms), a 220ms Web Animations fallback, reduced-motion bypass, rapid-navigation supersession and promise handling for skipped snapshots. Latest-state rendering prevents stale routes. Scroll/focus commit after route rendering so outgoing snapshots retain their prior reading position. Same-page controls retain immediate refresh and draft/focus behavior; invalid records settle correctly.
+- Overview's action now belongs to the queue. Building cards foreground pending events; profiles show review/high-priority/quality metrics and at most six event links before demand/history. Pending events precede reviewed events, retaining operational-priority ordering in each group. Full building-event review carries building/detector/time scope through existing routing/history. Peak/consumption context remains. Event-list/detail guidance is task-specific. Detector comparison has seven primary columns and an expandable five-column settings/calibration table with unchanged values and caveats.
+- Task files: index.html; css/styles.css; js/app.js; four js/sections/*.js; tests/investigation-views.cjs; tests/browser.cjs; new tests/section-navigation.cjs; README.md; AI_USE.md; DEVELOPMENT_LOG.md. Existing chart/store/comparison changes retained. Measurements, forecasts, labels, detectors, priority/severity and builder unchanged; no runtime dependency added.
+
+Validation environment: Node v24.14.1 / Python 3.13.1 / Playwright 1.64.1 / Google Chrome 158.0.8127.18 (macOS), isolated 1440×1000 and 390×844 sessions. Existing temporary QA installation reused. Server and browser launched through approved tool escalation.
+
+```bash
+python3 -m http.server 8000 --bind 127.0.0.1
+node tests/regression.cjs
+for file in js/*.js js/sections/*.js data/*.js tests/*.cjs; do node --check "$file" || exit; done
+python3 - <<'CHECK'
+import ast
+from pathlib import Path
+ast.parse(Path('tools/build_data.py').read_text())
+CHECK
+git diff --check
+git diff --exit-code -- data tools AGENTS.md
+NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-navigation-qa/new node tests/section-navigation.cjs
+NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-navigation-qa/views node tests/investigation-views.cjs
+NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-navigation-qa/comparison node tests/meter-comparison.cjs
+NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-navigation-qa/navigation node tests/navigation.cjs
+NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-navigation-qa/browser node tests/browser.cjs
+```
+
+Results: all six suites/check groups passed, including the new routing suite and all prior browser suites. New coverage verifies native use, skipped/rapid route settlement, single active destination, keyboard focus, unchanged local-control/draft behavior, building event preview/order, full-list scope/back/forward, expanded settings values, mobile, reduced motion and the no-native-API fallback. Navigation opened all 161 event routes with all four detectors/sections. Browser suite verified eight building profiles/four detectors and 175 chart instances (observation, not a fixed criterion); 390px document fit passed. No page/console errors in successful runs. Syntax, AST, unchanged data/tools/instructions and whitespace checks passed.
+
+Initial failures: new test selected an existing hidden Overview link (locator scoped to the visible Buildings section); original browser test checked record removal before asynchronous navigation completed (added explicit detachment wait, retained assertion). Scroll/focus was moved into rendered-route completion during implementation. No assertions or security/integrity checks were disabled. Visual inspection covered anomaly-first building profile and compact/expanded detector tables; screenshots remain temporary under /tmp/derconnect-navigation-qa.
+
+Limits: fallback tested in Chrome with the native API absent, not a second engine. No formal human/accessibility/screen-reader study, real data/model validation, regeneration or deployment. Existing synthetic/hourly/wall-time assumptions and browser-local annotations remain. The full event list remains available beyond the six-event preview. Next: human review of navigation motion and anomaly investigation flows. No associated commit exists.
+
+
+Final verification: PASS — all six regression/browser suites passed, including native/fallback/reduced-motion navigation, rapid route supersession, building-event scope/history, preserved calibration values, all 161 event routes, four detectors, mobile and existing investigation/comparison/persistence cases. No page/console errors were observed in successful runs. Source/test syntax, Python AST, unchanged data/tools/instructions, documentation-prefix preservation and git diff --check passed. Incremental source/test diff and final status reviewed; building-profile and detector-comparison screenshots inspected. The owned QA server was stopped. No commit, push, merge or deployment was made. Human review remains pending.
+
+
+## 2026-11-04 — Interactive navigation, visible filters and Overview metric emphasis
+
+- Timezone: America/Los_Angeles. Human: requesting team member, specifying icons, subtle tab feedback, filter visibility, selectable metrics and compact prompt records. AI: OpenAI Codex. Human code/usability review pending.
+- Branch `matthew-prototype-feature`, base `f2c921055b9fc1481bd539b6ac1b000b1cb90055`; earlier local work preserved. Starting copies at `/tmp/derconnect-icons-before`. No associated commit, push, merge or deployment.
+- Added inline SVG tab/Overview icons, restrained press feedback, responsive sliding active highlight and brief heading emphasis. Clicking a section lands at its filters, accounting for the mobile sticky header. Re-selecting the active tab scrolls back without resetting filters or rerendering. Rapid changes cancel superseded animations; reduced motion disables/cancels motion.
+- Overview metrics now support mouse and native Enter/Space selection with `aria-pressed`. One card has an accent border/top stripe, background and value emphasis; selecting it again clears it. Selection survives current-session redraws/navigation and resets on reload. Filters, calculations and event state are unchanged by selecting a metric.
+- Files: index.html; css/styles.css; js/app.js; js/sections/overview.js; tests/section-navigation.cjs; tests/browser.cjs; README.md; AI_USE.md; DEVELOPMENT_LOG.md. Earlier files/features retained; no generated data/labels, algorithms, builder, dependencies or architecture changes.
+
+Validation environment: Node v24.14.1 / Python 3.13.1 / Playwright 1.64.1 / Google Chrome 158.0.8127.18 on macOS. Isolated headless desktop 1440×1000 and mobile 390×844; existing temporary QA dependencies reused. Browser execution used approved escalation. Reused the owned local server; an additional start attempt reported port 8000 already occupied.
+
+```bash
+python3 -m http.server 8000 --bind 127.0.0.1
+node tests/regression.cjs
+for file in js/*.js js/sections/*.js data/*.js tests/*.cjs; do node --check "$file" || exit; done
+python3 -c "import ast; from pathlib import Path; ast.parse(Path('tools/build_data.py').read_text()); print('Python AST PASS')"
+git diff --check
+git diff --exit-code -- data tools AGENTS.md
+NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-icons-qa/final node tests/section-navigation.cjs
+NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-icons-qa/views node tests/investigation-views.cjs
+NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-icons-qa/comparison node tests/meter-comparison.cjs
+NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-icons-qa/navigation node tests/navigation.cjs
+NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-icons-qa/browser node tests/browser.cjs
+```
+
+Results: all six regression/browser suites passed. Section-navigation asserts four tab icons/four Overview icons, active-indicator geometry, actual filter visibility after navigation on desktop/mobile and native/fallback/reduced-motion paths, smooth/same-tab scrolling, rapid routing and reduced-motion suppression. Metric checks cover mouse/Enter/Space toggling, exclusivity, stable values/shared state, retained selection through redraws/navigation and no reduced-motion animation. Existing building-event scope/history, drafts and calibration checks remain. Other suites covered five investigation views, comparison cursors/readouts/missing data/PV separation, all 161 event routes/four detectors/four sections, eight building profiles, persistence, missing labels/context and 390px document fit. Browser suite observed 218 chart/SVG instances, not a fixed acceptance count. No page/console errors in successful runs.
+
+One existing browser test initially read the prior building-list title because its 50ms route wait ended before native transition rendering. Replaced the fixed delay with active-section/render-completion checks, keeping original assertions. Rerunning the browser suite passed. Earlier icons-only runs also passed before later filter/metric requests; final results above cover the full current implementation. No assertion was disabled. Syntax, Python AST, whitespace and unchanged-data/tools/instructions checks passed. Incremental diff/status reviewed; final Overview desktop/mobile screenshots visually inspected under `/tmp/derconnect-icons-qa/final`.
+
+Limits: no formal accessibility/screen-reader/user study, second engine, real-data/model validation, regeneration or deployment. Native fallback tested by disabling its API in Chrome. Existing synthetic/hourly/wall-time/browser-local assumptions remain. Next: human review of metric emphasis and section navigation before a commit.
+
+
+Final verification: PASS — all six regression/browser suites passed, with no page/console errors in successful runs. Desktop/mobile Overview captures were inspected. Source/test syntax, Python AST, unchanged artifacts, whitespace, previous-record preservation and incremental diff/status checks passed. No commit, push, merge or deployment; human review pending.
+
+
+## 2026-11-04 — Documentation clarity
+
+Human: requesting team member. AI: OpenAI Codex. Refined wording in `AI_USE.md` and `DEVELOPMENT_LOG.md` to keep prompts and technical records clear. Branch `matthew-prototype-feature`, base `f2c921055b9fc1481bd539b6ac1b000b1cb90055`; existing local work retained. Checks: incremental documentation diff reviewed, targeted text searches completed, `git diff --check` passed. Documentation only; no application tests rerun. Human review pending; no associated commit. Next: review the documentation wording.
