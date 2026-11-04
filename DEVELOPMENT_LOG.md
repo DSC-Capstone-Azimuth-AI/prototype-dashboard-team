@@ -177,3 +177,93 @@ Human review and real DERCONNECT integration remain pending. No official 24-buil
 - Verified the complete original implementation prompt verbatim against the uploaded file in AI_USE.md and reviewed the development record. Appended this follow-up request and authorization without rewriting historical entries.
 - Repeated `node tests/regression.cjs` (PASS: 8 buildings, 11 meters, 161 events); all JS/CJS syntax checks and `git diff --check` passed. Earlier browser and builder validation remain recorded above; not rerun for this packaging-only follow-up.
 - Stage only the 16 documented feature files, verify the staged path allowlist and whitespace, commit with the requested message, then push `origin/feature/building-investigation`. Associated commit is the one containing this entry; exact hash and remote verification outcome will be reported in chat. No PR creation is required by this follow-up.
+
+
+## 2026-11-03 — Dashboard navigation, profiles and focused investigation
+
+- Timezone: America/Los_Angeles. Human contributor: requesting team member (unnamed); specification/reference URLs. AI contributor: OpenAI Codex; implementation and validation. No human review/test result is inferred.
+- Base: `508251a08b36d627fa856a2e4b167dec67f728a8`; new branch `feature/dashboard-ux-navigation`, created from the clean `work` checkout. No commit/push/merge/deployment.
+
+### Audit and design evidence
+
+The existing static application had four large sections with every filter in a global strip. Overview combined five KPIs, a time series, type/severity charts, a heatmap and a ten-event queue. Investigation automatically selected a record, rendering log/gallery, detail, context, history and scatter together. Log/gallery selection did not update its hash; routing used replaceState, so browser history did not represent navigation. Building analysis offered a focus selection, not a building profile. Evaluation was substantial and reusable. Shared DC selectors/forecast offsets and custom SVG primitives already supplied the scientific evidence needed; no generator/data changes were necessary.
+
+Both public reference URLs were attempted through the configured proxy and returned HTTP 403 CONNECT denial. No visual comparison with either hosted interface is claimed. A local before-Overview screenshot was captured. The checkout's eight labels are fictional (Engineering Hall, Science Library, etc.), contrary to the prompt's description of existing verified UCSD labels; preserving actual IDs/names avoids inventing a real association. All channels remain simulated and coverage unconfirmed.
+
+### Architecture and implemented behavior
+
+- Persistent green-accent sidebar: Overview, Buildings, Anomaly Investigation, Detection Quality. Native anchors/hashchange produce browser history entries. `#investigate/<event>` and `#buildings/<building>` restore identities on reload; invalid IDs show an unavailable state. Routing resets event selection on the list route and chooses the event's own detector for detail.
+- Shared state remains DC-owned. In-memory snapshots retain each destination's filters; details are record-driven, so list filters cannot leave a contradictory selected event beneath an empty log. Returning to a list restores its scope. Filter state is not URL-serialized across reloads. Existing controls move between primary controls and Advanced filters; event detail hides list filters; building profiles expose time/detector independently of list scope.
+- Overview now shows four metrics, one readable actual/expected chart with optional anomaly overlays, five priority events and building links. Original type/severity charts, meter heatmap, data completeness/quality counts and event excess remain in System diagnostics.
+- Buildings now has a searchable directory and profiles with main-meter demand/baseline/band, consumption/peak/completeness, clean-history comparison, simulated meter metadata and linked events. Missing main-meter data has an unavailable state. Main/PV mapping now uses explicit building/kind associations instead of ID suffixes. The previous comparison/heatmaps/sub-grid/decomposition/daily-profile/peak/PV/power-quality views remain in Advanced building & sub-grid analysis. PV analysis no longer substitutes another building's meter when the focus building has none.
+- Event list and gallery route to a dedicated detail. Detail has four summary facts, selected interval/deviation-peak chart, explanation/type definition, next-step guidance, review and notes. Context/quality, score/threshold/raw-score availability, forecast quantiles, detector overlap, baseline configuration, contextual statistics, synthetic labels, history and scatter use disclosures. Shared chart wrappers redraw on disclosure opening to use actual layout widths.
+- Peak deviation is derived from unchanged actual/q50 samples; exported score-peak time remains separately shown in diagnostics. This corrects CR-030's previous mismatched measurement/time presentation without rewriting detections.
+- Retained legacy browser-local status keys/IDs; added insufficient-evidence state and notes. Explained events now count as reviewed (not pending); confirmed operational issue remains open until resolved. Decisions are operator annotations, not engineer verification/ground truth/training labels. Unmatched labels alone no longer imply a verified operational false alarm; unexported raw scores are explicitly unavailable and normalized scores are not probabilities.
+- Existing Detection Quality functionality is retained and full-run comparison scope is disclosed. Missing evaluation/labels shows an unavailable state. Theme persists; light is the coherent default. Primary routes/table sorting/review use keyboard-operable controls, skip navigation and route focus management. Legacy SVG research marks have not undergone a complete accessibility redesign.
+
+### Files and reuse
+
+Application: index.html; css/styles.css; js/app.js; js/store.js; js/util.js; js/charts.js; js/sections/overview.js, investigate.js, buildings.js, models.js. Added tests/navigation.cjs. Documentation: README.md, AI_USE.md, DEVELOPMENT_LOG.md. Existing generated data and tools/build_data.py are unchanged. No framework, bundler, backend or production dependency was added. Reused all four section renderers and SVG/series/store infrastructure; new components are routing/scopes, directory/profile, review notes, compact summaries/disclosures and regressions.
+
+### Validation and evidence
+
+Commands executed with Node v24.22.1 / Python 3.12.14:
+
+```bash
+python3 -m http.server 8000 --bind 127.0.0.1
+SCREENSHOT_DIR=work/screenshots node tests/navigation.cjs
+for file in js/*.js js/sections/*.js data/*.js; do node --check "$file" || exit; done
+# Python ast.parse(Path('tools/build_data.py').read_text())
+git diff --check
+git diff --exit-code -- data tools
+```
+
+Syntax, Python parsing, whitespace and unchanged-data/generator checks passed. Browser tests run in isolated Playwright/system Chromium at 1440×1000 and 390×844. Suite verifies the primary connected flows, list/detail separation, browser history/reload, contextual scope, event peak evidence, local status/notes, all four detectors/destinations, gallery/normalization, scientific disclosures, custom date mapping, invalid IDs, missing measurements/context/evaluation, theme persistence, finite SVG attributes and no document overflow at 390px. No observed page/console errors in successful runs. Early failures were test-fixture indexing and a locator matching retained hidden content; corrected the harness before successful reruns. Final exhaustive-route result is appended below when completed.
+
+Screenshots: work/screenshots/before-overview.png (baseline), overview.png, buildings.png, building-profile.png, anomaly-detail.png and mobile-*.png. The requested absolute /codex/.../output directory could not be created because the managed filesystem denied it, including an escalated attempt; artifacts remain in the checkout and image previews are supplied in chat. They are not runtime assets.
+
+### Limits and follow-up
+
+No human usability review, full accessibility audit, other-browser matrix, deployment, model training/regeneration, real-data ingestion or literature re-verification was performed. Definitions reuse existing taxonomy; supplied paper texts were unavailable. Hourly fixture cadence, campus-wall-time-as-UTC and legacy event-ID persistence assumptions remain documented. A future regenerated dataset still needs run-scoped review identities. Existing advanced charts' scope conventions and retrospective decomposition are preserved rather than revalidated. A real adapter requires the contracts in the earlier audit. Review this feature branch, compare screenshots, and perform facilities-manager/keyboard/screen-reader acceptance before deployment.
+
+Final validation: PASS — browser regression additionally opened dedicated detail routes for all 161 exported events across all four detectors, with no observed page/console errors. The final suite also verifies optional Overview overlays and skip navigation without changing the current event route. All JS/data/test syntax checks, Python AST parse, git diff --check, unchanged data/tools check and a verbatim-prompt inclusion assertion passed. No commit was created.
+
+Validation runtime detail: Playwright 1.62.1, Chromium 155.0.8059.79 (Debian GNU/Linux 13). The Overview review action explicitly seeds a pending-event queue from its current scope and restores priority sorting; regular sidebar navigation retains independent page scopes. Final screenshot capture scrolls to the top of the page before export.
+
+
+## 2026-11-03 — Reconcile dashboard UX with merged building-investigation PR #2
+
+- Timezone: America/Los_Angeles. Human: requesting team member, identifying the missing merged feature. AI: OpenAI Codex, performing history inspection, conflict reconciliation and validation. Human review remains pending.
+- Confirmed outdated base: UX branch was at 508251a with no feature commits and uncommitted changes. Fetch advanced origin/main to eeeba564f34bf96a19eb19bb7988a2f97362372f, two commits ahead, including 691a66c and PR #2. Saved a patch/document/test backup under /workspace/work/ux-main-integration plus stash 8285fcd60b76418b7340fab918153e62118e4f4d; rebased via fast-forward and reapplied the UX changes. No feature/merge commit, push, PR merge or publication was made. All resolved work is unstaged.
+- Resolved conflicts in AI_USE.md, DEVELOPMENT_LOG.md, README.md, CSS, routing, investigation, store and util. Documentation resolution concatenates complete main records with intact UX appendices. Earlier fictional-label/legacy-storage statements are historical evidence from the stale base, superseded by this integration record.
+- Preserved main's eight sourced UCSD demonstration names, metadata, data/label artifacts, generator and shared overlay improvements. Added official name-source links to profiles and retained the explicit simulated measurements/relationships and unverified DERCONNECT coverage disclosure. Stable building/meter/event IDs remain unchanged.
+- Detail summaries now reuse eventFacts (separate observed/deviation/score peaks, percent of expected, valid-unit/cadence/data-quality conditions for excess). Kept main's score-threshold/export/grouping evidence, start/end lines, classification guide/citations, overlap and ground-truth separation in disclosures. Kept excluded-selection clearing and eventScope restoration, reconciled with the new history/list/detail routes and independent list scopes.
+- Retained dataset-scoped review storage and in-memory fallback from main. UX notes use that same store; notes from the earlier preview key migrate for this dataset. All original regression.cjs assertions remain; appended migration/metadata checks. browser.cjs is adapted to separate list/detail routes and contextual filters without removing original scenarios. navigation.cjs checks the correct Geisel Library label and all 161 event details.
+
+Validation actually executed:
+
+```bash
+git fetch origin main
+git rev-list --left-right --count HEAD...origin/main
+node tests/regression.cjs
+SCREENSHOT_DIR=work/integrated-screenshots/regression node tests/browser.cjs
+SCREENSHOT_DIR=work/integrated-screenshots/navigation node tests/navigation.cjs
+for file in js/*.js js/sections/*.js data/*.js tests/*.cjs; do node --check "$file" || exit; done
+# Python ast.parse(Path('tools/build_data.py').read_text())
+git diff --check
+git diff --exit-code origin/main -- data tools AGENTS.md js/ui.js
+```
+
+Results: all passed. Regression: 8 buildings, 11 meters, 161 events, 8 distinct score/deviation peaks; filter, missing-label/unit, persistence, blocked-storage and note-migration checks. Browser: all eight sourced profiles, four detectors, 210 charts, evidence/notes/history/permalinks/gallery/missing-context/labels/theme/mobile. Navigation: all 161 event routes, page scopes, review, scientific disclosures, empty data/IDs, dates and desktop/mobile. Both browser suites observed no page/console errors; mobile document width equals 390px viewport. Runtime Node v24.22.1 / Python 3.12.14 / Playwright 1.62.1 / Chromium 155.0.8059.79; desktop 1440×1000 and mobile 390×844.
+
+Data verification: current data/tools files are byte-identical to origin/main. Separate deep comparisons against 508251a confirmed all measurements, quality/weather arrays, forecasts/scores/settings, evaluation, negative controls, synthetic labels and original detection values are unchanged, apart from main's review defaults and newly added peak timestamps. No data regeneration was performed. Programmatic checks confirm complete main documentation plus original UX appendices are present in both records. HEAD equals fetched origin/main (0/0 ahead/behind), with feature changes uncommitted; no unmerged index entries remain. Screenshots with UCSD labels are under work/integrated-screenshots; older screenshots remain historical artifacts.
+
+Changed files relative to current main: index.html, css/styles.css, js/app.js, js/charts.js, js/store.js, js/util.js, four section files, README.md, AI_USE.md, DEVELOPMENT_LOG.md, tests/browser.cjs, tests/regression.cjs, and new tests/navigation.cjs. No unresolved integration conflict or observed regression remains. Full accessibility/other-browser/human review, real-data integration and deployment remain unrun. Next step is human verification of the combined uncommitted feature before any publishing action. Complete follow-up prompt is recorded verbatim in AI_USE.md.
+
+
+## 2026-11-03 — Package integrated dashboard UX feature
+
+- Timezone: America/Los_Angeles. Human: requesting team member, explicitly authorizing the feature commit and push after integration verification. AI: OpenAI Codex, branch/scope/diff checks, documentation records, explicit staging and commit/push. Complete follow-up prompt is recorded in AI_USE.md.
+- Branch feature/dashboard-ux-navigation; refreshed origin/main and confirmed HEAD equals eeeba564f34bf96a19eb19bb7988a2f97362372f before committing, including merged PR #2. Both main documentation histories and the UX/integration entries remain preserved. No unresolved index entries or unrelated tracked changes. work/ contains local screenshots/scratch artifacts and is excluded from staging.
+- Stage only the 16 feature application/documentation/test files. Preserve data/, tools/, AGENTS.md and js/ui.js unchanged. Recheck regression/syntax/AST, whitespace, documentation and exact staged scope; rely on the preceding successful complete browser/navigation runs because no application code changed for packaging.
+- Associated commit: the commit containing this entry, message feat: add dashboard navigation and focused anomaly investigation. Verify its contents and remote branch SHA after push; report actual results in chat. Push only origin/feature/dashboard-ux-navigation; no merge or push to main. Next step: open a pull request with base main and compare feature/dashboard-ux-navigation.
