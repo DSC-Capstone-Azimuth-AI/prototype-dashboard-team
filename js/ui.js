@@ -56,13 +56,14 @@
     const intervals = [], markers = [];
     for (const ev of events) {
       const color = DC.typeColor(ev.type);
-      const shape = DC.typeById[ev.type].shape;
+      const shape = (DC.typeById[ev.type] || {}).shape || "circle";
+      const peakT = DC.eventFacts(ev).peak?.t ?? ev.deviation_peak_t ?? ev.peak_t;
       if (ev.behavior === "point" && ev.duration_h <= 2) {
-        markers.push({ t: ev.peak_t, v: yAt(ev.peak_t), color, shape, id: ev.id, ev, selected: ev.id === selectedId });
+        markers.push({ t: peakT, v: yAt(peakT), color, shape, id: ev.id, ev, selected: ev.id === selectedId });
       } else {
         intervals.push({ start: ev.start, end: ev.end, color, id: ev.id, ev, selected: ev.id === selectedId });
         // A marker at the peak keeps shape identity for sustained events too
-        markers.push({ t: ev.peak_t, v: yAt(ev.peak_t), color, shape, id: ev.id, ev, selected: ev.id === selectedId });
+        markers.push({ t: peakT, v: yAt(peakT), color, shape, id: ev.id, ev, selected: ev.id === selectedId });
       }
     }
     return { intervals, markers };

@@ -84,8 +84,8 @@
   }
   function fromHash() {
     const [sec, id] = location.hash.replace("#", "").split("/");
-    const patch = { section: SECTIONS.includes(sec) ? sec : "overview" };
-    if (id && DC.eventById(id)) { patch.selected = id; patch.detector = DC.eventById(id).detector; }
+    const patch = { section: SECTIONS.includes(sec) ? sec : "overview", selected: null };
+    if (id && DC.eventById(id)) Object.assign(patch, DC.eventScope(DC.eventById(id)), { selected: id });
     DC.setState(patch);
   }
 
@@ -111,22 +111,22 @@
       DC.el("b", { text: "Synthetic test campus" }),
       DC.el("span", { text: `${D.buildings.length} buildings · ${D.meters.length} meters · hourly · ${DC.time.day(0)} – ${DC.time.day(M.n - 1)}, 2026` }),
       DC.el("span", { text: `Clean history before ${DC.time.day(M.clean_prefix)} · generator ${M.generator_version}, seed ${M.seed}` }),
-      DC.el("span", { class: "muted", text: "Replace with DERCONNECT meters once access is confirmed (tools/build_data.py)." })
+      DC.el("span", { class: "muted", text: "Simulated readings, meters, feeders and PV. Real UCSD names are demonstration labels; DERCONNECT coverage is not verified." })
     );
   }
 
   DC.sections = DC.sections || {};
   DC.onChange((patch) => {
-    if (patch.section && location.hash.split("/")[0] !== "#" + patch.section) {
-      history.replaceState(null, "", "#" + patch.section + (patch.section === "investigate" && DC.state.selected ? "/" + DC.state.selected : ""));
-    }
+    const hash = "#" + DC.state.section + (DC.state.section === "investigate" && DC.state.selected ? "/" + DC.state.selected : "");
+    if (location.hash !== hash) history.replaceState(null, "", hash);
     render();
   });
   window.addEventListener("hashchange", fromHash);
   document.querySelectorAll(".tabs a").forEach((a) => a.addEventListener("click", (e) => {
     e.preventDefault();
+    const hash = "#" + a.dataset.section + (a.dataset.section === "investigate" && DC.state.selected ? "/" + DC.state.selected : "");
+    if (location.hash !== hash) history.pushState(null, "", hash);
     DC.setState({ section: a.dataset.section });
-    history.replaceState(null, "", "#" + a.dataset.section);
     window.scrollTo({ top: 0 });
   }));
   let resizeTimer = null;

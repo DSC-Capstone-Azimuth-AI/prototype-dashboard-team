@@ -10,11 +10,7 @@
   function render(root) {
     DC.clear(root);
     const events = DC.sortEvents(DC.events(), view.sort);
-    let selId = DC.state.selected;
-    if (!selId || !DC.eventById(selId) || DC.eventById(selId).detector !== DC.state.detector) {
-      selId = events.length ? events[0].id : null;
-      if (selId) DC.setState({ selected: selId }, { silent: true });
-    }
+    const selId = DC.state.selected;
 
     root.append(el("div", { class: "section-head" },
       el("h2", { id: "h-investigate", text: "Anomaly investigation" }),
@@ -155,26 +151,34 @@
           DC.sevBadge(ev.severity))),
       el("div", { style: { marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center" } }, el("label", { class: "muted", text: "Status" }), statusSel)));
 
-    const hasExpl = ev.explanations.some((x) => x.supports);
-    body.append(el("div", { class: "tier", "aria-label": "Evidence level" },
-      el("div", { class: "on" }, el("b", { text: "Detected event" }), `Flagged by ${DC.det().label}; ${ev.detection.score.replace(/_/g, " ")} above threshold.`),
-      el("div", { class: hasExpl || status === "explained" ? "on" : "" }, el("b", { text: "Possible explanation" }), hasExpl ? "Context offers a plausible cause (see below)." : "No supporting context found yet."),
-      el("div", { class: status === "confirmed" ? "on" : "" }, el("b", { text: "Confirmed fault" }), status === "confirmed" ? "Confirmed by an engineer." : "Requires on-site or engineer confirmation.")));
-
+    const facts = DC.eventFacts(ev), peak = facts.peak;
+    const note = el("textarea", { id: "review-note", rows: "3", maxlength: "2000", "aria-label": "Review note" });
+    note.value = DC.statusStore.note(ev.id);
+    const saved = el("span", { role: "status", class: "muted" });
+    body.append(el("div", { class: "note-box review-box" },
+      el("label", { for: "review-note", text: "Operator review note (optional)" }), note,
+      el("button", { type: "button", class: "btn", text: "Save note", onclick: () => {
+        const ok = DC.statusStore.set(ev.id, DC.eventStatus(ev), note.value);
+        saved.textContent = ok ? "Saved in this browser." : "Storage unavailable: kept only until this page closes.";
+      } }), saved,
+      el("p", { text: "Review decisions and notes are browser-local and do not synchronize across users. They are operator annotations, not verified ground truth, and do not retrain or calibrate the detector." }),
+      el("p", { text: DC.statusStore.persistent() ? "" : "Browser storage is unavailable; annotations may be lost on reload." })));
+    body.append(el("div", { class: "note-box", text: "Simulated event · Campus wall-time labels (2026); hourly sampling. Meter, feeder, equipment and occupancy associations are synthetic. A statistical anomaly does not establish equipment failure, theft or a cyberattack." }));
     const fact = (k, v, small) => el("div", { class: "fact" }, el("div", { class: "k", text: k }), el("div", { class: "v" }, v, small ? el("small", { text: " " + small }) : null));
+    const value = (v) => DC.fmt.one(v) + " " + facts.unit;
     body.append(el("div", { class: "facts" },
-      fact("Location", ev.meter, `${b.subgrid}`),
-      fact("Start", DC.time.short(ev.start)),
-      fact("End", DC.time.short(ev.end)),
+      fact("Building", b.name), fact("Synthetic meter / feeder", ev.meter, ev.subgrid || "Unknown"),
+      fact("Start (inclusive)", DC.time.stamp(ev.start)), fact("End (exclusive)", DC.time.stamp(ev.end)),
       fact("Duration", DC.fmt.hours(ev.duration_h)),
-      fact("Peak measured", DC.fmt.kw(ev.peak_actual), `at ${DC.time.short(ev.peak_t)}`),
-      fact("Peak expected", DC.fmt.kw(ev.peak_expected)),
-      fact("Peak deviation", DC.fmt.signed(ev.peak_dev, " kW"), `(${DC.fmt.signed(ev.peak_dev_pct, "%")})`),
-      fact("Est. excess energy", ev.excess_kwh == null ? "n/a" : DC.fmt.signed(ev.excess_kwh, " kWh"), ev.excess_kwh == null ? "baseline not valid for bad data" : "vs expected"),
-      fact("Priority score", ev.priority.toFixed(0), "/ 100"),
-      fact("Novelty score", ev.novelty.toFixed(2) + "×", "of threshold"),
-      fact("Off-hours share", DC.fmt.pct(ev.offhours_share)),
-      fact("Mean temperature", DC.fmt.one(ev.context.temp_mean) + " °C", `${DC.fmt.signed(ev.context.temp_delta)} vs norm`)));
+      fact("Highest observed reading", facts.observedPeak ? value(facts.observedPeak.actual) : "Unavailable", facts.observedPeak ? `${DC.time.stamp(facts.observedPeak.t)} · expected ${value(DC.q(m.id, "q50", facts.observedPeak.t, ev.detector))}` : ""),
+      fact("Measured at largest deviation", peak ? value(peak.actual) : "Unavailable", peak ? DC.time.stamp(peak.t) + (peak.suspect ? " · suspect meter reading" : "") : "No valid measured / expected pair"),
+      fact("Expected at same timestamp", peak ? value(peak.expected) : "Unavailable"),
+      fact("Largest absolute deviation", peak ? value(Math.abs(peak.residual)) : "Unavailable", peak ? `signed ${DC.fmt.signed(peak.residual)}; ${peak.percent == null ? "percentage unavailable" : DC.fmt.signed(peak.percent, "% of expected")}` : ""),
+      fact("Estimated net excess energy", facts.excess == null ? "Unavailable" : DC.fmt.signed(facts.excess, " kWh"), "Hourly kW residual sum; withheld for missing or suspect readings"),
+      fact("Operational priority", ev.priority.toFixed(0), "/ 100 · heuristic, not probability"),
+      fact("Detection strength", ev.novelty.toFixed(2) + "×", "peak normalized score / threshold; not confidence"),
+      fact("Review status", DC.statusById[status].label), fact("Ground-truth assessment", "Not evaluated", "Research labels are separate from operator review")));
+    body.append(anomalyGuide(ev));
 
     const inner = el("div", { class: "grid cols-12" });
     body.append(inner);
@@ -194,15 +198,15 @@
 
     // right column: explanations, detection details, ground truth
     const expl = el("ul", { class: "explain" });
-    if (!ev.explanations.length) expl.append(el("li", {}, el("span", { class: "tag", text: "Context" }), "No contextual factor stands out."));
-    for (const x of ev.explanations) {
+    if (!(ev.explanations || []).length) expl.append(el("li", {}, el("span", { class: "tag", text: "Context" }), "No contextual factor stands out."));
+    for (const x of ev.explanations || []) {
       expl.append(el("li", {}, el("span", { class: "tag", text: x.type.replace("_", " ") }), el("span", { text: x.text }),
         el("span", { class: "verdict " + (x.supports ? "" : "muted"), text: x.supports ? "Supports" : "Doesn't explain" })));
     }
     right.append(el("div", { class: "chart-title", text: "Possible explanations" }), expl,
       el("div", { class: "note-box" }, "Explanations are hypotheses from weather, occupancy and schedule context. They are not a confirmed cause."));
 
-    const d = ev.detection, det = DC.det();
+    const d = ev.detection, det = DC.detectorById[ev.detector];
     right.append(el("div", { class: "chart-title", text: "Detection details" }), el("dl", { class: "kv" },
       el("dt", { text: "Detector" }), el("dd", { text: det.label }),
       el("dt", { text: "Implementation" }), el("dd", { text: det.source }),
@@ -211,14 +215,23 @@
       el("dt", { text: "Threshold" }), el("dd", { text: `${d.threshold} (target FPR ${d.target_fpr})` }),
       el("dt", { text: "Calibration" }), el("dd", { text: `Clean data ${DC.time.day(DC.META.calibration_start)} – ${DC.time.day(DC.META.clean_prefix - 1)}` }),
       el("dt", { text: "Event grouping" }), el("dd", { text: `min run ${d.min_run} · merge gap ${d.merge_gap} · release ${d.release_threshold_ratio}` }),
-      el("dt", { text: "Peak score" }), el("dd", { text: `${ev.novelty.toFixed(2)}× threshold at ${DC.time.short(ev.peak_t)}` })));
+      el("dt", { text: "Peak score" }), el("dd", { text: `${ev.novelty.toFixed(2)}× threshold at ${DC.time.short((ev.score_peak_t ?? ev.peak_t))}` })));
 
-    const match = DC.matchFor(ev.id);
-    const lab = match ? DC.labelById[match.label_id] : null;
-    right.append(el("div", { class: "chart-title", text: "Synthetic ground truth (evaluation only)" }),
-      el("div", { class: "note-box" }, lab
-        ? [el("b", { text: `${lab.label_id} · ${DC.LABEL_KIND[lab.kind] || lab.kind}` }), ` injected ${DC.time.short(lab.start)} for ${DC.fmt.hours(lab.end - lab.start)}, magnitude ${DC.fmt.signed(lab.magnitude_kw, " kW")}. Detected after ${match.delay_h} h.`]
-        : [el("b", { text: "No injected label overlaps." }), " In the synthetic test this detection counts as a false positive. Labels never feed detection or priority."]));
+    const scoreT = ev.score_peak_t ?? ev.peak_t;
+    const actual = DC.actual(ev.meter, scoreT), expected = DC.q(ev.meter, "q50", scoreT, ev.detector);
+    const score = DC.q(ev.meter, "score", scoreT, ev.detector);
+    right.prepend(el("div", { class: "chart-title", text: "Why was this flagged?" }),
+      el("div", { class: "note-box evidence", text:
+        `${det.label} exported this detected interval from ${DC.time.stamp(ev.start)} to ${DC.time.stamp(ev.end)} (${DC.fmt.hours(ev.duration_h)}). ` +
+        `At the score peak (${DC.time.stamp(scoreT)}), observed = ${value(actual)}, median expected = ${value(expected)}, residual = ${Number.isFinite(expected) ? DC.fmt.signed(actual - expected) + " " + facts.unit : "unavailable"}. ` +
+        `Exported peak score is ${ev.novelty.toFixed(2)}× the raw threshold ${d.threshold} (${d.score.replace(/_/g, " ")}). ` +
+        `The displayed sample ratio is ${score == null ? "unavailable" : score.toFixed(2) + "×"}; ${score == null ? "threshold comparison unavailable" : score > 1 ? "above the normalized threshold of 1" : "not above 1 after export rounding"}. ` +
+        "Scores are rounded and capped at 99× in the export; exact sample alert flags are unavailable. Grouping may include gaps or readings below threshold. Detection timestamp and operational detection delay are unavailable." }),
+      el("div", { class: "note-box", text: "Forecast bands describe prediction uncertainty, not the probability of a fault. Weather and occupancy provide retrospective context; only the context-regression baseline uses them as forecasting inputs. Higher sensitivity may find more issues while increasing alert burden; the appropriate balance depends on operational costs. Review dismissals do not measure precision or recall." }));
+    right.append(el("div", { class: "chart-title", text: "Other detectors on this meter and interval" }),
+      el("ul", {}, DC.detectorOverlap(ev).map(({ detector, events }) => el("li", { text:
+        `${detector.label}: ${events.length ? events.map((e) => e.id).join(", ") : "No overlapping detected interval"}` }))),
+      el("p", { class: "muted", text: "Overlap compares exported intervals, independent of current filters. Agreement is not fault confirmation; research evaluation is in Detection model evaluation." }));
 
     requestAnimationFrame(() => {
       const others = DC.allEvents().filter((e) => e.meter === ev.meter && e.id !== ev.id && e.start < t1 && t0 < e.end);
@@ -228,7 +241,8 @@
         t0, t1, height: 250,
         band: [{ lo: (t) => DC.q(m.id, "q01", t), hi: (t) => DC.q(m.id, "q99", t), color: DC.css("--band") }, { lo: (t) => DC.q(m.id, "q10", t), hi: (t) => DC.q(m.id, "q90", t), color: DC.css("--band-inner") }],
         series: [{ get: (t) => DC.q(m.id, "q50", t), color: DC.css("--expected"), dash: "5 4", width: 1.5 }, { get: (t) => DC.actual(m.id, t), color: DC.css("--actual"), width: 2 }],
-        intervals: otherIv.concat(ov.intervals), markers: ov.markers,
+        intervals: otherIv.concat([{ start: ev.start, end: ev.end, color: DC.typeColor(ev.type), selected: true, ev }]), markers: ov.markers,
+        vlines: [{ t: ev.start, label: "Start" }, { t: ev.end, label: "End (exclusive)" }],
         tooltip: (t, hit) => {
           if (hit && hit.ev && hit.ev.id !== ev.id) return ui().eventTooltip(hit.ev);
           const a = DC.actual(m.id, t), e = DC.q(m.id, "q50", t);
@@ -238,8 +252,8 @@
               { color: DC.css("--actual"), value: DC.fmt.kw(a), label: "measured" },
               { color: DC.css("--expected"), kind: "dash", value: DC.fmt.kw(e), label: "expected" },
               { value: e == null ? "—" : DC.fmt.signed(a - e, " kW"), label: "deviation" },
-              { color: DC.css("--band-inner"), kind: "box", value: `${DC.fmt.one(DC.q(m.id, "q01", t))}–${DC.fmt.one(DC.q(m.id, "q99", t))}`, label: "98% band" },
-              { value: (DC.q(m.id, "score", t) ?? 0).toFixed(2) + "×", label: "score / threshold" },
+              { color: DC.css("--band-inner"), kind: "box", value: `${DC.fmt.one(DC.q(m.id, "q01", t))}–${DC.fmt.one(DC.q(m.id, "q99", t))}`, label: "Nominal 98% band (kW)" },
+              { value: DC.q(m.id, "score", t) == null ? "Unavailable" : DC.q(m.id, "score", t).toFixed(2) + "×", label: "score / threshold (boundary 1; export cap 99×)" },
             ],
           };
         },
@@ -250,9 +264,9 @@
         t0, t1, height: 110, yMin: 0,
         intervals: ov.intervals.map((iv) => ({ ...iv, selected: false })),
         hlines: [{ y: 1, label: "threshold", color: DC.css("--sev-critical") }],
-        series: [{ get: (t) => Math.min(sc(t), 6), color: DC.css("--ink-2"), width: 1.5 }],
+        series: [{ get: (t) => sc(t) == null ? null : Math.min(sc(t), 6), color: DC.css("--ink-2"), width: 1.5 }],
         yFormat: (v) => v.toFixed(v < 10 ? 1 : 0) + "×",
-        tooltip: (t) => ({ title: DC.time.stamp(t), rows: [{ color: DC.css("--ink-2"), value: (sc(t) ?? 0).toFixed(2) + "×", label: "score ÷ threshold" + (sc(t) > 6 ? " (clipped at 6×)" : "") }] }),
+        tooltip: (t) => ({ title: DC.time.stamp(t), rows: [{ color: DC.css("--ink-2"), value: sc(t) == null ? "Unavailable" : sc(t).toFixed(2) + "×", label: "score ÷ threshold" + (sc(t) > 6 ? " (clipped at 6×)" : "") }] }),
       });
       const cols = [];
       for (let t = t0; t < t1; t++) cols.push({ t, label: DC.time.hour(t) === 0 ? DC.time.day(t) : "" });
@@ -265,24 +279,27 @@
         },
       });
       statusEl.append(ui().legend([{ kind: "box", color: DC.css("--surface-3"), label: "OK" }, { kind: "box", color: DC.css("--sev-critical"), label: "Missing / zero" }, { kind: "box", color: DC.css("--sev-medium"), label: "Stuck value" }]));
-      const temp = DC.D.weather.temp;
+      const temp = DC.D.weather?.temp;
+      if (!temp) { wxEl.textContent = "Weather context unavailable."; ctxEl.textContent = "Occupancy / irradiance context unavailable."; return; }
       const tNorm = (t) => { let s = 0, n = 0; for (let k = 1; k <= 14; k++) if (t - 24 * k >= 0) { s += temp[t - 24 * k]; n++; } return n ? s / n : null; };
       DC.charts.timeSeries(wxEl, {
         t0, t1, height: 110, zero: false,
         intervals: ov.intervals.map((iv) => ({ ...iv, selected: false })),
         series: [{ get: tNorm, color: DC.css("--expected"), dash: "4 3", width: 1.3 }, { get: (t) => temp[t], color: DC.css("--t-collective"), width: 1.6 }],
         yFormat: (v) => v.toFixed(0) + "°",
-        tooltip: (t) => ({ title: DC.time.stamp(t), rows: [{ color: DC.css("--t-collective"), value: DC.fmt.one(temp[t]) + " °C", label: "temperature" }, { color: DC.css("--expected"), kind: "dash", value: DC.fmt.one(tNorm(t)) + " °C", label: "14-day same-hour mean" }, { value: DC.fmt.pct(DC.D.weather.cloud[t]), label: "cloud cover" }] }),
+        tooltip: (t) => ({ title: DC.time.stamp(t), rows: [{ color: DC.css("--t-collective"), value: DC.fmt.one(temp[t]) + " °C", label: "temperature" }, { color: DC.css("--expected"), kind: "dash", value: DC.fmt.one(tNorm(t)) + " °C", label: "14-day same-hour mean" }, { value: DC.fmt.pct(DC.D.weather.cloud?.[t]), label: "cloud cover" }] }),
       });
       if (m.kind === "pv") {
-        const ghi = DC.D.weather.ghi;
+        const ghi = DC.D.weather?.ghi;
+        if (!ghi) { ctxEl.textContent = "Irradiance context unavailable."; return; }
         DC.charts.timeSeries(ctxEl, {
           t0, t1, height: 100, intervals: ov.intervals.map((iv) => ({ ...iv, selected: false })),
           series: [{ get: (t) => ghi[t], color: DC.css("--t-seasonal"), width: 1.6 }],
-          tooltip: (t) => ({ title: DC.time.stamp(t), rows: [{ color: DC.css("--t-seasonal"), value: DC.fmt.int(ghi[t]) + " W/m²", label: "irradiance" }, { value: DC.fmt.pct(DC.D.weather.cloud[t]), label: "cloud cover" }] }),
+          tooltip: (t) => ({ title: DC.time.stamp(t), rows: [{ color: DC.css("--t-seasonal"), value: DC.fmt.int(ghi[t]) + " W/m²", label: "irradiance" }, { value: DC.fmt.pct(DC.D.weather.cloud?.[t]), label: "cloud cover" }] }),
         });
       } else {
         const occ = b.occupancy;
+        if (!occ) { ctxEl.textContent = "Occupancy context unavailable."; return; }
         const occNorm = (t) => { let s = 0, n = 0; for (let k = 1; k <= 3; k++) if (t - 168 * k >= 0) { s += occ[t - 168 * k]; n++; } return n ? s / n : null; };
         DC.charts.timeSeries(ctxEl, {
           t0, t1, height: 100, intervals: ov.intervals.map((iv) => ({ ...iv, selected: false })),
@@ -292,6 +309,24 @@
         });
       }
     });
+  }
+
+  function anomalyGuide(ev) {
+    const rows = [
+      ["Point", "One observation differs sharply from expected behavior; for example, a demand spike lasting one sample."],
+      ["Collective", "A sequence is unusual as a whole, even if individual readings are not extreme; for example, several hours of elevated demand."],
+      ["Contextual", "A reading is unusual in its context; for example, afternoon demand levels occurring overnight."],
+      ["Seasonal / pattern", "A recurring shape changes; for example, weekend demand follows a weekday pattern."],
+      ["Trend / level shift", "Demand drifts or moves to a different sustained level; for example, rising overnight baseline consumption. This prototype does not separately classify trend events."],
+      ["Data integrity", "Readings are missing, stuck or suspect; for example, exactly repeated meter values for many samples. This is a data-quality category."],
+    ];
+    return el("details", { class: "note-box" }, el("summary", { text: `Understand this classification: ${DC.BEHAVIOR_LABEL[ev.behavior] || ev.behavior} behavior · ${DC.CATEGORY_LABEL[ev.category] || ev.category}` }),
+      el("p", { text: "Temporal behavior describes how measurements change over time. Operational categories describe the observed issue, not a proven cause. These teaching examples do not diagnose this event." }),
+      el("dl", { class: "kv" }, rows.flatMap(([name, desc]) => [el("dt", { text: name }), el("dd", { text: desc })])),
+      el("p", {}, "Terminology: ",
+        el("a", { href: "https://doi.org/10.3390/app14031194", text: "Guato Burgos et al. (2024)" }), "; ",
+        el("a", { href: "https://datasets-benchmarks-proceedings.neurips.cc/paper/2021/hash/ec5decca5ed3d6b8079e2e7e7bacc9f2-Abstract-round1.html", text: "Lai et al. (2021)" }), ". Operational evaluation: ",
+        el("a", { href: "https://arxiv.org/abs/2402.10802", text: "Si et al., TimeSeriesBench" }), "."));
   }
 
   function drawHistory(chartEl, body, ev) {

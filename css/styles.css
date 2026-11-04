@@ -378,3 +378,11 @@ footer { color: var(--muted); font-size: 12px; text-align: center; padding: 20px
   .filters, .tabs, .icon-btn { display: none; }
   .section { display: block !important; page-break-after: always; }
 }
+
+/* Local operator review, using existing theme tokens. */
+.review-box { display: grid; gap: 8px; margin-bottom: 12px; }
+.review-box textarea { width: 100%; box-sizing: border-box; resize: vertical; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--axis); border-radius: 4px; padding: 8px; }
+.review-box button { justify-self: start; }
+.review-box p { margin: 0; }
+.note-box summary { cursor: pointer; font-weight: 600; }
+.evidence { line-height: 1.65; }

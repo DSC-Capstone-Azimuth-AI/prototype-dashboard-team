@@ -39,7 +39,7 @@ from pathlib import Path
 
 import numpy as np
 
-GENERATOR_VERSION = "derconnect-campus-sim 1.0.0"
+GENERATOR_VERSION = "derconnect-campus-sim 1.1.0"
 LEVELS = (0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99)  # sarsim_fm.evaluate.LEVELS
 Q01, Q10, Q50, Q90, Q99 = (LEVELS.index(x) for x in (0.01, 0.1, 0.5, 0.9, 0.99))
 
@@ -58,17 +58,21 @@ SUBGRIDS = [
     {"id": "C2", "name": "Feeder C2 (Central)"},
     {"id": "S3", "name": "Feeder S3 (South)"},
 ]
-# Fictional campus. kW figures are typical magnitudes, not measurements.
+# Synthetic profiles and relationships; real UCSD names are demonstration labels only.
+BUILDING_METADATA = json.loads((Path(__file__).with_name("building_metadata.json")).read_text())
 BUILDINGS = [
-    dict(id="ENG", name="Engineering Hall", subgrid="N1", profile="office", base=180, occ_kw=260, hvac=14, pv=120),
-    dict(id="LIB", name="Science Library", subgrid="N1", profile="library", base=120, occ_kw=170, hvac=9, pv=0),
-    dict(id="LAB", name="Research Lab B", subgrid="C2", profile="office", base=340, occ_kw=140, hvac=16, pv=0),
-    dict(id="STU", name="Student Center", subgrid="C2", profile="student", base=90, occ_kw=220, hvac=10, pv=150),
-    dict(id="DCA", name="Data Center Annex", subgrid="C2", profile="flat", base=520, occ_kw=25, hvac=11, pv=0),
-    dict(id="RES", name="Residence Hall North", subgrid="S3", profile="residence", base=110, occ_kw=130, hvac=6, pv=0),
-    dict(id="ADM", name="Administration", subgrid="S3", profile="admin", base=60, occ_kw=130, hvac=7, pv=80),
-    dict(id="REC", name="Recreation Center", subgrid="S3", profile="rec", base=70, occ_kw=150, hvac=8, pv=0),
+    dict(id="ENG", subgrid="N1", profile="office", base=180, occ_kw=260, hvac=14, pv=120),
+    dict(id="LIB", subgrid="N1", profile="library", base=120, occ_kw=170, hvac=9, pv=0),
+    dict(id="LAB", subgrid="C2", profile="office", base=340, occ_kw=140, hvac=16, pv=0),
+    dict(id="STU", subgrid="C2", profile="student", base=90, occ_kw=220, hvac=10, pv=150),
+    dict(id="DCA", subgrid="C2", profile="flat", base=520, occ_kw=25, hvac=11, pv=0),
+    dict(id="RES", subgrid="S3", profile="residence", base=110, occ_kw=130, hvac=6, pv=0),
+    dict(id="ADM", subgrid="S3", profile="admin", base=60, occ_kw=130, hvac=7, pv=80),
+    dict(id="REC", subgrid="S3", profile="rec", base=70, occ_kw=150, hvac=8, pv=0),
 ]
+for building in BUILDINGS:
+    building["name"] = BUILDING_METADATA[building["id"]]["name"]
+
 # Normal changes the detectors should not call faults (negative controls).
 NORMAL_CONTROLS = [
     {"id": "heatwave", "name": "Santa Ana heat wave", "start_day": 56, "end_day": 61,
@@ -586,17 +590,17 @@ def enrich_events(det, split, frames, weather, settings, model):
             priority = float(min(100, priority))
             severity = ("critical" if priority >= 70 else "high" if priority >= 45 else
                         "medium" if priority >= 25 else "low")
-            status = "explained" if any(x["supports"] for x in expl) else "new"
             events.append({
                 "id": "", "detector": det["id"], "meter": m["id"], "building": m["building"],
                 "subgrid": b["subgrid"], "start": int(s), "end": int(e), "duration_h": int(e - s),
-                "peak_t": int(peak_t), "novelty": round(float(peak_score), 2),
+                "peak_t": int(peak_t), "score_peak_t": int(peak_t),
+                "deviation_peak_t": int(s + i_max), "novelty": round(float(peak_score), 2),
                 "peak_actual": round(float(actual[s + i_max]), 1), "peak_expected": round(float(expected[s + i_max]), 1),
                 "peak_dev": round(float(dev[i_max]), 1), "peak_dev_pct": round(float(rel * np.sign(dev[i_max]) * 100), 1),
                 "mean_dev": round(float(dev.mean()), 1),
                 "excess_kwh": None if excess is None else round(excess, 1),
                 "behavior": behavior, "category": category, "type": primary,
-                "priority": round(priority, 1), "severity": severity, "status": status,
+                "priority": round(priority, 1), "severity": severity, "status": "new",
                 "dq_share": round(dq_share, 2), "offhours_share": round(unocc, 2),
                 "context": {"temp_delta": round(dtemp, 1), "occupancy_ratio": round(occ_ratio, 2),
                             "cloud": round(cloud, 2), "temp_mean": round(float(weather["temp"][s:e].mean()), 1),
@@ -750,13 +754,15 @@ def main():
             "clean_prefix": PREFIX, "calibration_start": CAL_START, "detector_start": DET_START,
             "built_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%MZ"),
             "source_repo": "chronos2-sarsim0-anomaly-team", "levels": LEVELS,
+            "dataset_id": "campus-test-seed-4200000", "simulated": True,
+            "building_note": "Real UCSD demonstration names; meters, feeders, PV, occupancy and measurements are synthetic. DERCONNECT building coverage is not verified.",
             "notes": ("Simulated campus (no DERCONNECT data yet). Detection uses the repo's scores, "
                       "split-conformal thresholds and event grouping. Injected labels are stored separately "
                       "in synthetic-labels.js."),
         },
         "subgrids": SUBGRIDS,
         "buildings": [{k: b[k] for k in ("id", "name", "subgrid", "profile", "pv_kw")} | {
-            "occupancy": r(b["occupancy"], 3)} for b in test["buildings"]],
+            "occupancy": r(b["occupancy"], 3), **BUILDING_METADATA[b["id"]]} for b in test["buildings"]],
         "meters": [{"id": m["id"], "building": m["building"], "kind": m["kind"], "label": m["label"], "unit": "kW",
                     "actual": r(m["series"]), "dq": [int(x) for x in m["dq"]]} for m in test["meters"]],
         "weather": {"temp": r(test["weather"]["temp"]), "cloud": r(test["weather"]["cloud"], 2),

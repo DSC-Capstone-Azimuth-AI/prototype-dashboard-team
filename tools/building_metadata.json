@@ -1,0 +1,58 @@
+{
+  "ENG": {
+    "name": "Jacobs Hall",
+    "name_source": "https://m.ucsd.edu/maps/list_nearby_points?ec=1&groupId=35&lat=32.87749&lng=-117.23528&rad=1600",
+    "verified_on": "2026-11-03",
+    "derconnect_coverage": "Not verified",
+    "measurement_availability": "simulated"
+  },
+  "LIB": {
+    "name": "Geisel Library",
+    "name_source": "https://ucsd.libguides.com/c.php?g=1078052&p=7853974",
+    "verified_on": "2026-11-03",
+    "derconnect_coverage": "Not verified",
+    "measurement_availability": "simulated"
+  },
+  "LAB": {
+    "name": "Atkinson Hall",
+    "name_source": "https://qi.ucsd.edu/atkinson-hall/",
+    "verified_on": "2026-11-03",
+    "derconnect_coverage": "Not verified",
+    "measurement_availability": "simulated"
+  },
+  "STU": {
+    "name": "Price Center",
+    "name_source": "https://universitycenters.ucsd.edu/visit/directory.html",
+    "verified_on": "2026-11-03",
+    "derconnect_coverage": "Not verified",
+    "measurement_availability": "simulated"
+  },
+  "DCA": {
+    "name": "San Diego Supercomputer Center",
+    "name_source": "https://facilityservices.ucsd.edu/information/density.html",
+    "verified_on": "2026-11-03",
+    "derconnect_coverage": "Not verified",
+    "measurement_availability": "simulated"
+  },
+  "RES": {
+    "name": "York Hall",
+    "name_source": "https://facilityservices.ucsd.edu/information/density.html",
+    "verified_on": "2026-11-03",
+    "derconnect_coverage": "Not verified",
+    "measurement_availability": "simulated"
+  },
+  "ADM": {
+    "name": "Center Hall",
+    "name_source": "https://m.ucsd.edu/maps/list_nearby_points?ec=1&groupId=35&lat=32.87749&lng=-117.23528&rad=1600",
+    "verified_on": "2026-11-03",
+    "derconnect_coverage": "Not verified",
+    "measurement_availability": "simulated"
+  },
+  "REC": {
+    "name": "RIMAC",
+    "name_source": "https://facilityservices.ucsd.edu/information/density.html",
+    "verified_on": "2026-11-03",
+    "derconnect_coverage": "Not verified",
+    "measurement_availability": "simulated"
+  }
+}
