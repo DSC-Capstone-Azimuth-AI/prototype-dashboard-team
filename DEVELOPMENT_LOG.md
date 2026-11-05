@@ -542,3 +542,36 @@ PDF skill used for output QA. Generated files under C:/Users/pocke/AppData/Local
 Human: requesting team member, explicitly authorizing commit and PR. AI: OpenAI Codex. Branch Export-Custom-Reports-as-PDF, base c71b221 (fetched origin/main still at same revision). Scope: complete Export Reports feature and follow-up usability/custom-note changes from this chat, offline dependencies/licenses, tests and required records. Existing generated data/tools/AGENTS.md remain unchanged. Reviewed tracked diff and owned untracked source/test/docs/vendor inventory; prior validation recorded above covers final source, including core/report/browser tests and rendered PDF review. Packaging checks: git diff --check, node tests/regression.cjs, node tests/reports.cjs, all application JS syntax. No new application changes during packaging. Human code/usability review remains pending through the PR. Commit/push/PR identifiers not yet available when this record was written; see resulting branch history/PR for associated commits. No merge to main or deployment authorized/performed.
 
 Packaging follow-up: staged whitespace check detected trailing spaces in upstream vendored license comments that were not included by earlier unstaged-only checks. Removed trailing comment whitespace only from the two minified library files; retained license text and executable code. No integrity assertion was disabled. Full staged whitespace check repeated before commit.
+
+
+## 2026-11-05 — DERCONNECT exploration preparation
+
+Human: requesting team member (scope, instructor mapping, local ZIP location); AI: OpenAI Codex (implementation and checks). Human review pending. Branch `feature/derconnect-data-exploration`; base `c71b221e1b99f107cdbcd67c9223682115d790e2`. Clean initial status. No commit/push.
+
+Audited AGENTS, README, existing development/AI records, builder and browser CSV parser. Added `.gitignore`, `requirements-derconnect.txt`, `tools/inspect_derconnect.py`, `notebooks/01_derconnect_data_exploration.ipynb`, `tests/test_inspect_derconnect.py`; appended README/AI/development records. Browser and generated synthetic assets were not edited. No dependency was installed.
+
+Utility inventories ZIP metadata without extraction and reads CSV/TSV complete records within row/decompressed-byte budgets; bounded small Parquet uses optional pyarrow. Samples preserve string encodings; numeric and ISO-time diagnostics are separate. Unknown timestamp layouts, mixed time bases, unsupported formats and large Parquet are explicit limitations. Notebook covers A–H, guarded sample plots, expected register units, and proposed long-format integration contract. Expected units and supplied months/classifications are not presented as verified measurements. Long-format register-value schemas need a later explicit adapter.
+
+Commands and actual outcomes:
+- `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p test_inspect_derconnect.py`: PASS, 3 tests. Synthetic ZIP covers CSV/TSV/schema differences, duplicate and gap counts, missing/nonnumeric values, row/byte budgets, mixed timestamps, backwards order, unsupported/path-traversal member without extraction, and notebook absent/synthetic-data execution. Notebook cells executed sequentially under Python/Agg, not via a Jupyter kernel (nbclient/nbformat/ipykernel absent). No real measurements used. Matplotlib temporary-cache and short-window axis warnings were observed; no test failed.
+- `node tests/regression.cjs`, `node tests/csv-upload.cjs`: PASS existing dashboard data/store/evidence/comparison and CSV checks.
+- Python AST parse of new utility/tests and JSON output-clear assertions: PASS.
+- Missing CLI path: expected exit 2 and actionable setup error.
+- `git check-ignore` for raw ZIP, raw/intermediate/processed folders, private reports and checkpoints: PASS. Existing two synthetic JS fixtures remain tracked.
+
+Limitations: local Mac archive inaccessible in cloud; no actual inventory/schema/cadence/quality/real plots or full-data/cross-file analysis. No real adapter, resampling, detector run, electrical-fault classification, model installation or UI change. Browser suites and optional Parquet backend execution not run. Next: human local execution and source timezone/unit/schema confirmation, then agree canonical and model contracts with anomaly team. Checkpoint is exploration preparation, not completed integration.
+
+
+## 2026-11-05 — GitHub preparation and feature publication
+
+Human: requesting team member (explicit feature commit/push authorization, no main merge); AI: OpenAI Codex (review and Git operations). Branch `feature/derconnect-data-exploration`. Fetched origin/main at `5c5dcace4bd15ec2099f8bf9c985396baf9acea7`, two commits newer than the original base, and fast-forwarded the feature branch. Preserved local work in a named stash; reapplication caused append conflicts in README/AI_USE/DEVELOPMENT_LOG. Resolved them by preserving each complete upstream file followed by its exact saved exploration additions. The safety stash remains available; no reset, history rewrite or force push. Upstream PDF report assets are inherited unchanged, not part of this feature diff.
+
+Reviewed the eight feature files: utility, output-cleared notebook, synthetic tests, requirements, ignore rules and three documentation files. Original uploaded task prompt verified as an exact substring of AI_USE.md. Private account location remains withheld under AGENTS.md; only portable environment-variable examples are added. No raw/processed real measurements, ZIP payloads, credentials or private absolute paths are included in the feature additions. Synthetic test data is generated in temporary directories and explicitly labeled. Prior documentation entries are retained as historical records.
+
+Fresh checks after updating main:
+- `PYTHONDONTWRITEBYTECODE=1 MPLCONFIGDIR=/tmp/derconnect-mpl python3 -m unittest discover -s tests -p test_inspect_derconnect.py`: PASS, 3 tests. Expected short synthetic-window axis warning only.
+- `node tests/regression.cjs`, `node tests/csv-upload.cjs`, `node tests/reports.cjs`: PASS.
+- AST parse of new Python and notebook code; notebook no outputs/execution counts/attachments/widget state; raw ZIP/data/intermediate/processed/private-results/checkpoint ignore behavior; original prompt equality and upstream documentation prefix preservation: PASS.
+- Staged diff, file sizes/types, sensitive-string scan and `git diff --cached --check` reviewed before commit. Browser and synthetic pipeline files match fetched main.
+
+Requested commit message: `Add bounded DERCONNECT exploration notebook and inspection utility`. Publication is authorized only to the feature branch; main is not merged or pushed. This record precedes the commit/push; resulting branch history records the identifier and remote outcome is reported in chat. Real-data analysis remains unrun because the Mac Desktop archive is inaccessible. Human PR review pending.

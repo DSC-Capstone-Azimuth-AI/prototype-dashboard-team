@@ -1,0 +1,14 @@
+# Local DERCONNECT inputs and potentially sensitive results (synthetic JS stays tracked)
+Haojian_Data*.zip
+*DERCONNECT*.zip
+*derconnect*.zip
+/data/raw/
+/data/intermediate/
+/data/processed/
+/local-data/
+/local-results/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+/work/
