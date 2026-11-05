@@ -28,6 +28,7 @@ python3 -m http.server 8000   # then visit http://localhost:8000
 | **Buildings** | Searchable directory with consumption, pending priority, meters and completeness. Open `#buildings/LIB` for a dedicated profile with demand, historical means, simulated channels and linked anomalies. Advanced building/sub-grid analysis retains comparisons, heatmaps, daily profiles, peaks, decomposition and solar views. |
 | **Anomaly Investigation** | Filtered, sortable event list or optional gallery. Every event opens a separate `#investigate/CR-030` detail route: four key facts, highlighted demand chart, evidence, definition and browser-local operator review/notes. Weather, quality, score/threshold, forecast quantiles, detector overlap, synthetic labels, history and scatter remain in disclosures. |
 | **Detection Quality** | Detector comparisons, precision/recall/F1, false-positive analysis, synthetic scenarios, threshold diagnostics and ground-truth comparisons. Comparison metrics describe the complete evaluation run; diagnostic panels retain their existing scope. |
+| **CSV Upload** | Checks a meter CSV in the browser and reports rejected rows, gaps, duplicates and cadence, then plots the measured readings. Results stay in memory, separate from the simulated dataset, and no detector runs on them. |
 
 Navigation uses URL hashes and supports browser Back/Forward and detail reloads. Page-specific filter scopes are retained during navigation in the current session. A detail URL identifies its record independently of list filters; returning to the list restores that list's scope. Filter scopes themselves are not serialized across reloads. Unknown record IDs show an explicit unavailable state.
 
@@ -132,6 +133,28 @@ events[]    id, detector, meter, building, subgrid, start, end, peak_t (legacy s
 evaluation  per-detector metrics (only when labels exist)
 ```
 
+## CSV upload format
+
+The upload view uses a provisional checkpoint format, not the agreed DERCONNECT data contract.
+Files must be UTF-8 CSV, up to 20 MB, with these columns in any order. Extra columns are ignored.
+
+| Column | Value |
+|---|---|
+| `timestamp` | ISO 8601 date and time. `Z` or an offset is converted to UTC; a file without zones is shown as written. A file cannot mix both. |
+| `meter_id` | Any non-empty ID. IDs are not mapped to buildings. |
+| `kw` | Power in kW. Blank, `NA`, `NaN` and `null` are gaps, never zero. |
+
+| Case | Handling |
+|---|---|
+| Bad timestamp, missing ID, invalid number or wrong column count | Row rejected and listed with its line number |
+| Identical duplicate | Kept once and reported |
+| Conflicting duplicate | Shown as a gap, so no value is chosen |
+| Out-of-order rows | Sorted and reported |
+| Off-cadence intervals or time gaps | Reported, never resampled or filled |
+| Negative kW | Kept and reported, because the sign convention is not agreed |
+
+Sample files: `tests/fixtures/meter-upload-valid.csv` and `tests/fixtures/meter-upload-messy.csv`.
+
 ## Repository layout
 
 ```
@@ -141,6 +164,7 @@ js/util.js                 time, formatting, taxonomy, colours, DOM helpers
 js/charts.js               SVG charts: time series, bars, heatmap, scatter, timeline, tooltip
 js/store.js                state, indexes, filtered events, persistence of status
 js/ui.js                   cards, legends, event overlays/tooltips
+js/csv.js                  meter CSV parsing and validation (no DOM, no simulated data)
 js/sections/*.js           one file per dashboard section
 js/app.js                  boot, filters, routing, theme
 data/*.js                  generated data (detections and labels are separate)
@@ -215,10 +239,12 @@ not a new inferred event class. No threshold controls or unlabeled precision/rec
 
 ```bash
 node tests/regression.cjs
+node tests/csv-upload.cjs
 python3 -m http.server 8000 --bind 127.0.0.1
 # In another shell, with Playwright installed and Chromium at /usr/bin/chromium:
 node tests/browser.cjs
 node tests/navigation.cjs
+node tests/csv-upload-browser.cjs
 ```
 
 Optional browser-test environment variables: `DASHBOARD_URL`, `CHROMIUM_PATH`, `SCREENSHOT_DIR`.
