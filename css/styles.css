@@ -619,3 +619,25 @@ footer { font-size: 10px; }
 .csv-status p { margin: 8px 0 0; }
 .csv-status ul { margin: 8px 0 0; padding-left: 18px; }
 #sec-upload > .empty { margin-top: 16px; }
+
+/* Scoped PDF report builder */
+.report-controls { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:16px; margin:20px 0; }
+.report-controls label { display:flex; flex-direction:column; gap:6px; }
+.report-controls input, .report-controls select { max-width:100%; min-width:0; }
+#report-download { margin:16px 0 16px 12px; }
+#report-preview td { overflow-wrap:anywhere; white-space:normal; }
+#report-preview details { margin-top:16px; }
+.report-controls select, .report-controls input[type="date"] { padding:8px; border:1px solid var(--border); border-radius:6px; color:var(--ink); background:var(--surface); }
+.report-controls label:has(input[type="checkbox"]) { flex-direction:row; align-items:center; }
+.report-help { margin:16px 0; padding:14px; }
+.report-help p, .report-help li, .report-help dd { max-width:78ch; line-height:1.6; }
+.report-help li { margin-bottom:6px; }
+.report-help dt, .report-scope dt { font-weight:600; }
+.report-scope { display:grid; grid-template-columns:minmax(110px,1fr) minmax(0,3fr); gap:8px 16px; padding:16px; background:var(--surface); border:1px solid var(--border); border-radius:8px; }
+.report-scope dd { margin:0; overflow-wrap:anywhere; }
+.report-controls .muted { font-size:12px; margin:4px 0; }
+.report-note-editor { display:grid; gap:8px; margin:20px 0; }
+.report-note-editor label { font-weight:600; }
+.report-note-editor textarea { box-sizing:border-box; width:100%; resize:vertical; padding:10px; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--ink); font:inherit; }
+.report-note-editor .btn { justify-self:start; }
+.report-note-text { white-space:pre-wrap; overflow-wrap:anywhere; }

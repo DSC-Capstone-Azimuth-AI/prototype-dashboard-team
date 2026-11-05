@@ -253,3 +253,21 @@ actual validation outcomes. The dashboard still requires an adapter for irregula
 other sample cadences, optional channels across all views, real meter mappings and producer alert
 flags. Existing time helpers display campus wall time using UTC arithmetic, not a real UTC conversion.
 Detection Quality displays this labeled synthetic benchmark, with an unavailable state when evaluation evidence or labels are missing; it does not compute unlabeled real-data performance.
+
+## Export Reports
+
+Open `#export` for anomaly, building or general snapshot PDFs. Choose scope, detector and inclusive date range; review the complete section preview before downloading. Anomaly date/building/meter filters select the event, then the PDF covers its complete detected interval. Building and campus summaries use main meters only. Selection is independent of the other dashboard sections; uploaded CSVs are not integrated.
+
+Today / Last 3 / Last 7 / Last 30 days use the current America/Los_Angeles calendar date, inclusive of today. They never silently anchor to the fixture. Empty scopes disable download; **Use latest available data** explicitly anchors the same window to the final fixture day (seven days for Custom). Coverage is clipped to available fixture hours and disclosed. The fixture still uses its existing campus-wall-time-as-UTC convention, not real UTC measurements.
+
+Reports include scoped quality counts, quality-OK signed hourly energy subtotals, complete overlapping events, detector identity/settings, dataset metadata, limitations and a measured/median-prediction vector chart. Suspect/absent hours are excluded from energy; no imputation is performed. Notes and synthetic ground truth are opt-in for anomaly reports. Review status is browser-local assessment, not confirmation. Missing context/labels remain unavailable. PDFs contain selectable text, repeated table headers and page numbers. Unsupported font characters produce an explicit generation error. See `vendor/README.md` for pinned offline dependencies/licenses.
+
+Regression commands: `node tests/reports.cjs` and `node tests/reports-browser.cjs` (Playwright with installed Edge, `DASHBOARD_URL` defaults to port 8001; `REPORT_QA_DIR` optionally selects the PDF/screenshot output folder). Browser tests use an isolated browser context, never the user's stored reviews.
+
+### Report selection help
+
+Export Reports now includes **Need Help?**, collapsed by default, with plain-language instructions and a glossary. Main and solar-generation meters are explicitly labeled. Incompatible meter choices reset when buildings change; specific compatible meters remain selected under All buildings. Latest-data windows have an explicit historical anchor, and date settings are restored separately for each report type. The preview leads with a scope summary/legend; technical settings and provenance start collapsed without changing PDF contents. `node tests/reports-usability.cjs` checks these flows, mouse/keyboard help, focus, both themes and 390px fit using the same Playwright/Edge setup as report downloads.
+
+### Custom report notes
+
+All three report types have an optional **Custom report notes** field (up to 5,000 characters). Nonblank text appears in the live preview and PDF as user-supplied comments, separate from detector evidence and saved investigation notes. Drafts are separate for each report type, remain visible when changing scope and persist across local redraws during the session. Review them before download; Clear custom notes removes that draft, and reloading clears all drafts. Nothing is written to investigation records or browser storage. `node tests/report-notes-browser.cjs` exercises these behaviors and downloads all three PDFs.

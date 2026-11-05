@@ -1479,3 +1479,191 @@ Keep AI_USE.md focused on clear prompts and contributions, and DEVELOPMENT_LOG.m
 ```
 
 Human contributor: requesting team member. AI contributor: OpenAI Codex, documentation wording and review. Files: `AI_USE.md`, `DEVELOPMENT_LOG.md`. Branch: `matthew-prototype-feature`; base: `f2c921055b9fc1481bd539b6ac1b000b1cb90055`. Validation: reviewed the incremental documentation diff, searched both files for editorial commentary and passed `git diff --check`. Application code was unchanged; browser tests were not rerun. Human review pending. Associated commit: none.
+
+## 2026-11-04 — Export Reports PDF builder
+
+### Complete implementation prompt (verbatim)
+
+```text
+Add an “Export Reports” sidebar tab to the team DERCONNECT dashboard for generating downloadable PDF reports.
+
+Work on a git branch named Ryan and prepare the changes for a reviewable pull request. Read AGENTS.md, inspect the current code and Git status, preserve teammates’ work, and retain the existing plain HTML/CSS/JavaScript and custom SVG architecture.
+
+The tab should offer three report types:
+
+1. Anomaly report
+   - Select an anomaly by ID, building, meter and date.
+   - Include its detected interval, detector, classification, operational priority, review status, measured-versus-expected chart and available contextual evidence.
+   - Include operator notes only when explicitly selected.
+   - Distinguish detector output, explanatory hypotheses, operator assessments and synthetic ground-truth labels. Ground truth should be an optional, clearly marked research appendix.
+
+2. Building report
+   - Select a building and a date range.
+   - Include demand trends, available consumption/energy summaries, meter completeness, data-quality issues and anomalies overlapping that range.
+   - State units, calculation assumptions and whether event statistics use clipped intervals or complete events.
+   - Show unavailable information explicitly.
+
+3. General dashboard snapshot
+   - Offer Today, Last 3 days, Last 7 days, Last 30 days and Custom range.
+   - Allow campus-wide or selected-building scope.
+   - Include scope, demand trends, pending and high-priority anomalies, affected buildings and data completeness.
+   - Define preset boundaries clearly. Use America/Los_Angeles for real calendar dates.
+   - The current fixture is historical synthetic data: do not silently treat its final date as today. If a preset has no data, explain that and offer an explicitly labeled “Use latest available data” option.
+
+Provide a clear report preview showing the selected scope, covered dates, included sections and data availability before export. Disable export when the requested scope contains no reportable data.
+
+PDF requirements:
+- Generate a readable, searchable PDF with selectable text, embedded charts, sensible page breaks, repeating table headers, page numbers and no clipped content.
+- Use a consistent print-friendly design with accessible contrast and text labels alongside colors/symbols.
+- Include the report title, generation timestamp, requested and actual coverage, dataset/run provenance, detector information and relevant limitations.
+- Clearly label all current readings and relationships as synthetic demonstration data.
+- Export only the selected scope; do not include hidden notes or unrelated records.
+- Keep readings, predictions, research labels and human review records clearly separated.
+- Use descriptive filenames containing report type, selected record/building and date range.
+
+Choose the smallest suitable client-side PDF approach. If a new dependency is necessary, explain why, pin its version and support offline use without a CDN or backend. A print-preview fallback must be identified clearly; do not present opening the browser print dialog as a completed PDF download.
+
+Reuse existing shared selectors, time helpers, charts and theme conventions. Keep report selection independent of other sections’ filters unless the user explicitly chooses “Use current dashboard filters.” Do not change detector behavior, regenerate datasets or infer missing measurements.
+
+Validate the generated PDFs visually and check their text content. Cover all three report types, empty ranges, missing context/labels, long tables, long notes, overlapping events and narrow-screen controls. Confirm existing sections still work and document exact checks and limitations.
+
+Update AI_USE.md and DEVELOPMENT_LOG.md as required. Do not commit or push to main. Deliver a concise summary of changes, validation, remaining limitations and the proposed PR scope.
+```
+
+AI contributions: independent report selectors, scoped previews, offline PDF text/tables/vector charts, date semantics, availability/quality/privacy controls, tests and documentation. Human contributions: requirements and branch choice; code/usability review pending. Files: index.html, css/styles.css, js/app.js, js/reports.js, js/report-pdf.js, js/sections/export.js, vendor/*, tests/reports.cjs, tests/reports-browser.cjs, tests/section-navigation.cjs, README.md, DEVELOPMENT_LOG.md, AI_USE.md. Validation and exact environment/commands/results are in the matching DEVELOPMENT_LOG.md entry. No generated data or detector changes. No associated commit, push or actual PR. Limitations: synthetic fixture, campus wall-time convention, browser-local assessments, no CSV-report integration, unsupported font glyphs explicitly block export, no formal accessibility review or second browser engine. Human review remains pending.
+
+## 2026-11-04 — Custom-range date controls
+
+### Complete prompt (verbatim)
+
+```text
+For general snapshot and anomaly report I want the date options to only pop up if u select custom range.
+```
+
+Human contribution: requested conditional date inputs. AI contribution: snapshot/anomaly date fields shown only under Custom range; anomaly preset chooser with explicit All available dates default; regression assertions. Files: js/sections/export.js, tests/reports-browser.cjs, DEVELOPMENT_LOG.md, AI_USE.md. Branch Ryan, base c71b221; earlier uncommitted work retained. Validation: JavaScript syntax, report model regressions, report browser/download regressions and git diff --check passed. Building inputs remain visible. No PDF-generation/model changes; PDF layout checks not repeated. Human review pending; no associated commit, push or PR.
+
+## 2026-11-04 — Explain empty anomaly selection
+
+### Complete prompt (verbatim)
+
+```text
+The filtering is intentional, but the blank dropdown needs a clearer explanation.
+
+**Rolling median / MAD has 25 detected events in this fixture:**
+
+- **Center Hall:** 24
+- **San Diego Supercomputer Center:** 1
+- **Other buildings:** none
+
+The anomaly chooser also filters by building, meter and dates. Select **All buildings → All meters → All available dates** to see its IDs.
+
+An empty result should say “No anomalies match these filters” rather than showing a blank selector.
+```
+
+Human contribution: requested explicit empty-state explanation. AI contributions: disabled placeholder and guidance, browser regression for no matching Rolling Median events and recovery to 25. Files: js/sections/export.js, tests/reports-browser.cjs, DEVELOPMENT_LOG.md, AI_USE.md. Validation: source/test syntax, report unit/browser regressions and git diff --check passed. No report-generation/data changes; PDF layout not rerendered. Branch Ryan, base c71b221, prior uncommitted work preserved; no associated commit/push/PR. Human review pending.
+
+## 2026-11-04 — First-user Export Reports walkthrough
+
+### Complete prompt (verbatim)
+
+```text
+i want you to try and use this as if you were a first time user, document anything that would be confusing and taske notes because i want to write an instructional blurb on how to use it properly
+```
+
+Human contribution: requested a first-time-user review and notes for an instructional blurb. AI contributions: live UI walkthrough, documented reproductions/priority of confusing behavior, suggested fixes and drafted a usage blurb. Files: docs/EXPORT_REPORTS_WALKTHROUGH.md, DEVELOPMENT_LOG.md, AI_USE.md. Branch Ryan, base c71b221 with previous uncommitted work preserved. Validation: browser interaction/preview checks and a successful CR-012 PDF download; documentation/whitespace review. Limits: AI heuristic review by the implementation assistant, not independent human testing; Export Reports scope, no new narrow-screen/accessibility/PDF-layout audit. No interface fixes, note/status edits or detector/data changes. No associated commit, push or PR; human review pending.
+
+## 2026-11-04 — Export Reports usability and Need Help?
+
+### Complete prompt (verbatim)
+
+````text
+```typescript
+Refine Export Reports using the findings in docs/EXPORT_REPORTS_WALKTHROUGH.md. Continue on branch Ryan, read AGENTS.md, inspect Git status and preserve all existing work. Keep the current plain HTML/CSS/JavaScript architecture, offline PDF generation and detector/data behavior unchanged.
+
+Fix these usability issues:
+
+1. Building and meter selection
+   - When changing buildings, retain the selected meter only if it belongs to the new scope; otherwise reset to All meters.
+   - Never leave a blank meter selection.
+   - Label individual meter options explicitly as “Building name — Main demand” or “Building name — Solar generation (PV).”
+   - Keep building and meter restrictions clear when All buildings is selected.
+
+2. Date selection
+   - After “Use latest available data,” visibly identify the historical anchor and actual dates. Never leave “Today” displayed as if the report uses today’s date.
+   - Keep date fields hidden unless Custom range is selected for snapshot/anomaly reports.
+   - Make report-type switching predictable: preserve compatible selections, reset incompatible ones explicitly, and ensure displayed controls always match the applied scope.
+   - Explain that anomaly dates find overlapping events, while the report covers the complete selected event.
+   - Hide or disable the latest-data action when it adds no useful change, such as All available dates.
+
+3. Anomaly selection and empty states
+   - Explain beside Detector: “Each detector produces its own list of events. Changing it may change which anomalies are available.”
+   - Keep “No anomalies match these filters” and disabled export for empty results.
+   - Give scope-specific recovery guidance without implying that no detected events proves normal operation.
+   - Include a readable anomaly category alongside ID, meter and date in the chooser.
+   - Use existing taxonomy/status labels instead of internal codes wherever practical.
+
+4. Preview readability
+   - Lead with a compact summary of report type, building/meter, detector, requested/actual dates and selected anomaly.
+   - Add a visible text legend distinguishing measured readings from the predicted median.
+   - Move raw metadata and technical settings into clearly labeled disclosures collapsed by default.
+   - Preserve access to all existing report evidence and provenance. Collapsing preview sections must not silently remove PDF content.
+   - Make the distinction between content preview and final PDF pagination clear.
+
+Add a “Need Help?” section near the report controls:
+- Use a native, keyboard-accessible details/summary disclosure.
+- Keep it collapsed by default.
+- Expand/collapse it with a click or keyboard activation without resetting selections or losing focus.
+- Write concise, plain-language instructions for building managers. Avoid raw schema names and unexplained technical jargon.
+- Include:
+  • How to choose Anomaly, Building or General snapshot.
+  • A short anomaly-report walkthrough: choose building, detector, date scope, meter and event; verify the preview; download the PDF.
+  • What detectors do and why their anomaly lists differ.
+  • Main demand versus solar generation (PV).
+  • How filters combine and how to recover from an empty list.
+  • Today versus latest available demonstration data.
+  • Custom dates: inclusive dates for summaries; overlapping-event selection and complete-event coverage for anomaly reports.
+  • Measured versus predicted demand.
+  • Notes are saved in this browser; review status is a human assessment.
+  • Synthetic ground-truth labels are injected research labels, not confirmed real-world faults; leave the appendix off for routine reports.
+  • Reports currently use the synthetic demonstration dataset, not CSV uploads.
+  • Download PDF saves a file through browser Downloads.
+- Put optional definitions such as “end exclusive,” “data completeness,” “energy subtotal” and “novelty score” in a short glossary inside this section.
+- Derive dates and labels from the current dataset; do not hardcode fixture counts or its final date.
+
+Validate the affected flows in a real browser:
+- Reproduce and fix Jacobs Hall PV → Center Hall leaving Meter blank.
+- Verify detector-specific empty states and recovery.
+- Verify latest-data controls and preview dates agree.
+- Test report-type switching and Custom range visibility.
+- Test Need Help? by mouse and keyboard, including focus and retained selections.
+- Check narrow-screen layout, both themes and existing report downloads.
+- Add meaningful regression assertions without weakening existing tests.
+- If PDF content/rendering changes, rerun PDF text and visual checks.
+
+Update the walkthrough to distinguish resolved findings from remaining limitations. Append the required AI_USE.md and DEVELOPMENT_LOG.md records with exact checks and outcomes. Keep changes scoped and reviewable on Ryan; do not commit or push to main.
+
+Deliver a concise summary of fixes, validation, remaining limitations and proposed PR scope.
+```
+````
+
+Human contribution: specified fixes/help and required validations. AI contributions: report UI state/labels/help/preview refinement, focused browser regressions and resolution documentation. Files: js/sections/export.js, css/styles.css, tests/reports-browser.cjs, tests/reports-usability.cjs, docs/EXPORT_REPORTS_WALKTHROUGH.md, README.md, DEVELOPMENT_LOG.md, AI_USE.md. Branch Ryan; base c71b221 plus prior uncommitted work preserved. Validation: syntax, core/report model regressions, report usability/browser suites and git diff --check passed; no page/console errors; mouse/keyboard/focus, both themes/mobile and three PDF downloads verified. Screenshots reviewed; exact commands/outcomes and initial test correction recorded in DEVELOPMENT_LOG.md. No report-model/PDF-renderer/data/detector changes, so PDF layout audit not repeated. Limits: synthetic/browser-local data, no formal screen-reader/human study or second browser engine. Human review pending; no associated commit/push/PR.
+
+## 2026-11-04 — Custom report notes and branch rename
+
+### Complete prompt (verbatim)
+
+```text
+add a feature where we can add custom notes to the report, also rename the branch to Export Custom Reports as PDF
+```
+
+Human contribution: requested report notes and branch rename. AI contributions: optional plain-text notes/preview/clear/count for all report types, per-type session drafts, separated user-comment PDF section, tests and records; renamed Ryan to Export-Custom-Reports-as-PDF because Git prohibits spaces (explained to user before renaming). Files: js/sections/export.js, js/reports.js, css/styles.css, tests/reports.cjs, tests/report-notes-browser.cjs, README.md, DEVELOPMENT_LOG.md, AI_USE.md. Base c71b221, prior local work preserved. Validation: report model, custom-note browser, usability and download regressions passed; syntax/whitespace checks, PDF text/boundaries/footers and rendered long-note pages checked. Initial textarea restoration issue corrected without weakening assertions. Exact commands/environment/outcomes in DEVELOPMENT_LOG.md. Limits: drafts clear on reload, not shared or saved to investigation; existing unsupported-font-character errors remain. Human review pending; no associated commit, push or actual PR.
+
+## 2026-11-04 — Commit and open feature PR
+
+### Complete prompt (verbatim)
+
+```text
+commit as PR in branch
+```
+
+Human contribution: authorized feature commit, branch push and pull request. AI contributions: reviewed complete export feature scope, fetched origin/main, verified checks, prepared commit and PR description on Export-Custom-Reports-as-PDF. Files: complete Export Reports feature files, tests, bundled PDF assets/licenses and documentation listed in preceding task records, plus this packaging record. Base c71b221; prior changes preserved. Validation: existing final browser/PDF results above; packaging syntax/core/report tests and git diff --check. Limitations remain synthetic/browser-local data and pending human review. No main-branch commit/merge or deployment. Associated commit and PR identifiers were not yet available when this entry was written; resulting branch history/PR records them.
