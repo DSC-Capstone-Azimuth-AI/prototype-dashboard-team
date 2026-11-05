@@ -70,9 +70,9 @@ const base = process.env.DASHBOARD_URL || 'http://127.0.0.1:8000';
     assert.equal(await page.locator('#sec-overview .metric-toggle[aria-pressed="true"]').count(), 1);
     assert.equal(await page.evaluate(() => JSON.stringify(DC.state)), metricScope, 'emphasis does not change scope or event state');
     assert.deepEqual(await page.locator('#sec-overview .kpi .value').allTextContents(), metricValues);
-    assert.equal(await page.locator('.tabs a').count(), 5);
+    assert.equal(await page.locator('.tabs a').count(), 6);
     assert.equal(await page.locator('.nav-group').count(), 0);
-    assert.equal(await page.locator('.tabs a .nav-icon[aria-hidden="true"]').count(), 5);
+    assert.equal(await page.locator('.tabs a .nav-icon[aria-hidden="true"]').count(), 6);
     assert.equal(await page.locator('.tabs a').evaluateAll(links => links.every(link => document.getElementById(link.getAttribute('aria-controls')))), true);
     await alignedNavigation(page);
     for (const section of ['investigate', 'buildings', 'models', 'overview']) {
