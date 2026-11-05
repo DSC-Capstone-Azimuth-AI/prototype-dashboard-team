@@ -454,3 +454,35 @@ Final verification: PASS — all six regression/browser suites passed, with no p
 ## 2026-11-04 — Documentation clarity
 
 Human: requesting team member. AI: OpenAI Codex. Refined wording in `AI_USE.md` and `DEVELOPMENT_LOG.md` to keep prompts and technical records clear. Branch `matthew-prototype-feature`, base `f2c921055b9fc1481bd539b6ac1b000b1cb90055`; existing local work retained. Checks: incremental documentation diff reviewed, targeted text searches completed, `git diff --check` passed. Documentation only; no application tests rerun. Human review pending; no associated commit. Next: review the documentation wording.
+
+
+## 2026-11-04 — CSV upload view
+
+- Timezone: America/Los_Angeles. Human: requesting team member, choosing the feature and reviewing the result. AI: Claude (configured model `claude-opus-5-5`). Human code review pending.
+- Branch `lillian`, base `52dbffa5a8fae1fb02e4af4e3bf7c2596d07807d`. No associated commit, push, merge or deployment.
+- Added a fifth section, `#upload`, that checks a meter CSV in the browser. `js/csv.js` parses and validates text with no DOM or simulated-data access. `js/sections/upload.js` shows status, rejected rows, row counts, a per-meter summary, a measured-readings chart and an explicit unavailable list. Filters and the simulated-data banner are hidden on this section because they do not apply.
+- Rationale: neither students nor mentor have DERCONNECT access yet, so this gives the Quarter 1 checkpoint a real-data boundary without replacing the fixture. The existing `DC.charts.timeSeries` is indexed to the simulated clock, so the view has its own small time-based chart. Shared chart code is unchanged.
+- The column format, 20 MB limit, duplicate rule and timestamp rule are provisional choices. They do not settle the data contract listed in AGENTS.md.
+- Files: index.html; css/styles.css; js/app.js; js/csv.js (new); js/sections/upload.js (new); tests/csv-upload.cjs (new); tests/csv-upload-browser.cjs (new); tests/fixtures/meter-upload-valid.csv (new); tests/fixtures/meter-upload-messy.csv (new); tests/section-navigation.cjs; README.md; AI_USE.md; DEVELOPMENT_LOG.md. No generated data, labels, builder, detector, dependency or framework changes. `tests/section-navigation.cjs` now expects five tabs and icons. AGENTS.md still lists four section files and was left for the team to update.
+
+Validation environment: Linux cloud copy of the repository, Node v22.23.4 / Python 3.13.18 / Playwright 1.63.0 / Chrome for Testing 153.0.8010.12, desktop 1440×1000 and mobile 390×844. Not run on the requester's Windows computer.
+
+```bash
+for file in js/*.js js/sections/*.js data/*.js tests/*.cjs; do node --check "$file" || exit; done
+python3 -m http.server 8000 --bind 127.0.0.1
+node tests/regression.cjs
+node tests/csv-upload.cjs
+CHROMIUM_PATH=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome node tests/csv-upload-browser.cjs
+CHROMIUM_PATH=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome node tests/section-navigation.cjs
+CHROMIUM_PATH=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome node tests/investigation-views.cjs
+CHROMIUM_PATH=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome node tests/meter-comparison.cjs
+CHROMIUM_PATH=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome node tests/navigation.cjs
+CHROMIUM_PATH=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome node tests/browser.cjs
+git diff --check
+```
+
+Results: syntax checks and all eight suites/checks passed (the six existing suites plus the two new ones). New coverage: file-level failures, clean and messy fixtures, row accounting, BOM, CRLF, quoted commas, timestamp offsets and invalid dates, blank and invalid values, duplicates, conflicts, cadence, 200,000 readings on one meter, 20 MB rejection, a hostile HTML meter ID and value rendered as text, meter switching, hover, theme and section changes, clearing on reload, unchanged simulated data and 390px layout. No page/console errors in successful runs.
+
+Initial failures: the first browser run expected two line segments, but the messy fixture correctly produces three, so the assertion was corrected. `tests/regression.cjs` first failed because `tools/building_metadata.json` had not been copied to the validation workspace; it passed after the file was added. Screenshot review then found isolated readings too small to see, a negative reading below the lowest axis label, repeated date labels, a stale "No file chosen" message and cut-off text at phone width. These were fixed and covered by new assertions. No assertion or integrity check was disabled.
+
+Limits: no real DERCONNECT file has been tested. The view does not detect anomalies, map meters to buildings, resample or keep files after reload. Times with an offset display in UTC, not campus time. A 20 MB file is parsed on the main thread. No formal accessibility review. Next: review on Windows, agree the data contract with the team and replace this format when real data is available.

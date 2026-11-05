@@ -603,3 +603,19 @@ footer { font-size: 10px; }
   .comparison-controls { grid-template-columns: 1fr; }
   .meter-comparison { scroll-margin-top: 140px; padding-left: 12px; padding-right: 12px; }
 }
+
+/* CSV Upload */
+.upload-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.upload-picker { overflow-wrap: anywhere; }
+.upload-picker label { display: inline-flex; align-items: center; cursor: pointer; }
+.upload-picker input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.upload-picker input:focus-visible + label { outline: 2px solid var(--focus); outline-offset: 2px; }
+[data-upload-unavailable] td { white-space: normal; }
+.csv-status { margin: 16px 0; padding: 14px 16px; border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; background: var(--surface); overflow-wrap: anywhere; }
+.csv-status.ready { border-left-color: var(--good); }
+.csv-status.warnings { border-left-color: var(--sev-medium); }
+.csv-status.rejected { border-left-color: var(--sev-critical); }
+.csv-status b { margin-right: 10px; }
+.csv-status p { margin: 8px 0 0; }
+.csv-status ul { margin: 8px 0 0; padding-left: 18px; }
+#sec-upload > .empty { margin-top: 16px; }
