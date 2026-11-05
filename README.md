@@ -271,3 +271,59 @@ Export Reports now includes **Need Help?**, collapsed by default, with plain-lan
 ### Custom report notes
 
 All three report types have an optional **Custom report notes** field (up to 5,000 characters). Nonblank text appears in the live preview and PDF as user-supplied comments, separate from detector evidence and saved investigation notes. Drafts are separate for each report type, remain visible when changing scope and persist across local redraws during the session. Review them before download; Clear custom notes removes that draft, and reloading clears all drafts. Nothing is written to investigation records or browser storage. `node tests/report-notes-browser.cjs` exercises these behaviors and downloads all three PDFs.
+
+
+## Local DERCONNECT exploration (November 5, 2026)
+
+Use `notebooks/01_derconnect_data_exploration.ipynb` and `tools/inspect_derconnect.py`
+for the November 6 checkpoint. This workflow does not change the synthetic pipeline,
+browser CSV preview or detector outputs. No real archive was available in the cloud
+workspace; real schema, cadence, quality and visual findings remain unverified.
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements-derconnect.txt
+# macOS, when the ZIP is on the current user's Desktop:
+export DERCONNECT_DATA_PATH="$HOME/Desktop/Haojian_Data.zip"
+mkdir -p local-results
+python3 tools/inspect_derconnect.py --rows 2000 --max-bytes 8388608 > local-results/inspection.json
+jupyter lab notebooks/01_derconnect_data_exploration.ipynb
+```
+
+The CLI also accepts a positional ZIP path and `--timestamp COLUMN`. Output is a
+JSON inventory, schema variants, per-file prefix quality/time summaries and explicit
+inspection errors. Units are instructor expectations, not verified source metadata.
+Month checks are filename-token diagnostics; timestamp coverage requires confirmation.
+The notebook displays tables/plots only when suitable records exist, and gives setup
+instructions when data is absent. All code cells are saved without outputs.
+
+CSV/TSV reads stop at the row or decompressed-byte budget and preserve complete parsed
+records. Memory use depends on these budgets per file; the report also grows with file
+and column count. Sampling every file may take time. It is not a full quality scan.
+UTF-8 delimited tables and ISO timestamps are supported; other encodings, split dates,
+epoch times, long-format registers and schema-specific units require explicit adapters.
+For small Parquet members, optionally install `pyarrow>=15`; large members are reported
+as unsupported within the budget rather than extracted. The utility uses no network
+and never extracts the complete archive. Exceptions/failures are reported per member.
+
+The approximately 3 GB raw archive is intentionally excluded from version control.
+Keep extracted data in `data/raw/` or `local-data/`, intermediate/processed files in
+`data/intermediate/` or `data/processed/`, and private reports in `local-results/`.
+Other external data locations must also remain untracked. Do not commit measurements,
+large derived tables or notebook outputs. Clear outputs in Jupyter before committing.
+The ignore rules preserve existing tracked synthetic JavaScript fixtures.
+
+Validation (synthetic fixtures only):
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 MPLCONFIGDIR=/tmp/derconnect-mpl python3 -m unittest discover -s tests -p test_inspect_derconnect.py
+node tests/regression.cjs
+node tests/csv-upload.cjs
+```
+
+The notebook recommends a versioned long measurement table with stable meter ID,
+raw/UTC timestamps, explicit measurement/value/unit, quality flags and local provenance;
+a separate derived wide model view requires agreed cadence and aggregation. Real-data
+integration, full archive scanning, cross-file duplicate checks, timezone confirmation,
+long-format adapters and model execution remain future work.

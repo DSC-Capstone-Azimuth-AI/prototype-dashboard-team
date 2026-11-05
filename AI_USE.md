@@ -1667,3 +1667,427 @@ commit as PR in branch
 ```
 
 Human contribution: authorized feature commit, branch push and pull request. AI contributions: reviewed complete export feature scope, fetched origin/main, verified checks, prepared commit and PR description on Export-Custom-Reports-as-PDF. Files: complete Export Reports feature files, tests, bundled PDF assets/licenses and documentation listed in preceding task records, plus this packaging record. Base c71b221; prior changes preserved. Validation: existing final browser/PDF results above; packaging syntax/core/report tests and git diff --check. Limitations remain synthetic/browser-local data and pending human review. No main-branch commit/merge or deployment. Associated commit and PR identifiers were not yet available when this entry was written; resulting branch history/PR records them.
+
+
+## 2026-11-05 — DERCONNECT local exploration preparation
+
+### Complete implementation prompt (verbatim)
+
+```text
+# DSC 180A — DERCONNECT Real Data Exploration and Integration Preparation
+
+You are a senior data scientist, electrical energy data analyst, and research software engineer working on our UC San Diego DSC 180A capstone project in partnership with Azimuth AI.
+
+Repository: `DSC-Capstone-Azimuth-AI/prototype-dashboard-team`
+
+## 1. Context and objective
+
+Our dashboard team has received its first real DERCONNECT electricity meter dataset.
+
+The dataset contains measurements from five buildings covering January through May 2026, provided by our instructor, Haojian Jin.
+
+The ZIP archive is approximately 3 GB and is organized into device-ID folders, each containing monthly data files.
+
+The device identifiers and facilities-management classifications are:
+
+- E2451 — Instructional
+- E3020 — Mixed
+- E3510 — Office
+- E7080 — Office
+- E7085 — Office
+
+We want to explore this dataset systematically and prepare for future integration with our unified dashboard and the separate anomaly detection group.
+
+Our November 6 checkpoint does not require full real-data integration.
+
+**Primary objective: Create a reproducible, well-documented exploratory data analysis notebook and lightweight inspection utilities that characterize the real DERCONNECT dataset and identify the requirements for integration.**
+
+Do not modify the existing dashboard's synthetic data pipeline or detection outputs.
+
+## 2. Repository onboarding
+
+Before implementing anything:
+
+1. Read AGENTS.md.
+2. Read README.md.
+3. Read DEVELOPMENT_LOG.md.
+4. Read AI_USE.md.
+5. Inspect the current synthetic data generator and browser-facing data schema.
+6. Identify existing data-processing utilities and conventions.
+
+Work in a dedicated feature branch:
+
+`feature/derconnect-data-exploration`
+
+Preserve existing code and avoid unrelated refactoring.
+
+## 3. Data security and access
+
+The real dataset is stored locally on a team member's computer.
+
+The 3 GB ZIP should NOT be committed to the public GitHub repository.
+
+Do not attempt to upload raw measurements, identifiable facility metadata beyond what has been authorized, or large derived datasets.
+
+Create or update .gitignore to exclude:
+
+- Raw DERCONNECT ZIP archives.
+- Extracted raw meter data.
+- Large intermediate datasets.
+- Local processed data.
+- Potentially sensitive generated results.
+- Python cache files and notebook checkpoints.
+
+Be careful not to accidentally exclude the repository's existing intentionally committed synthetic JavaScript fixtures.
+
+Avoid deleting, replacing, or ignoring existing tracked synthetic files.
+
+Use a configurable local path to the data, preferably an environment variable such as `DERCONNECT_DATA_PATH`.
+
+Never hardcode personal absolute file paths or authentication credentials.
+
+The notebook must remain usable even when the real dataset is absent, giving clear instructions rather than failing with a confusing traceback.
+
+Do not assume the cloud environment can access local files. If the archive is unavailable, implement the inspection notebook and utilities, and clearly state which analyses could not be executed.
+
+Do not fabricate findings or output plots.
+
+## 4. Create a Jupyter notebook
+
+Create:
+
+`notebooks/01_derconnect_data_exploration.ipynb`
+
+The notebook should have clear Markdown explanations, reproducible code cells, and logically organized sections.
+
+### Section A — Dataset overview
+
+Explain:
+
+- Dataset source and purpose.
+- January–May 2026 coverage, as described by the instructor.
+- Five meter/device IDs and corresponding building types.
+- Difference between this real DERCONNECT dataset and the existing synthetic demonstration data.
+- Data provenance and permission limitations.
+
+Inspect the ZIP archive without extracting the full dataset if possible.
+
+Report:
+
+- Archive size.
+- Number of files.
+- Meter folders.
+- Monthly file names.
+- File formats.
+- Compressed and uncompressed sizes.
+- Missing or unexpected months.
+- Schema differences across files.
+
+Avoid loading all 3 GB into memory.
+
+### Section B — Schema inspection
+
+Inspect representative records from each meter and month.
+
+Identify:
+
+- Column names.
+- Data types.
+- Timestamp fields.
+- Time zone information, if available.
+- Measurement register names.
+- Units.
+- Null and missing-value encodings.
+- Device identifiers.
+- Any unexpected metadata columns.
+
+Compare file schemas across all five meters and five months.
+
+Produce a compact schema report.
+
+### Section C — Timestamp and sampling analysis
+
+Determine the actual observation frequency rather than assuming it.
+
+Investigate:
+
+- Timestamp parsing.
+- Time zone ambiguity.
+- Monotonic ordering.
+- Duplicate timestamps.
+- Missing intervals.
+- Irregular sampling.
+- Large temporal gaps.
+- Differences in coverage across meters.
+- Daylight saving time considerations.
+
+Report observed sampling intervals by meter.
+
+Do not assume that every meter follows the same cadence.
+
+### Section D — Measurement availability
+
+The instructor provided a register-to-unit mapping.
+
+The available measurement categories may include:
+
+**Energy**
+- Active_Energy_in_Quadrant_I (kWh)
+- Active_Energy_in_Quadrant_II (kWh)
+- Active_Energy_in_Quadrant_III (kWh)
+- Active_Energy_in_Quadrant_IV (kWh)
+
+**Active power**
+- Active_Power_A/B/C (W)
+
+**Apparent power**
+- Apparent_Power_A/B/C (VA)
+
+**Current**
+- Current_A/B/C (A)
+- Current_Unbalance_Worst (%)
+
+**Frequency**
+- Frequency (Hz)
+
+**Power factor**
+- Power_Factor_A/B/C (dimensionless)
+
+**Reactive power**
+- Reactive_Power_A/B/C (VAR)
+
+**Harmonic distortion**
+- THD_Current_A/B/C/N (%)
+- THD_Voltage_A-N/B-N/C-N (%)
+
+**Voltage**
+- Voltage_A-B/A-N/B-C/B-N/C-A/C-N (V)
+- Voltage_Unbalance_L-N_Worst (%)
+
+Do not assume every register is present in every file.
+
+Create an availability matrix showing which registers are observed for each device.
+
+Report missingness, numeric ranges, and suspicious values without automatically classifying them as faults.
+
+### Section E — Initial exploratory visualizations
+
+Using a manageable sample or bounded time window, create clear plots where the data supports them.
+
+Suggested visualizations:
+
+1. Active power over time for one selected meter.
+2. Daily and weekly demand patterns.
+3. Distribution of observed power readings.
+4. Missing-data coverage over time.
+5. Voltage and frequency distributions, if present.
+6. Phase-level comparisons for active power and current.
+7. A comparison of available office, instructional, and mixed-use meter patterns.
+
+Use real timestamps and correct physical units.
+
+Do not generate plots using invented values.
+
+If total power is calculated from phase measurements, first verify that the registers represent compatible phases and document the aggregation assumptions.
+
+Do not treat cumulative energy registers as instantaneous power.
+
+Avoid making claims about electrical faults based only on simple outliers.
+
+### Section F — Data quality
+
+Evaluate:
+
+- Missing measurements.
+- Duplicate timestamps.
+- Flatlined or stuck readings.
+- Non-numeric values.
+- Unexpected sign conventions.
+- Extreme values.
+- Potential counter resets.
+- Inconsistent units or schemas.
+- Differences in completeness across buildings.
+
+Separate data-quality observations from potential operational anomalies.
+
+Do not automatically correct suspicious readings. Document proposed cleaning rules before applying them.
+
+### Section G — Integration readiness
+
+Compare the actual DERCONNECT schema with the dashboard's current synthetic data schema.
+
+Identify required transformations for:
+
+- Stable meter identifiers.
+- Building classifications.
+- Timestamp normalization.
+- Measurement naming.
+- Physical units.
+- Sampling intervals.
+- Data-quality indicators.
+- Aggregation.
+- Missing contextual fields.
+- Detector and forecast alignment.
+
+Recommend an intermediate canonical data format suitable for both the dashboard and the anomaly detection team.
+
+Prefer long-format measurements with explicit meter ID, timestamp, measurement name, numeric value, and unit for raw standardization. Consider a derived wide-format view for model input where appropriate.
+
+Do not force real data into an hourly synthetic representation without documenting the aggregation.
+
+### Section H — Findings and next steps
+
+Conclude the notebook with:
+
+- Verified dataset characteristics.
+- Important data quality observations.
+- What is still unknown.
+- Potential anomaly detection opportunities.
+- Integration requirements.
+- Questions for the anomaly detection team.
+- Recommendations for subsequent real-data processing.
+
+Clearly distinguish verified observations from hypotheses and future work.
+
+## 5. Lightweight inspection utility
+
+Create:
+
+`tools/inspect_derconnect.py`
+
+The script should support inspecting a local archive and producing a compact report.
+
+Requirements:
+
+- CLI argument or environment variable for the ZIP path.
+- Memory-efficient inspection.
+- Archive file inventory.
+- Representative schema inspection.
+- Basic coverage and quality summaries when feasible.
+- Clear errors for unsupported formats.
+- No destructive operations.
+- No network dependency.
+- No automatic extraction of the complete archive.
+
+If CSV files are present, use bounded reads or chunk processing.
+
+If Parquet or another format is present, use appropriate format-aware methods.
+
+Do not assume the file format before inspecting it.
+
+Keep the notebook focused on analysis and delegate reusable parsing logic to the script where appropriate.
+
+## 6. Reproducibility
+
+Document:
+
+- Python dependencies.
+- Environment setup.
+- How to configure DERCONNECT_DATA_PATH.
+- How to run the inspection utility.
+- How to launch the notebook.
+- Expected outputs.
+- How to reproduce the analysis locally.
+
+Avoid introducing heavyweight dependencies unless needed.
+
+Ensure the notebook can be reopened without requiring large embedded outputs.
+
+Prefer clearing real-data outputs before committing the notebook, while keeping safe Markdown descriptions and reproducible code.
+
+Provide a small synthetic test fixture if needed for automated validation, but label it clearly as synthetic and never present it as DERCONNECT data.
+
+## 7. Checkpoint and collaboration
+
+Friday, November 6, is our DSC 180A checkpoint and a meeting with the other capstone teams.
+
+We are not attempting complete real-data integration before that meeting.
+
+Prioritize:
+
+1. Dataset inventory.
+2. Schema and time-index investigation.
+3. Data-quality checks.
+4. Representative visualizations.
+5. Proposed integration contract.
+6. Documentation of open questions.
+
+We want to arrive at the meeting with a technically grounded understanding of the dataset and a clear integration plan.
+
+## 8. Documentation requirements
+
+Follow AGENTS.md.
+
+Update:
+
+**AI_USE.md**
+- Record this exact prompt.
+- Explain AI-assisted code and notebook creation.
+- Include actual validation outcomes.
+- Preserve previous entries.
+
+**DEVELOPMENT_LOG.md**
+- Record the work, files changed, decisions, tests, and limitations.
+
+**README.md**
+- Add a section explaining how to run the real-data inspection notebook with a locally stored archive.
+- Explain that the 3 GB archive is intentionally excluded from version control.
+
+Do not claim that real-data inspection was completed if the actual ZIP was not available.
+
+## 9. Validation
+
+Where possible:
+
+- Test the inspection script using a small synthetic archive.
+- Verify that the notebook can execute on a representative sample.
+- Confirm the script does not extract the full archive unnecessarily.
+- Verify .gitignore behavior.
+- Check for accidentally tracked real-data files.
+- Confirm the existing dashboard still works.
+
+Do not commit or push automatically.
+
+## 10. Final deliverables
+
+Provide:
+
+1. Notebook and utility file paths.
+2. Summary of verified findings.
+3. Explicit list of analyses not run due to missing data access.
+4. Recommended dashboard integration schema.
+5. Questions to discuss with the anomaly detection team.
+6. Test results.
+7. Documentation updates.
+8. Suggested commit message and PR description.
+
+Start by auditing the repository, then implement the notebook and inspection utility.
+
+Focus on a reproducible research workflow rather than prematurely integrating real measurements into the live dashboard.
+```
+
+The follow-up supplied a private local archive location. Per AGENTS.md’s personal-data restriction, its identifying account name is not copied into this record; use the environment-variable setup in README. Human contribution: task, dataset context and local archive location. AI contribution: repository audit, bounded offline inspection utility, A–H notebook, synthetic tests, ignore rules and reproducibility documentation. Human review remains pending. Branch: `feature/derconnect-data-exploration`; base: `c71b221e1b99f107cdbcd67c9223682115d790e2`. No commit or push.
+
+Validation: three Python unittest cases passed, including all notebook code cells executed sequentially with absent and synthetic data using the Agg plotting backend; no Jupyter kernel/nbclient was installed, so this was not a kernel-driven notebook run. Existing dependency-free dashboard regression and CSV suites passed. Python AST, cleared notebook outputs, CLI missing-path error and ignore checks passed. Real data was unavailable, so no real findings or plots are claimed. Browser UI suites were not rerun because browser assets were unchanged. Matplotlib used a temporary cache after a read-only home warning; the synthetic two-row plot emitted a single-bin axis warning. Files: `.gitignore`, `requirements-derconnect.txt`, `tools/inspect_derconnect.py`, `notebooks/01_derconnect_data_exploration.ipynb`, `tests/test_inspect_derconnect.py`, `README.md`, `AI_USE.md`, `DEVELOPMENT_LOG.md`.
+
+
+## 2026-11-05 — Prepare DERCONNECT feature for GitHub
+
+### Complete prompt (verbatim)
+
+```text
+The notebook and inspection utility look ready. Please prepare this feature for GitHub.
+
+1. Confirm we are on `feature/derconnect-data-exploration` and that it includes the latest `main`.
+2. Review the changed files and confirm no real DERCONNECT measurements, large ZIP files, credentials, or private file paths are included.
+3. Verify the notebook contains no embedded real-data outputs and that .gitignore excludes raw and processed real datasets.
+4. Confirm that AI_USE.md contains the complete original prompt and that DEVELOPMENT_LOG.md documents the work accurately.
+5. Commit with the message `Add bounded DERCONNECT exploration notebook and inspection utility`.
+6. Push the feature branch to origin.
+
+Do not merge into main.
+
+Provide the branch URL and instructions for creating a pull request.
+```
+
+Human contribution: authorized review, feature commit and branch push, with no merge into main. AI contribution: fetched current main, fast-forwarded the feature branch, preserved both upstream and exploration documentation additions, reviewed feature files for private data, checked the full original uploaded prompt verbatim, reran validation and prepared the requested commit/push. Current main at preparation: `5c5dcace4bd15ec2099f8bf9c985396baf9acea7`. Three Python tests, dashboard regression, CSV and report model suites passed; notebook outputs/attachments/widget state absent, ignore rules and Python AST checked. No real archive access, kernel-driven notebook run, optional Parquet backend or new browser testing. Earlier no-commit/no-push entries describe the prior stage; this request authorizes publication. Commit identifier is recorded in branch history after this entry is committed. Human review remains pending through the PR.
