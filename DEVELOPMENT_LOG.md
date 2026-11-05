@@ -575,3 +575,23 @@ Fresh checks after updating main:
 - Staged diff, file sizes/types, sensitive-string scan and `git diff --cached --check` reviewed before commit. Browser and synthetic pipeline files match fetched main.
 
 Requested commit message: `Add bounded DERCONNECT exploration notebook and inspection utility`. Publication is authorized only to the feature branch; main is not merged or pushed. This record precedes the commit/push; resulting branch history records the identifier and remote outcome is reported in chat. Real-data analysis remains unrun because the Mac Desktop archive is inaccessible. Human PR review pending.
+
+
+## 2026-11-05 — Human local DERCONNECT execution and preliminary findings
+
+Human contributor: requesting team member, who executed the original Codex-generated notebook on a Mac against the actual DERCONNECT ZIP, interpreted the results and supplied the findings and documentation requirements. AI contributor: OpenAI Codex, drafting this follow-up documentation from the human report; see the corresponding AI_USE.md entry. Entry date uses America/Los_Angeles; the exact local execution date, dependency versions and commands were not supplied.
+
+Branch: `docs/real-dataset-exploration`; base: latest fetched `origin/main`, `1a602840768270d45e2c221a000b903a5eeef26a`. Initial working tree was clean. Files changed: `README.md`, `DEVELOPMENT_LOG.md`, `AI_USE.md`. Earlier entries are retained as historical records; their statements that real-data analysis was unrun describe the earlier cloud preparation stage.
+
+Human-verified archive findings: 25 monthly CSV files across meters E2451, E3020, E3510, E7080 and E7085, corresponding to January–May 2026 for each meter; approximately 3.5 GB compressed and 11.95 GB uncompressed; one consistent column schema across all 25 files. Month correspondence does not establish full timestamp coverage.
+
+The initial bounded inspection analyzed 2,000 rows per file. In the inspected samples, `_time` timestamps included UTC offsets, sampling was approximately 2 seconds, and no invalid or duplicate timestamps were observed. These are sample-level observations, not full-file or cross-file quality guarantees. Active-power time-series plots, distributions and phase comparisons were successfully generated locally from actual measurements.
+
+Full-period completeness, daily/weekly behavior and anomaly ground truth remain unverified. No real-data detector accuracy or dashboard integration is established. Codex did not access the ZIP or independently rerun the human exploration during this documentation task. No measurements, plots, notebook execution outputs or private file paths were added; notebook, dashboard and pipeline files were unchanged.
+
+Documentation validation: `git diff --check`; complete diff/status review; programmatic comparison to the base confirming both logs retain their full prior contents and only the three requested documentation files changed. Application/browser tests and notebook execution were not rerun for this documentation-only update. Human review of the new wording remains pending. Associated commit: none; no commit or push performed. Next: review these findings, then verify full-period coverage, daily/weekly behavior and ground-truth availability before drawing dataset-wide or anomaly-detection conclusions.
+
+
+## 2026-11-05 — Package preliminary findings documentation for GitHub
+
+Human: requesting team member, approving the wording and authorizing commit/push. AI: OpenAI Codex, packaging and verification. Branch `docs/real-dataset-exploration` includes latest fetched `origin/main` at `1a602840768270d45e2c221a000b903a5eeef26a`. Only README.md, AI_USE.md and DEVELOPMENT_LOG.md changed. Full prior contents remain intact; added text contains no raw measurements, generated plots, notebook outputs, personal paths or credentials. Full diff/status review, programmatic prefix/scope checks, `git merge-base --is-ancestor origin/main HEAD`, `git diff --check` and staged whitespace checks passed. Dashboard, pipeline and notebook files remain unchanged; application tests and exploration were not rerun. Human wording review is complete for the preceding documentation update. Requested commit: `docs: record preliminary real DERCONNECT data exploration`; this entry precedes commit/push, with the associated identifier available in branch history afterward. Push is authorized only to origin/docs/real-dataset-exploration; no merge into main. Next: open a documentation pull request for team review.

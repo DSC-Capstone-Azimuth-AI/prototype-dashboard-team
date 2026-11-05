@@ -327,3 +327,27 @@ raw/UTC timestamps, explicit measurement/value/unit, quality flags and local pro
 a separate derived wide model view requires agreed cadence and aggregation. Real-data
 integration, full archive scanning, cross-file duplicate checks, timezone confirmation,
 long-format adapters and model execution remain future work.
+
+
+## Preliminary real-data findings (November 5, 2026)
+
+After the original Codex notebook preparation, the requesting team member executed it
+locally on a Mac against the actual DERCONNECT ZIP and interpreted the results.
+These human-reported findings update the earlier cloud-only validation status above:
+
+- **Archive inventory:** 25 monthly CSV files across E2451, E3020, E3510, E7080 and
+  E7085, with files corresponding to January–May 2026 for each meter; approximately
+  3.5 GB compressed and 11.95 GB uncompressed. One consistent column schema was
+  verified across all 25 files. File months do not establish complete timestamp coverage.
+- **Bounded inspection:** 2,000 rows per file. In those samples, `_time` timestamps
+  included UTC offsets, sampling was approximately 2 seconds, and no invalid or
+  duplicate timestamps were observed. These observations do not establish cadence,
+  timestamp validity or uniqueness throughout the dataset or across files.
+- **Local visualization:** active-power time-series plots, distributions and phase
+  comparisons were successfully generated from actual measurements.
+
+Full-period completeness, daily/weekly behavior and anomaly ground truth remain
+unverified. This preliminary exploration does not validate real-data anomaly detection
+or integrate measurements into the dashboard. Measurements, plots and execution outputs
+are not included in this documentation update. See DEVELOPMENT_LOG.md and AI_USE.md
+for execution provenance and the distinction between human and AI contributions.
