@@ -43,6 +43,28 @@ const base = process.env.DASHBOARD_URL || 'http://127.0.0.1:8000';
     await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' }));
     await page.screenshot({ path: path.join(process.env.SCREENSHOT_DIR, name + '.png'), fullPage: true, animations: 'disabled' });
   };
+  const staticMetrics = async page => {
+    const cards = page.locator('#sec-overview .kpi');
+    const appearance = card => card.evaluate(n => {
+      const s = getComputedStyle(n), value = getComputedStyle(n.querySelector('.value'));
+      return [s.backgroundColor, s.borderColor, s.boxShadow, s.outlineStyle, value.color];
+    });
+    const scope = await page.evaluate(() => JSON.stringify(DC.state));
+    const values = await cards.locator('.value').allTextContents();
+    assert.equal(await cards.count(), 4);
+    for (const card of await cards.all()) {
+      assert(await card.evaluate(n => n.tagName === 'DIV' && n.tabIndex === -1 && !n.hasAttribute('aria-pressed')));
+      assert.equal(await card.evaluate(n => getComputedStyle(n).cursor), 'auto');
+      await page.mouse.move(0, 0);
+      const normal = await appearance(card);
+      await card.hover();
+      assert.deepEqual(await appearance(card), normal, 'hover leaves metric appearance unchanged');
+      await card.click();
+      assert.deepEqual(await appearance(card), normal, 'click leaves metric appearance unchanged');
+    }
+    assert.equal(await page.evaluate(() => JSON.stringify(DC.state)), scope, 'metrics leave scope and event state unchanged');
+    assert.deepEqual(await cards.locator('.value').allTextContents(), values);
+  };
   try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } }); observe(page);
     await page.addInitScript(() => {
@@ -56,20 +78,15 @@ const base = process.env.DASHBOARD_URL || 'http://127.0.0.1:8000';
     });
     await page.goto(base); await settled(page, 'overview');
     assert.equal(await page.locator('#sec-overview .kpi .metric-icon[aria-hidden="true"]').count(), 4);
-    const metric = key => page.locator(`#sec-overview .metric-toggle[data-metric="${key}"]`);
-    const metricScope = await page.evaluate(() => JSON.stringify(DC.state));
-    const metricValues = await page.locator('#sec-overview .kpi .value').allTextContents();
-    await metric('review').click();
-    assert.equal(await metric('review').getAttribute('aria-pressed'), 'true');
-    await metric('priority').focus(); await page.keyboard.press('Enter');
-    assert.equal(await metric('priority').getAttribute('aria-pressed'), 'true');
-    assert.equal(await metric('review').getAttribute('aria-pressed'), 'false');
-    await page.keyboard.press('Space');
-    assert.equal(await metric('priority').getAttribute('aria-pressed'), 'false');
-    await metric('completeness').click();
-    assert.equal(await page.locator('#sec-overview .metric-toggle[aria-pressed="true"]').count(), 1);
-    assert.equal(await page.evaluate(() => JSON.stringify(DC.state)), metricScope, 'emphasis does not change scope or event state');
-    assert.deepEqual(await page.locator('#sec-overview .kpi .value').allTextContents(), metricValues);
+    await staticMetrics(page);
+    for (const detector of await page.evaluate(() => DC.D.detectors.map(d => d.id))) {
+      await page.evaluate(detector => DC.setState({ detector }), detector);
+      await staticMetrics(page);
+    }
+    await page.evaluate(() => DC.setState({ range: 'custom', t0: 0, t1: 1 }));
+    assert.equal(await page.locator('#sec-overview .kpi .value').first().textContent(), '0');
+    await staticMetrics(page);
+    await page.evaluate(() => DC.setState({ ...DC.DEFAULT }));
     assert.equal(await page.locator('.tabs a').count(), 6);
     assert.equal(await page.locator('.nav-group').count(), 0);
     assert.equal(await page.locator('.tabs a .nav-icon[aria-hidden="true"]').count(), 6);
@@ -100,7 +117,7 @@ const base = process.env.DASHBOARD_URL || 'http://127.0.0.1:8000';
     await clickSection(page, 'overview');
     const beforeFilters = await page.evaluate(() => window.transitionCount);
     await page.selectOption('#f-building', 'LIB');
-    assert.equal(await metric('completeness').getAttribute('aria-pressed'), 'true', 'metric emphasis survives navigation and filter redraws');
+    await staticMetrics(page);
     assert.equal(await page.evaluate(() => window.transitionCount), beforeFilters, 'local filters do not start route transitions');
     await screenshot(page, 'overview');
 
@@ -154,9 +171,11 @@ const base = process.env.DASHBOARD_URL || 'http://127.0.0.1:8000';
       await clickSection(page, section);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 390);
       if (section === 'overview') {
-        await metric('buildings').click();
-        assert.equal(await metric('buildings').getAttribute('aria-pressed'), 'true');
-        assert.equal(await metric('buildings').evaluate(n => n.getAnimations().length), 0);
+        await staticMetrics(page);
+        await page.locator('#theme-toggle').click();
+        await staticMetrics(page);
+        await screenshot(page, 'mobile-overview-dark');
+        await page.locator('#theme-toggle').click();
         await screenshot(page, 'mobile-overview');
       }
     }

@@ -2159,3 +2159,38 @@ Provide the branch URL and pull request instructions.
 ```
 
 Human contribution: reviewed the documentation positively and explicitly authorized this commit and branch push, with no merge into main. AI contribution: fetched origin/main, verified branch ancestry, reviewed the complete three-file diff, checked preservation of all prior documentation and scanned added text for personal paths and credential patterns. Only `README.md`, `AI_USE.md` and `DEVELOPMENT_LOG.md` changed; no raw measurements, plots, notebook outputs or sensitive data were added. Branch `docs/real-dataset-exploration`; latest fetched main `1a602840768270d45e2c221a000b903a5eeef26a`. Documentation scope/preservation and whitespace checks passed; application tests and real-data execution were not rerun because code and notebooks are unchanged. Earlier no-commit/no-push statements describe the prior stage. This record precedes the authorized commit/push; the associated commit is identifiable in branch history by `docs: record preliminary real DERCONNECT data exploration`. Remote outcome is reported in chat. No merge into main.
+
+
+## 2026-11-05 — Remove overview metric interaction highlights
+
+### Complete user task prompts (verbatim)
+
+```text
+# Context from my IDE setup:
+
+## Active file: README.md
+
+## Open tabs:
+- README.md: README.md
+
+## My request:
+Remove the highlight when clicking or hovering ovr the metrics in overview, for example the events requiring review metric
+```
+
+```text
+# Context from my IDE setup:
+
+## Active file: README.md
+
+## Open tabs:
+- README.md: README.md
+
+## My request:
+i switch to a new branch
+```
+
+Human contribution: specified the visual change and switched to `fix/overview-metric-highlights`; review of the implementation remains pending. AI contribution: inspected repository instructions/status and the metric code, replaced cosmetic toggle buttons with static cards, removed hover/pressed styles and redundant highlight state, updated the existing browser regression, ran checks and appended these records. Base revision: `6e6ca2532419be1fd6528af6bd64650f73eb8b05`. Associated commits: none; no commit or push performed.
+
+Files changed: `js/sections/overview.js`, `css/styles.css`, `tests/section-navigation.cjs`, `DEVELOPMENT_LOG.md`, `AI_USE.md`. Validation: application/test JavaScript syntax, `node tests/regression.cjs`, existing `tests/section-navigation.cjs` and `tests/navigation.cjs` using Playwright and installed headless Chrome, `git diff --check`, full diff/status and preservation of earlier log contents. All passed. Browser checks cover unchanged metric appearance/state on hover/click, all four detectors, zero-event range, filters, four main sections, event selection/deep links/reload, review status/notes and theme persistence, actual charts and 390px light/dark layout, with no page/console errors. Desktop overview and mobile dark screenshots visually reviewed. Initial sandbox restrictions blocked server/browser startup; approved escalation allowed validation. User selected the branch after declining agent branch creation. Exact commands and tool versions are recorded in DEVELOPMENT_LOG.md.
+
+Limitations: only the existing synthetic fixture was used; no real measurements, data generation, model inference, dependency installation or real-world detection claims. Human review remains required.

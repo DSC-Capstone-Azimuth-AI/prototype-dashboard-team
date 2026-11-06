@@ -595,3 +595,20 @@ Documentation validation: `git diff --check`; complete diff/status review; progr
 ## 2026-11-05 — Package preliminary findings documentation for GitHub
 
 Human: requesting team member, approving the wording and authorizing commit/push. AI: OpenAI Codex, packaging and verification. Branch `docs/real-dataset-exploration` includes latest fetched `origin/main` at `1a602840768270d45e2c221a000b903a5eeef26a`. Only README.md, AI_USE.md and DEVELOPMENT_LOG.md changed. Full prior contents remain intact; added text contains no raw measurements, generated plots, notebook outputs, personal paths or credentials. Full diff/status review, programmatic prefix/scope checks, `git merge-base --is-ancestor origin/main HEAD`, `git diff --check` and staged whitespace checks passed. Dashboard, pipeline and notebook files remain unchanged; application tests and exploration were not rerun. Human wording review is complete for the preceding documentation update. Requested commit: `docs: record preliminary real DERCONNECT data exploration`; this entry precedes commit/push, with the associated identifier available in branch history afterward. Push is authorized only to origin/docs/real-dataset-exploration; no merge into main. Next: open a documentation pull request for team review.
+
+
+## 2026-11-05 — Remove overview metric interaction highlights
+
+Human: requesting team member (requested behavior and switched to feature branch); AI: OpenAI Codex (implementation, regression updates and validation). Human review pending. Base revision `6e6ca2532419be1fd6528af6bd64650f73eb8b05`; initial branch `main`, clean working tree; implementation branch `fix/overview-metric-highlights`, selected by the human after sandboxed branch creation failed and escalation was declined. No commit or push.
+
+Changed `js/sections/overview.js`, `css/styles.css`, `tests/section-navigation.cjs`, `DEVELOPMENT_LOG.md` and `AI_USE.md`. Replaced overview metric toggle buttons with static cards; removed highlight state, pressed attributes, click handlers, pointer cursor and hover/pressed CSS. Preserved icons, values, notes and grid sizing. Updated the existing navigation regression from the former highlight behavior to appearance/state invariance on hover/click for all four metrics, all detectors, a zero-event range, a building filter, and mobile light/dark themes. No data regeneration or pipeline changes.
+
+Validation on Node v24.14.1, Python 3.13.1, Google Chrome 158.0.8127.18:
+- `python3 -m http.server 8000 --bind 127.0.0.1`: sandbox bind denied; rerun with approved escalation served the repository successfully.
+- `node tests/regression.cjs`: PASS.
+- `for file in js/*.js js/sections/*.js tests/section-navigation.cjs; do node --check "$file" || exit; done`: PASS.
+- `NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' SCREENSHOT_DIR=/tmp/derconnect-metrics-qa node tests/section-navigation.cjs`: sandbox browser launch denied; approved elevated rerun PASS. Covers metric appearance, actual charts, four main sections, filters, event selection/deep links/reload, status changes, narrow viewport, transitions and no page/console errors. Desktop overview and mobile dark screenshots visually inspected.
+- `NODE_PATH=/tmp/derconnect-browser-qa/node_modules CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' node tests/navigation.cjs`: PASS with approved escalation; all four detectors/sections, all 161 event routes, status/notes and theme persistence, missing context, custom dates and 390px layout; no page/console errors.
+- `git diff --check`, complete diff/status review and prior-log prefix preservation: PASS.
+
+Limitations: synthetic committed data only; no real-data or model validation required or performed. No dependency installation. Next: human visual review of the uncommitted feature changes.
