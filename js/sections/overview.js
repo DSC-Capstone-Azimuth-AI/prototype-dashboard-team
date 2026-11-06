@@ -4,7 +4,7 @@
   const DC = window.DC, el = DC.el, ui = () => DC.ui;
   DC.sections = DC.sections || {};
 
-  let showEvents = false, diagnosticsOpen = false, emphasizedMetric = null;
+  let showEvents = false, diagnosticsOpen = false;
 
   function metricIcon(kind) {
     const paths = {
@@ -23,17 +23,10 @@
     return svg;
   }
   function kpi(label, value, unit, note, icon) {
-    return el("button", { type: "button", class: "card kpi metric-toggle", "data-metric": icon,
-      "data-focus-key": "overview-metric-" + icon, "aria-pressed": String(emphasizedMetric === icon),
-      onclick: event => {
-        emphasizedMetric = emphasizedMetric === icon ? null : icon;
-        for (const metric of event.currentTarget.parentElement.querySelectorAll(".metric-toggle")) {
-          metric.setAttribute("aria-pressed", String(metric.dataset.metric === emphasizedMetric));
-        }
-      } },
+    return el("div", { class: "card kpi" },
       el("span", { class: "kpi-heading" }, el("span", { class: "label", text: label }), el("span", { class: "kpi-symbol" }, metricIcon(icon))),
-      el("span", { class: "value" }, value, unit ? el("small", { text: unit }) : null),
-      note ? el("span", { class: "note", text: note }) : null);
+      el("div", { class: "value" }, value, unit ? el("small", { text: unit }) : null),
+      note ? el("div", { class: "note", text: note }) : null);
   }
 
   function render(root) {
