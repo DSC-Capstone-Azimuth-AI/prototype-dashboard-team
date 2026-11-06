@@ -2194,3 +2194,54 @@ Human contribution: specified the visual change and switched to `fix/overview-me
 Files changed: `js/sections/overview.js`, `css/styles.css`, `tests/section-navigation.cjs`, `DEVELOPMENT_LOG.md`, `AI_USE.md`. Validation: application/test JavaScript syntax, `node tests/regression.cjs`, existing `tests/section-navigation.cjs` and `tests/navigation.cjs` using Playwright and installed headless Chrome, `git diff --check`, full diff/status and preservation of earlier log contents. All passed. Browser checks cover unchanged metric appearance/state on hover/click, all four detectors, zero-event range, filters, four main sections, event selection/deep links/reload, review status/notes and theme persistence, actual charts and 390px light/dark layout, with no page/console errors. Desktop overview and mobile dark screenshots visually reviewed. Initial sandbox restrictions blocked server/browser startup; approved escalation allowed validation. User selected the branch after declining agent branch creation. Exact commands and tool versions are recorded in DEVELOPMENT_LOG.md.
 
 Limitations: only the existing synthetic fixture was used; no real measurements, data generation, model inference, dependency installation or real-world detection claims. Human review remains required.
+
+
+## 2026-11-05 — Add notebook Sections F and G
+
+### Complete user task prompt (verbatim)
+
+```text
+Please extend the existing Jupyter notebook `01_derconnect_data_exploration.ipynb` by adding **Section F — Full Dataset Quality** and **Section G — Temporal Aggregation Analysis**. Preserve all existing sections and follow the notebook's current structure.
+
+### Section F — Full Dataset Quality
+
+Analyze all 25 DERCONNECT CSV files (5 devices, January–May 2026), rather than just the first 2,000 rows.
+
+- Check missing timestamps, duplicates, sampling intervals, and recording gaps.
+- Calculate data coverage (%) and missing/invalid measurement values by device and month.
+- Create a data-quality summary table, coverage heatmap, and gap visualization.
+- Identify potential data-quality issues.
+
+### Section G — Temporal Aggregation Analysis
+
+Explore how the two-second measurements can be aggregated for future dashboard visualizations.
+
+- Compare **5-minute, 15-minute, and hourly aggregation**.
+- Convert active power from W to kW.
+- Preserve individual phases A, B, and C, and calculate total active power only after verifying phase aggregation assumptions.
+- Compare mean, minimum, and maximum power across different intervals.
+- Examine how aggregation affects fluctuations, peak demand, and data coverage.
+- Create comparison plots showing original versus aggregated measurements.
+- Briefly explain which aggregation intervals would be most appropriate for different dashboard visualizations.
+
+### Important Requirements
+
+- The dataset is approximately 11.95 GB uncompressed. Use memory-efficient chunked processing where necessary.
+- Handle timestamps, timezones, and missing values correctly.
+- Use the provided register-unit mapping.
+- Include progress indicators and brief explanations of findings.
+- **Do not export or save aggregated datasets.** Keep Section G exploratory, using temporary in-memory results.
+- Do not implement anomaly detection, historical baselines, or building consumption-pattern analysis yet.
+
+**Deliverable:** An updated notebook containing Sections F and G, relevant visualizations, and a brief summary of findings for future DERCONNECT dashboard integration.
+```
+
+Human contribution: requested the sections/constraints and supplied the existing locally modified notebook and accessible archive. Human review of the new implementation remains pending. IDE metadata containing personal absolute paths is omitted under AGENTS.md; the complete task request above contains no private measurements or credentials.
+
+AI contribution: preserved every existing cell/output/metadata, appended full-dataset quality and exploratory aggregation sections, added a reusable chunked helper using existing register mappings, added synthetic regression fixtures and adapted the existing notebook harness to prevent real-data reads in tests. Implemented explicit cadence/calendar coverage, DST, missing/invalid values and IDs, exact duplicates, recording-gap versus jitter-slot diagnostics, phase W-to-kW conversion, guarded total power, weighted aggregation, retained extrema/fluctuation/coverage metrics, bounded raw detail and visualizations. Recorded descriptive local validation findings and future dashboard guidance. No anomaly detection, historical baseline, building consumption-pattern analysis, aggregate dataset export or dashboard integration added.
+
+Branch `feature/derconnect-eda-expansion`; base `146b9457953266a75b176fae068c05af003c3e7f`. Files: `notebooks/01_derconnect_data_exploration.ipynb`, `tools/derconnect_full_quality.py`, `tests/test_derconnect_full_quality.py`, `tests/test_inspect_derconnect.py`, `DEVELOPMENT_LOG.md`, `AI_USE.md`. Only the notebook was modified before this task; its original 12 cells remain unchanged. Associated commits: none; no commit/push.
+
+Validation: 11 synthetic unittest cases including all notebook code cells on missing/synthetic archives; local execution of new cells scanning all 25 real CSVs to EOF, retaining results only in memory; five real-data plots rendered temporarily and visually reviewed; final short-gap marker/timezone-locator refinements rerun/rendered with synthetic input. Python AST, notebook schema, original-cell SHA-256 preservation, cleared new outputs, complete diff/status and whitespace checks passed. Exact commands, versions, intermediate fixes and memory/time outcomes are in DEVELOPMENT_LOG.md. No tests/assertions disabled or dependencies installed.
+
+Limitations: cells executed sequentially with Python/Agg, not through a Jupyter kernel. New code outputs are intentionally cleared; original saved human outputs preserved. Data-quality summaries do not confirm faults; two-second cadence/month timezone remain explicit assumptions; source documentation is still required before total power. No real power values, raw measurements or private local paths added to these records. No browser/model tests required or run because application/data-generation sources were unchanged.
