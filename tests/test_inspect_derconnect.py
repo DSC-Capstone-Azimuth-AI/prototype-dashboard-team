@@ -1,5 +1,8 @@
 """Synthetic regression fixtures only; never real DERCONNECT measurements."""
 import importlib.util
+import ast
+import contextlib
+import io
 import json
 import os
 from pathlib import Path
@@ -54,13 +57,36 @@ class InspectionTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as directory:
                 path = Path(directory)/'synthetic.zip'
                 with zipfile.ZipFile(path, 'w') as archive:
-                    archive.writestr('E2451/2026-01.csv', 'timestamp,Active_Power_A\n2026-01-01T00:00:00,1\n2026-01-01T00:00:02,2\n')
+                    archive.writestr('E2451/2026-01.csv', '_time,DeviceID,Active_Power_A,Active_Power_B,Active_Power_C\n2026-01-01T00:00:00Z,E2451,1,2,3\n2026-01-01T00:00:02Z,E2451,2,3,4\n')
                 for target in [str(Path(directory)/'absent.zip'), str(path)]:
                     os.environ['DERCONNECT_DATA_PATH'] = target
                     namespace = {}
-                    for cell in notebook['cells']:
-                        if cell['cell_type'] == 'code':
-                            exec(compile(''.join(cell['source']), '<notebook>', 'exec'), namespace)
+                    with contextlib.redirect_stdout(io.StringIO()):
+                        for cell in notebook['cells']:
+                            if cell['cell_type'] == 'code':
+                                tree = ast.parse(''.join(cell['source']))
+                                # The user's preserved setup cell overrides the env path.
+                                # Remove only that assignment in this synthetic harness so
+                                # tests can NEVER read a locally available real archive.
+                                tree.body = [node for node in tree.body if not (
+                                    isinstance(node, ast.Assign) and any(
+                                        isinstance(t, ast.Subscript) and isinstance(t.value, ast.Attribute)
+                                        and isinstance(t.value.value, ast.Name) and t.value.value.id == 'os'
+                                        and t.value.attr == 'environ' and isinstance(t.slice, ast.Constant)
+                                        and t.slice.value == 'DERCONNECT_DATA_PATH' for t in node.targets))]
+                                exec(compile(tree, '<notebook>', 'exec'), namespace)
+                                if cell.get('id') == 'derconnect-fg-config':
+                                    namespace.update(FG_DEVICES=['E2451'], FG_MONTHS=['2026-01'],
+                                                     FG_CALENDAR_TZ='UTC', FG_MIN_VALID_COVERAGE=0,
+                                                     FG_CHUNK_ROWS=1)
+                    self.assertEqual(namespace['DATA_PATH'], Path(target))
+                    if Path(target).is_file():
+                        self.assertEqual(namespace['FULL_RESULT']['summary'].iloc[0].rows, 2)
+                        self.assertFalse(namespace['FULL_RESULT']['total_enabled'])
+                    else:
+                        self.assertIsNone(namespace['FULL_RESULT'])
+                    import matplotlib.pyplot as plt
+                    plt.close('all')
         finally:
             if prior is None: os.environ.pop('DERCONNECT_DATA_PATH', None)
             else: os.environ['DERCONNECT_DATA_PATH'] = prior
