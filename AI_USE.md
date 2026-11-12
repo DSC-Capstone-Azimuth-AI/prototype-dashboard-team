@@ -3441,3 +3441,49 @@ Files changed in this task: `notebooks/01_derconnect_data_exploration.ipynb` (M 
 Validation: `PYTHONDONTWRITEBYTECODE=1 IPYTHONDIR=/tmp/derconnect-summary-ipython "$HOME/miniforge3/bin/python3.12" /tmp/validate_derconnect_final_m.py` PASS. Checks exact A–L bytes/objects/outputs/metadata, Markdown-only M, notebook schema/existing-code AST, four requested parts, 12-row three-column summary and nine-row four-column feature table, the requested Yes statuses, four shared preprocessing steps and three next stages. Markdown rendered to `/tmp/derconnect-final-section-m.html` without notebook execution; 1,044 rendered words. Prior-log preservation, full prompt inclusion, task-specific Markdown/status review and `git diff --check` pass. No EDA/scans/regression/browser/model execution, dependencies, pipeline or integration.
 
 Limitations: existing EDA and mapping document the stated measurements and provisional coverage assumptions; calibration, direction, phase aggregation and physical relationships are not newly established. Those are feature-specific interpretation limits, not universal blockers to a labeled channel pilot. No private measurement values or personal paths copied into this record. Human content review pending; associated commits none.
+
+
+## 2026-11-11 — Notebook 02: building types, detector inputs and anomaly screening
+
+Human: requesting team member. AI: Claude (Anthropic). Human review pending. Branch `main` working tree only, base `1f9b92831bc44b0698a4b610ac9fb126486eca43`; no commit or push, associated commits none.
+
+Verbatim user prompts:
+
+User message 1 (with attached `Meter Reading Mapping.csv`; attachment path omitted):
+
+```text
+The dataset contains meter data from 5 buildings over 5 months Jan 2026 - May 2026.
+
+The building type to meter name (device ID in the data files) mapping is as follows:
+
+* E2451: Instructional
+* E3020: Mixed
+* E3510: Office
+* E7080: Office
+* E7085: Office
+
+
+
+Note that this is the building type per facilities management.
+The attached file is a small file with the measurement names and units broken down for your reference.
+```
+
+User message 2:
+
+```text
+given the eda already done in the repo, explain it to me and explain what other eda may still need to be done
+```
+
+User message 3 (items 2, 8 and 9 refer to the AI's list of further EDA: building-type comparison, inputs for the anomaly team, and screening for real anomalies):
+
+```text
+Try it out in a notebook on my mac not the repo. Do 2,8,9
+```
+
+AI contribution: explained the existing EDA (notebook 01, Sections A–M, and the development-log records) and proposed further EDA; wrote `tools/derconnect_prep.py` and notebook 02 covering the phase-additivity check, building-type comparison, anomaly-team inputs and an unlabeled anomaly screen; executed it on the local data; first saved it in the user's local data folder outside the repository, then, as requested, removed the section numbers and the closing summary and added the notebook and helper to this repository with repository-relative, Git-ignored cache/export paths and an environment variable for the data location. Human contributions: building-type mapping, data access, scope and review.
+
+Files changed: `notebooks/02_derconnect_building_types_forecasting_anomalies.ipynb` (new), `tools/derconnect_prep.py` (new), `DEVELOPMENT_LOG.md`, `AI_USE.md` (append-only records). Local-only, Git-ignored outputs: `local-results/derconnect-building-types/`.
+
+Validation: see the matching DEVELOPMENT_LOG.md entry (sequential execution with 0 errors, AST parse, private-path scan, ignore check, `git diff --check`).
+
+Limitations: screening candidates are not faults or labels; the academic calendar and weather are not encoded; saved notebook outputs contain real-data figures and tables. No private measured values or personal paths are recorded in this entry.

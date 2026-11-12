@@ -1,0 +1,92 @@
+% !TEX TS-program = xelatex
+% !BIB TS-program = bibtex
+\documentclass[12pt,letterpaper]{article}
+\usepackage{style/dsc180reportstyle} % import dsc180reportstyle.sty
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Title and Authors
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\title{Designing an Interpretable and Interactive Dashboard for Electricity Anomaly Monitoring and Investigation}
+
+% TODO: replace with your group's full names and UCSD emails (mentor always last).
+\author{First Author \\
+  {\tt email@ucsd.edu} \\\And
+  Second Author \\
+  {\tt email@ucsd.edu} \\\And
+  Third Author \\
+  {\tt email@ucsd.edu} \\\And
+  Fourth Author \\
+  {\tt email@ucsd.edu} \\\And
+  Mentor Name \\
+  {\tt email@ucsd.edu} \\}
+
+\begin{document}
+\maketitle
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Abstract and Links
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{abstract}
+With electrical infrastructure becoming growingly complex due to the advancement in technology and rapid popularity of renewable clean energy sources such as solar and wind power. It has become more of a challenge to identify abnormalities and monitor the health of these systems, especially for building managers and electrical engineers. There have been many papers and research that have investigated statistical and machine learning approaches towards detecting anomalies in electrical systems. However, turning detection of anomalies into interpretable and actionable information, while also identifying the nature or legitimacy of the detected anomalies within its respective domain has remained a difficult challenge, especially for building managers who need to find and investigate potential issues or anomalies that could impact efficiency, cost, and performance of their buildings as they monitor their buildings energy systems. This issue is addressed by our project as the goal is to develop a dashboard to visualize and analyze anomalies detected using UC San Diego's DERCONNECT data derived from their research infrastructure. Emphasizing on the anomaly specific visualizations and metrics that explains the type, severity, duration, location, and potential interpretation of the unusual electricity behavior flagged from the anomaly detection model integrated within our dashboard. Our methodology incorporates researching and investigating visualization techniques and requirements, statistical and machine learning methods within anomaly detection, and domain specific anomalies, specifically in energy consumption, power grids, and electrical infrastructure. Also, synthetic time-series data for initial prototyping and development, and integrating visualization and metrics with weather and electricity consumption data to help distinguish the legitimacy of abnormalities and expected major changes in consumption.
+\end{abstract}
+
+% Quarter 1 Project: link code only (no website).
+\begin{center}
+Code: \url{https://github.com/DSC-Capstone-Azimuth-AI/prototype-dashboard-team}
+\end{center}
+
+\maketoc
+\clearpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Main Contents
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Introduction}
+
+\subsection{Problem and Motivation}
+
+Building managers need to recognize unusual electricity use, but electrical measurements and anomaly detection outputs can be difficult to interpret without specialized knowledge. A flagged reading alone does not explain what changed, how significant the change may be or what can warrant further investigation. Our project's objective aims to reduce this knowledge gap by developing an interactive dashboard that translates electricity data and detected anomalies into clear, accessible visualizations. Using UC San Diego's DERCONNECT testbed as the application context, we can focus on showing when and where unusual behavior occurs as well as how long it lasts and how it compares with expected patterns. By presenting these details alongside available contextual evidence, the dashboard is able to help building managers prioritize events, explore possible explanations, and communicate findings with electrical engineers.
+
+\subsection{Literature Review and Prior Work}
+
+Previous research has explored many machine learning and statistical approaches within anomaly detection in time-series and specifically electrical systems. \citet{lai2021revisiting} investigated different types of time series and differentiate point versus pattern anomalies. \citet{guatoburgos2024review} went more in depth of the variety of anomalies that occur within smart grids. Examples include data integrity issues, unusual electrical measurements, and abnormal electricity consumption. \citet{si2024timeseriesbench} focuses on the training and evaluation of anomaly detection, this includes investigating different evaluation methods, training methods for the anomaly detection models, and improving generalization towards unseen data. Lastly, \citet{oreshkin2026zeroshot} establish the potential of simulated data for forecasting unseen time-series data without updating any of the weights in the forecasting model. This was done through the exploration of zero-shot forecasting with synthetic time-series data derived from SarSim0 and benchmarking from different domains of time-series data.
+
+These papers are examples of the advancement towards anomaly detection, however many limitations exist, especially within translating these anomaly detection outputs into real world applications and in this case, electrical system health monitoring in buildings. Prior work and approaches have done well for identifying and evaluating anomalies, but that alone is not enough to explain and investigate potential causes, severity, significance and implication of anomalies.
+
+\subsection{Description of Relevant Data}
+
+Currently, the project uses synthetic electricity consumption data to develop the dashboard's anomaly monitoring and investigation features. The data represents eight simulated campus buildings with hourly measurements over 12 weeks, using real UC San Diego building names as placeholders until we accurately determine DERCONNECT meter identities. The synthetic data includes building-level electricity demand, expected consumption values, simulated weather and occupancy conditions, and mock anomaly scenarios. The pipeline used to generate the data roughly incorporates forecasting and anomaly detection components from the collaborating subgroup to produce detected events and anomaly scores. Synthetic data and anomalies are useful for development because their labels provide a reference for investigation workflows. Additionally, the data allows us to test how different types of anomalies can best be displayed on the dashboard. By working with fabricated anomalies that are representative of the scenarios we read in the literature, we create visualizations that highlight meaningful features for building owners. However, because the data is currently simulated, it may not accurately represent the variability of real energy consumption. Thus, the transition to actual DERCONNECT measurements is the next important step in developing and improving our dashboard.
+
+Recently, we obtained real electricity meter data from UC San Diego's Distributed Energy Resources Connect (DERCONNECT) testbed. The dataset contains measurements from five devices (E2451, E3020, E3510, E7080, and E7085) starting in January through May 2026. To better understand the DERCONNECT data available to us, we performed exploratory analysis in a Jupyter notebook, evaluating the structure and quality. We discovered there are 25 monthly CSV files containing a variety of electrical measurements, including active power, active energy, voltage, current, frequency, power factor, and harmonic distortion, which our synthetic data lacked. A preliminary analysis in the notebook examined the first 2,000 rows of each file and confirmed a consistent column schema across all 25 files. Additionally, there are timestamps with UTC offsets and a two-second sampling interval.
+% TODO: add Matthew's additional exploratory findings here.
+
+Although our preliminary analysis provides an initial understanding of the DERCONNECT data, further processing is necessary to prepare the dataset and adjust our existing pipeline accordingly to incorporate the real electricity measurements into the dashboard.
+
+% Sections to fill in for later checkpoints:
+% \section{Methods}
+% \section{Results}
+% \section{Discussion}
+% \section{Conclusion}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Reference / Bibliography
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\makereference
+
+\bibliography{reference}
+\bibliographystyle{style/dsc180bibstyle}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Appendix (uncomment when you have content)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% \clearpage
+% \makeappendix
+% \subsection{Additional Figures}
+% \subsection{Additional Tables}
+
+\end{document}
