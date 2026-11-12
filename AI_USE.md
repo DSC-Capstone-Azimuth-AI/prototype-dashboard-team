@@ -2245,3 +2245,1199 @@ Branch `feature/derconnect-eda-expansion`; base `146b9457953266a75b176fae068c05a
 Validation: 11 synthetic unittest cases including all notebook code cells on missing/synthetic archives; local execution of new cells scanning all 25 real CSVs to EOF, retaining results only in memory; five real-data plots rendered temporarily and visually reviewed; final short-gap marker/timezone-locator refinements rerun/rendered with synthetic input. Python AST, notebook schema, original-cell SHA-256 preservation, cleared new outputs, complete diff/status and whitespace checks passed. Exact commands, versions, intermediate fixes and memory/time outcomes are in DEVELOPMENT_LOG.md. No tests/assertions disabled or dependencies installed.
 
 Limitations: cells executed sequentially with Python/Agg, not through a Jupyter kernel. New code outputs are intentionally cleared; original saved human outputs preserved. Data-quality summaries do not confirm faults; two-second cadence/month timezone remain explicit assumptions; source documentation is still required before total power. No real power values, raw measurements or private local paths added to these records. No browser/model tests required or run because application/data-generation sources were unchanged.
+
+
+## 2026-11-11 — Additional DERCONNECT EDA and integration readiness (H–L)
+
+Human: requesting team member (scope, dataset context and constraints). AI: OpenAI Codex (repository/notebook audit, offline analysis code, readiness recommendations and validation). Human review pending. Branch `feature/derconnect-dashboard-eda-addition`; base `aad7710b123b07c7ab9c83580618b5d839a1555e`; clean initial status. Associated commits: none. No commit, push, branch switch, dashboard integration or model work.
+
+Complete verbatim task prompt, including the supplied Markdown escaping:
+
+```text
+\# DERCONNECT Dashboard — Additional EDA and Real Data Integration Readiness\
+\
+\## Project Context\
+\
+I am working on a UC San Diego DSC 180A capstone project developing an electrical monitoring and anomaly investigation dashboard using real DERCONNECT meter data.\
+\
+Our team has an existing Jupyter notebook located at:\
+\
+\`notebooks/01_derconnect_data_exploration.ipynb\`\
+\
+The notebook contains Sections A–G, covering dataset structure, timestamps, measurement availability, data quality, full-dataset quality analysis, and temporal aggregation.\
+\
+We have approximately 32.6 million readings across 25 monthly CSV files from five electrical meters (E2451, E3020, E3510, E7080, and E7085), covering January–May 2026.\
+\
+Our unified dashboard currently uses simulated data for many of its visualizations. We want to begin transitioning existing dashboard features to real DERCONNECT measurements without depending on anomaly detection models.\
+\
+\## Main Objective\
+\
+Extend our existing EDA to:\
+\
+1\. Perform additional analysis of real DERCONNECT electrical measurements that has not already been covered in Sections A–G.\
+2\. Identify which existing unified dashboard features can be supported by real DERCONNECT data without requiring anomaly detection models.\
+3\. Determine which features are ready for integration and which require additional data preparation or validation.\
+4\. Provide concrete recommendations for preparing DERCONNECT data for each supported dashboard feature.\
+5\. Prioritize the features that should be integrated first.\
+\
+\*\*Important:\*\* This task is focused on EDA and planning for dashboard integration. Do not implement the actual dashboard integration or anomaly detection models yet.\
+\
+\## Important Instructions\
+\
+\- Read and understand the existing notebook before making changes.\
+\- Inspect the existing unified dashboard code to understand its current features, visualizations, and data requirements.\
+\- Do not repeat analyses already completed in Sections A–G.\
+\- Preserve all existing notebook sections, code, findings, and outputs.\
+\- Reuse existing preprocessing and aggregation functions wherever possible.\
+\- Use memory-efficient processing, such as chunked processing or existing aggregated datasets.\
+\- Do not load all raw CSV files into memory simultaneously.\
+\- Do not implement anomaly detection, anomaly classification, or machine learning models.\
+\- Do not fabricate measurements, anomaly labels, or analytical findings.\
+\- Clearly distinguish actual findings from assumptions or recommendations.\
+\- Use Python, pandas, NumPy, and Matplotlib or Seaborn for analysis.\
+\- Explain how each new analysis supports existing dashboard features.\
+\- If the full dataset is unavailable locally, identify missing inputs and do not present unexecuted analyses as completed findings.\
+\- Do not modify unrelated files or existing dashboard components.\
+\
+\## Section H — Daily and Weekly Electricity Demand Patterns\
+\
+Analyze active power measurements to understand electricity usage patterns across the five DERCONNECT meters.\
+\
+Include:\
+\
+\- Average active power by hour of day\
+\- Weekday versus weekend demand profiles\
+\- Daily and weekly demand trends\
+\- Differences in electricity demand across January–May\
+\- Individual meter demand patterns\
+\
+Create relevant visualizations and summary statistics.\
+\
+\*\*Dashboard relevance:\*\*\
+\
+Explain how these findings support existing dashboard features such as historical power trends, daily load profiles, and electricity consumption monitoring.\
+\
+\## Section I — Power Distribution and Peak Demand Analysis\
+\
+Analyze the distribution and variability of active power measurements.\
+\
+Include:\
+\
+\- Minimum, maximum, mean, median, and 95th percentile\
+\- Peak demand by day and month\
+\- Time of day when peak demand occurs\
+\- Power distributions across meters\
+\- Differences between instantaneous and aggregated demand peaks\
+\- Variability in electricity demand\
+\
+Avoid interpreting unusually high consumption as an anomaly without supporting evidence.\
+\
+\*\*Dashboard relevance:\*\*\
+\
+Explain how these findings support peak demand indicators, historical peak comparisons, power distribution visualizations, and summary metrics.\
+\
+\## Section J — Electrical Measurements and Phase Comparisons\
+\
+Explore additional DERCONNECT electrical measurements beyond active power.\
+\
+Include:\
+\
+\- Voltage\
+\- Current\
+\- Frequency\
+\- Power factor\
+\- Harmonic distortion\
+\- Phase A/B/C comparisons where available\
+\
+Perform:\
+\
+\- Measurement availability analysis by meter\
+\- Distribution and range analysis\
+\- Time-series visualizations\
+\- Phase comparisons\
+\- Identification of constant, missing, or unusable measurement channels\
+\- Validation of measurement units and definitions\
+\
+\*\*Dashboard relevance:\*\*\
+\
+Determine which electrical measurements can support existing electrical monitoring and power-quality visualizations without requiring anomaly detection.\
+\
+Do not classify measurements as electrical faults without validated engineering criteria.\
+\
+\## Section K — Cross-Meter Comparison\
+\
+Compare electrical behavior across the five DERCONNECT meters.\
+\
+Include:\
+\
+\- Average and peak power comparisons\
+\- Daily load profile comparisons\
+\- Differences in electrical measurements\
+\- Differences in usage patterns by meter classification where metadata supports them\
+\- Normalized comparisons where appropriate\
+\
+Consider differences in meter scale, measurement availability, and building or device classifications.\
+\
+\*\*Dashboard relevance:\*\*\
+\
+Explain how these findings support existing meter comparisons, device-level monitoring, and building overview features.\
+\
+Do not assume that meter IDs directly correspond to specific buildings without verified metadata.\
+\
+\## Section L — Dashboard Feature Readiness and Integration Recommendations\
+\
+This is one of the most important sections.\
+\
+Inspect our existing unified dashboard and evaluate which features can use real DERCONNECT measurements without relying on anomaly detection models.\
+\
+Focus on adapting existing features rather than suggesting unrelated new visualizations.\
+\
+Prioritize evaluating:\
+\
+\- Historical active power trends\
+\- Peak demand monitoring\
+\- Meter comparisons\
+\- Daily and weekly load profiles\
+\- Voltage and current monitoring\
+\- Power factor and harmonic distortion\
+\- Data quality and completeness indicators\
+\- Other existing dashboard features that can operate without anomaly detection\
+\
+\### Part 1 — Dashboard Feature Readiness Assessment\
+\
+Create a table containing:\
+\
+1\. Existing dashboard feature\
+2\. Dashboard component or section where the feature exists\
+3\. Required DERCONNECT columns\
+4\. Required preprocessing or aggregation\
+5\. Recommended visualization\
+6\. Data limitations or validation requirements\
+7\. Implementation readiness\
+\
+Classify each feature as:\
+\
+\- \*\*Ready for integration:\*\* The required measurements are available and sufficiently validated.\
+\- \*\*Requires preparation or validation:\*\* The measurements exist, but additional processing or verification is necessary.\
+\- \*\*Not currently supported:\*\* The required measurements or metadata are unavailable.\
+\- \*\*Requires anomaly detection:\*\* The feature depends on detected anomaly events, classifications, or model outputs.\
+\
+Explain the reasoning behind each classification.\
+\
+\### Part 2 — Concrete Data Integration Recommendations\
+\
+For each existing dashboard feature that can operate independently of anomaly detection, provide a concrete integration plan identifying:\
+\
+1\. \*\*Dashboard location:\*\* Which existing component or section should display the real measurements.\
+2\. \*\*Required data:\*\* The exact DERCONNECT columns and measurements needed.\
+3\. \*\*Preprocessing:\*\* Required cleaning, timestamp handling, missing-value treatment, and measurement validation.\
+4\. \*\*Aggregation:\*\* Whether to use raw two-second readings, five-minute, 15-minute, hourly, or daily aggregates, with justification.\
+5\. \*\*Data structure:\*\* Recommend a suitable processed data format or table schema for the dashboard.\
+6\. \*\*Remaining limitations:\*\* Identify missing information, data quality concerns, or additional validation requirements.\
+7\. \*\*Implementation readiness:\*\* State whether the feature can be integrated immediately or requires additional preparation.\
+\
+Do not implement the integration yet.\
+\
+\### Part 3 — Prioritized Dashboard Integration Plan\
+\
+Based on the EDA findings and existing dashboard architecture, recommend the order in which features should be integrated.\
+\
+Prioritize based on:\
+\
+\- Availability and reliability of DERCONNECT measurements\
+\- Amount of additional preprocessing required\
+\- Compatibility with existing dashboard components\
+\- Usefulness for building managers and electrical engineers\
+\- Independence from anomaly detection models\
+\
+For each recommended feature, briefly explain why it should be prioritized.\
+\
+\## Final Deliverables\
+\
+1\. \*\*Updated EDA notebook:\*\* Extend the existing notebook with Sections H–L while preserving all previous sections, code, and findings.\
+\
+2\. \*\*Visualizations and summary statistics:\*\* Generate relevant plots and descriptive statistics for electricity demand patterns, peak demand, electrical measurements, and cross-meter comparisons.\
+\
+3\. \*\*Written EDA findings:\*\* Provide concise interpretations of the results from each new section, explaining their relevance to dashboard design.\
+\
+4\. \*\*Dashboard feature-readiness table:\*\* Identify which existing dashboard features can be supported by real DERCONNECT measurements without requiring anomaly detection models.\
+\
+5\. \*\*Prioritized implementation list:\*\* Recommend which existing dashboard features should be integrated first based on data availability, reliability, and usefulness.\
+\
+6\. \*\*Data preparation recommendations:\*\* Based on the EDA findings, identify the preprocessing steps, required columns, aggregation intervals, and output formats needed to integrate real DERCONNECT measurements into each supported dashboard feature. Explain any remaining limitations or validation requirements.\
+\
+\## Scope and Implementation Requirements\
+\
+\- Focus on EDA and dashboard integration planning only.\
+\- Do not implement the actual dashboard integration or backend pipeline.\
+\- Do not implement anomaly detection models.\
+\- Do not generate simulated anomaly events.\
+\- Do not modify existing dashboard components.\
+\- Do not modify unrelated files.\
+\- Do not commit, push, or switch Git branches automatically.\
+\- Preserve the existing notebook structure and findings.\
+\- Make the additional analyses reproducible and memory-efficient.\
+\- Clearly document any assumptions, limitations, or data quality concerns.\
+\
+\## Execution Instructions\
+\
+Before writing new code:\
+\
+1\. Review Sections A–G of the existing notebook.\
+2\. Identify previously completed analyses and reusable preprocessing functions.\
+3\. Inspect the existing unified dashboard to identify its current features and data requirements.\
+4\. Avoid duplicating existing work.\
+\
+Then proceed with implementing Sections H–L in the notebook.\
+\
+After completing the analysis, provide a concise summary containing:\
+\
+\- Key findings from the additional EDA\
+\- Existing dashboard features ready for real DERCONNECT data\
+\- Features requiring additional preparation or validation\
+\- Features that still depend on anomaly detection models\
+\- Recommended data preparation for integration\
+\- Prioritized next steps for actual dashboard implementation\
+\- Files modified during the task\
+\
+\*\*Overall goal:\*\* Complete the remaining EDA necessary to understand the real DERCONNECT measurements and produce an actionable plan for integrating those measurements into existing dashboard features independently of anomaly detection models.
+```
+
+The separate setup message supplies repository AGENTS.md instructions and environment metadata containing personal absolute paths. That private metadata is retained in the conversation rather than copied into this public record, under AGENTS.md's privacy rule; applicable repository instructions remain in AGENTS.md unchanged. No credentials, private raw measurements or personal account paths are copied here.
+
+AI contribution: reviewed all 24 existing notebook cells and saved outputs before appending H–L; inspected the actual static dashboard, including CSV Upload, Export Reports, shared state/time/energy/quality assumptions and event-gated comparison flows. Reused F's aggregate results, parsers, unit mapping and duplicate policy. Added an offline chunked supplemental electrical/statistics pass, calendar and common-window comparisons, descriptive plots/tables/findings, explicit raw histogram quantile bounds, readiness matrix, eight concrete preparation plans, proposed schemas and an ordered integration backlog. Kept all phase channels separate, unavailable context explicit and fault/model claims out of descriptive EDA. Added synthetic regression checks; original application and generated fixtures are unchanged.
+
+Files: `notebooks/01_derconnect_data_exploration.ipynb`, `tools/derconnect_additional_eda.py`, `tests/test_derconnect_additional_eda.py`, `DEVELOPMENT_LOG.md`, `AI_USE.md`. Human supplied the request and accessible local inputs; no new unit, wiring, building mapping or engineering-limit sign-off is assumed. Source notebook preserves all original cells/outputs; local execution artifacts remain ignored. Final commands/outcomes and limitations follow below after verification.
+
+Final validation: all 18 synthetic unittest checks passed; both complete real-data scans reached EOF for 25 CSVs; H–L rendered twelve real-data figures and descriptive tables, with final visual review. Original 24-cell equality, Python AST, notebook schema, output-clear/new-cell checks, log-prefix preservation, task-prompt inclusion, ignored artifact paths and whitespace/diff review passed. See DEVELOPMENT_LOG.md's November 11 entry for exact commands, versions, timings, deliberate partial-scan interruptions and limits. Local executed notebook/HTML/plots/findings/summary tables are under ignored `local-results/derconnect-hl/`; new outputs are not embedded in the tracked notebook. No real measurement values copied into this record.
+
+Limitations: sequential Python/Agg execution rather than a Jupyter kernel; raw median/p95 are histogram bounds, not exact raw quantiles. Calendar/cadence, instrument units/signs/definitions, phase additivity, physical mapping and energy semantics still need owner review. No dashboard integration/model work, synthetic events, faults or accuracy claims; browser/model checks skipped because those sources are unchanged. Human engineering/code review pending. Associated commits: none.
+
+
+## 2026-11-11 — Section M complete EDA interpretation and readiness summary
+
+Human: requesting team member (attached task and scope). AI: OpenAI Codex (evidence/code review, Markdown synthesis and validation). Human engineering/content review pending. Branch `feature/derconnect-dashboard-eda-addition`; base `aad7710b123b07c7ab9c83580618b5d839a1555e`. Prior H–L notebook/log changes and untracked analysis helper/tests were already present and preserved. Associated commits: none. No commit, push or branch switch.
+
+Complete verbatim attached task prompt (attachment-path/UI metadata omitted; no credentials or private measurements appear in the task text):
+
+```text
+# Task: Add Section M — Complete DERCONNECT EDA Findings, Validation, and Dashboard Integration Readiness
+
+## Project Context
+
+We are developing a unified dashboard prototype for UC San Diego's DERCONNECT electrical monitoring data.
+
+We have completed exploratory data analysis (EDA) of real DERCONNECT electrical measurements from five meters:
+
+- E2451
+- E3020
+- E3510
+- E7080
+- E7085
+
+Our notebook is located at:
+
+`notebooks/01_derconnect_data_exploration.ipynb`
+
+The notebook contains Sections A–L, including dataset exploration, data quality analysis, temporal aggregation, electrical demand patterns, peak demand, electrical measurements, cross-meter comparisons, and dashboard integration readiness.
+
+Our objective is to begin replacing simulated data in our existing unified dashboard prototype with real DERCONNECT measurements, particularly for features that **do not require anomaly detection or forecasting models**.
+
+Before beginning implementation, I want a comprehensive summary of our EDA findings, measurement validation status, feature compatibility, preprocessing requirements, and next steps.
+
+## Main Task
+
+Add a final Markdown section to the existing notebook titled:
+
+# Section M — Complete EDA Findings, Validation, and Dashboard Integration Readiness
+
+This section should summarize our findings and provide an actionable plan for integrating real DERCONNECT data into our existing unified dashboard.
+
+**Important:** This is a documentation and interpretation task. Do not implement new preprocessing pipelines, anomaly detection models, or frontend integrations.
+
+---
+
+## 1. Summarize All EDA Findings (Sections A–K)
+
+Review the entire executed notebook, including saved outputs, statistics, tables, and visualizations.
+
+Provide a concise but comprehensive summary of each section.
+
+### Section A — Dataset Overview
+Summarize:
+- Total dataset size and number of files.
+- Number of meters and their identifiers.
+- Date range covered by the dataset.
+- Available electrical measurements.
+- Important observations about the dataset structure.
+
+### Section B — Dataset Schema
+Summarize:
+- Available columns and measurement types.
+- Consistency of schemas across files.
+- Data types and potential parsing issues.
+- Measurements relevant to dashboard features.
+
+### Section C — Timestamps and Sampling
+Summarize:
+- Sampling frequency.
+- Timestamp format and timezone information.
+- Timestamp consistency.
+- Temporal coverage and potential issues.
+
+### Section D — Measurement Availability and Quality
+Summarize:
+- Missing values.
+- Measurement availability.
+- Constant or potentially uninformative columns.
+- Preliminary data-quality issues.
+- Which measurements appear suitable for analysis.
+
+### Section E — Preliminary Visualizations
+Summarize:
+- Important observations from the initial visualizations.
+- Patterns in active power and other electrical measurements.
+- Any visible irregularities or limitations.
+- What these observations suggest about dashboard monitoring.
+
+### Section F — Full Dataset Quality
+Summarize:
+- Total number of readings analyzed.
+- Overall timestamp completeness.
+- Missing intervals and recording gaps.
+- Duplicate records, if evaluated.
+- Constant measurements or other quality concerns.
+- Implications for using real data in the dashboard.
+
+### Section G — Temporal Aggregation
+Summarize:
+- Results from 5-minute, 15-minute, and hourly aggregation.
+- Whether aggregation preserves useful electrical demand patterns.
+- How missing intervals and coverage affect aggregated values.
+- Recommended aggregation intervals for dashboard visualizations.
+
+### Section H — Daily and Weekly Demand Patterns
+Summarize:
+- Hourly electricity demand patterns.
+- Weekday versus weekend behavior.
+- Daily, weekly, and monthly patterns.
+- Differences across meters.
+- Implications for historical power trends and load profiles.
+
+### Section I — Power Distributions and Peak Demand
+Summarize:
+- Minimum, maximum, mean, median, and 95th percentile power measurements.
+- Peak demand values and timing.
+- Differences between raw observed peaks and aggregated peaks.
+- Differences across meters.
+- Implications for dashboard peak demand indicators.
+
+### Section J — Electrical Measurements and Phase Comparisons
+Summarize:
+- Active power.
+- Voltage.
+- Current.
+- Frequency.
+- Power factor.
+- Harmonic distortion.
+- Differences across electrical phases.
+- Measurement availability, variation, and limitations.
+- Which measurements appear useful for electrical monitoring.
+
+### Section K — Cross-Meter Comparisons
+Summarize:
+- Differences in electricity demand across the five meters.
+- Average and peak power comparisons.
+- Similarities or differences in load profiles.
+- Overlapping observation periods.
+- Whether direct or normalized comparisons are appropriate.
+- Implications for the dashboard's meter comparison features.
+
+### For Every Section
+
+Include three components:
+
+1. **What was analyzed:** Briefly explain the purpose.
+2. **Key findings:** Include important actual numerical results and observations.
+3. **Why it matters:** Explain the implications for DERCONNECT data usability and dashboard development.
+
+Use actual results from the executed notebook. Do not invent statistics or assume that missing outputs indicate successful validation.
+
+### Overall EDA Findings
+
+After summarizing Sections A–K, include a short subsection that consolidates:
+
+- What we learned about the DERCONNECT dataset.
+- Overall data quality and temporal coverage.
+- Which measurements appear usable.
+- Important demand and electrical measurement patterns.
+- Whether the dataset supports real electrical monitoring.
+- Remaining limitations and validation requirements.
+
+---
+
+## 2. Measurement Availability and Usability Assessment
+
+Create a table identifying which DERCONNECT measurements are available and potentially usable for dashboard integration.
+
+Include the following columns:
+
+| Measurement | DERCONNECT columns | Availability | EDA findings | Validation status | Potential dashboard use |
+|---|---|---|---|---|---|
+
+Evaluate:
+
+- Active power.
+- Active energy.
+- Voltage.
+- Current.
+- Frequency.
+- Power factor.
+- Harmonic distortion.
+- Other relevant measurements present in the dataset.
+
+For each measurement, distinguish between:
+
+**Usable based on completed checks**
+- Measurements with sufficient coverage and meaningful variation.
+- Measurements whose required definitions and units have been verified for the intended use.
+
+**Potentially usable but requires validation**
+- Measurements with promising EDA results but unresolved units, phase semantics, or other assumptions.
+
+**Unsupported or currently unusable**
+- Measurements with insufficient evidence, poor quality, or missing required information.
+
+Do not treat measurement availability as proof that the values are fully validated.
+
+Explain which measurements should be prioritized for the first real-data dashboard integration.
+
+---
+
+## 3. Data Validation Findings and Remaining Issues
+
+Review the notebook's data-quality findings and identify which validation tasks have already been completed.
+
+Create a table:
+
+| Validation area | What the EDA found | Status | Remaining action |
+|---|---|---|---|
+
+Cover:
+
+1. Timestamp consistency and ordering.
+2. Sampling interval consistency.
+3. Missing readings and recording gaps.
+4. Duplicate timestamps and records.
+5. Measurement availability and missing values.
+6. Constant or questionable measurement channels.
+7. Active-power units and conversions.
+8. Electrical phase definitions and relationships.
+9. Voltage, current, frequency, and other electrical measurement plausibility.
+10. Timezone conventions.
+11. Meter-to-building metadata.
+12. Cross-meter comparability.
+
+Classify each validation item as:
+
+- **Validated:** Supported by completed checks and sufficient evidence.
+- **Partially validated:** Some checks completed, but further investigation is required.
+- **Not validated:** Requires additional analysis, documentation, or DERCONNECT confirmation.
+
+Clearly explain which issues can be resolved programmatically and which require confirmation from DERCONNECT personnel or documentation.
+
+Do not assume that a successful notebook execution establishes electrical correctness.
+
+---
+
+## 4. Existing Unified Dashboard Feature Compatibility
+
+Inspect the actual unified dashboard prototype implementation in this repository, including its components, data structures, and visualizations.
+
+Also review the feature-readiness assessment in Section L.
+
+The goal is to identify **which features already present in our unified dashboard can be populated with real DERCONNECT data without requiring anomaly detection or forecasting models**.
+
+Do not propose generic features unless clearly distinguished from existing prototype features.
+
+Create a feature-readiness table:
+
+| Existing dashboard feature | Required measurements | EDA support | Remaining validation | Required preprocessing | Integration readiness |
+|---|---|---|---|---|---|
+
+Evaluate existing features related to:
+
+- Historical active-power trends.
+- Peak demand monitoring.
+- Daily and weekly electricity demand profiles.
+- Meter comparisons.
+- Data completeness indicators.
+- Electricity consumption summaries.
+- Electrical measurement monitoring, if supported by existing components.
+- Other relevant existing features discovered in the dashboard code.
+
+For each feature, explain:
+
+1. Where it currently exists in the unified dashboard.
+2. Whether the real DERCONNECT dataset contains the necessary measurements.
+3. Which exact columns are required.
+4. What validation must be completed.
+5. What preprocessing or aggregation is necessary.
+6. Whether the feature requires changes to the frontend's current data structure.
+7. Whether it can operate without anomaly detection or forecasting models.
+
+### Integration Readiness Categories
+
+Classify features as:
+
+**A. Ready after basic preprocessing**
+- The required measurements and definitions are validated.
+- Only cleaning, aggregation, formatting, or data mapping is necessary.
+
+**B. Feasible after additional validation and preprocessing**
+- The data appears suitable, but some measurement definitions, quality checks, or assumptions remain unresolved.
+
+**C. Requires additional metadata or frontend development**
+- Measurements may be available, but building mappings, new components, or other supporting information are needed.
+
+**D. Requires anomaly detection or forecasting models**
+- The feature cannot be populated accurately using measurements alone.
+
+**E. Unsupported by current data**
+- Necessary measurements or information are unavailable.
+
+Avoid claiming that features are fully ready if important validation issues remain.
+
+### Important Distinction
+
+Clearly distinguish between:
+
+- Features that only need real measurement preprocessing.
+- Features that also need frontend data mapping or component changes.
+- Features that require external metadata.
+- Features that require anomaly detection or forecasting models.
+
+Our priority is to identify features we can implement independently of the anomaly detection team.
+
+---
+
+## 5. Data Preparation and Preprocessing Requirements
+
+For each existing dashboard feature that can use real DERCONNECT measurements without anomaly detection, describe exactly how the data should be prepared.
+
+Include:
+
+- Required raw CSV columns.
+- Data cleaning requirements.
+- Timestamp normalization.
+- Unit conversions, only when verified.
+- Phase handling.
+- Missing-data and coverage calculations.
+- Recommended aggregation intervals.
+- Recommended processed data format.
+- Required frontend data mapping.
+
+Consider aggregation levels such as:
+
+- 5-minute intervals for detailed inspection.
+- 15-minute intervals for power trends and demand analysis.
+- Hourly intervals for longer historical trends.
+- Daily and weekly summaries for demand profiles.
+
+Use the actual EDA results to justify these recommendations.
+
+### Recommended Data Structures
+
+Where appropriate, propose schemas for:
+
+1. Historical power measurements.
+2. Peak demand summaries.
+3. Daily and weekly load profiles.
+4. Cross-meter comparisons.
+5. Data completeness indicators.
+
+Include example field names and explain their meaning.
+
+Clearly label any example values as illustrative rather than real DERCONNECT observations.
+
+### Reuse Existing Work
+
+Identify which cleaning, aggregation, and validation functions from Sections F–K can be reused in a future preprocessing pipeline.
+
+Avoid recommending redundant processing if the notebook already contains useful reusable logic.
+
+---
+
+## 6. Prioritized Next Steps Toward Dashboard Integration
+
+Provide an actionable implementation roadmap based on the EDA findings and feature-readiness assessment.
+
+Organize the roadmap into phases.
+
+### Phase 1 — Complete Required Validation
+
+Identify the most important unresolved validation issues.
+
+Prioritize checks that directly affect historical active-power monitoring, such as:
+
+- Active-power units.
+- Phase definitions.
+- Timestamp conventions.
+- Missing intervals.
+- Aggregation correctness.
+
+Explain what evidence is needed to consider each issue resolved.
+
+### Phase 2 — Prepare Dashboard-Ready Data
+
+Recommend a first preprocessing task using one meter and a representative date range.
+
+Explain:
+
+- Which measurements to select.
+- How to clean and aggregate them.
+- How to calculate coverage.
+- How to structure the output.
+- How to verify processed results against raw measurements and notebook outputs.
+
+### Phase 3 — Integrate the First Existing Dashboard Feature
+
+Recommend the simplest existing dashboard feature that can use real DERCONNECT data.
+
+Prefer historical active-power trends unless the actual EDA findings suggest a better choice.
+
+Explain:
+
+- Which existing dashboard component should be used.
+- What processed data it needs.
+- How its simulated data can be replaced or supplemented.
+- What should be tested before considering the integration successful.
+
+### Phase 4 — Expand to Other Supported Features
+
+Identify which existing features can reuse the same validated and processed data.
+
+Prioritize:
+
+1. Historical power trends.
+2. Data completeness.
+3. Peak demand.
+4. Daily and weekly load profiles.
+5. Meter comparisons.
+
+Adjust the order if the actual EDA results justify a different priority.
+
+### Phase 5 — Deferred Features
+
+Identify features that cannot yet use real DERCONNECT measurements because they require:
+
+- Anomaly detection outputs.
+- Forecasting models.
+- Verified building metadata.
+- Additional measurements.
+- Additional frontend functionality.
+
+Explain what would be required to support these features in the future.
+
+### Final Implementation Checklist
+
+Provide a concise checklist of concrete tasks the dashboard team should complete next.
+
+Each task should have a clear deliverable and indicate whether it is:
+
+- Validation.
+- Data preparation.
+- Dashboard integration.
+- Testing.
+
+---
+
+## 7. Final Conclusion
+
+End Section M with a concise summary answering:
+
+1. What did our complete EDA establish about the DERCONNECT dataset?
+2. Which electrical measurements appear usable?
+3. Which existing unified dashboard features can be implemented without anomaly detection models?
+4. What validation and preprocessing are still required?
+5. What should the dashboard team work on immediately?
+
+Make the conclusion understandable to both technical and nontechnical capstone team members.
+
+---
+
+## Important Requirements
+
+- Add Section M at the end of `notebooks/01_derconnect_data_exploration.ipynb`.
+- Use Markdown headings, concise paragraphs, and clear tables.
+- Base findings on actual executed outputs from Sections A–K.
+- Use Section L and the actual dashboard code for feature compatibility.
+- Preserve Sections A–L, including existing code, plots, outputs, and metadata.
+- Do not modify or overwrite existing analysis results.
+- Do not invent numerical findings or claim unverified measurements are validated.
+- If some notebook outputs are unavailable, explicitly identify the limitation.
+- Avoid unnecessarily repeating large tables or detailed code explanations.
+- Do not implement new EDA analyses, preprocessing pipelines, anomaly detection models, or frontend integrations.
+- Do not modify unrelated repository files.
+- Do not commit, push, or switch branches automatically.
+
+## Expected Deliverable
+
+An updated notebook containing:
+
+**Section M — Complete EDA Findings, Validation, and Dashboard Integration Readiness**
+
+With the following subsections:
+
+1. Complete EDA Findings (A–K).
+2. Measurement Availability and Usability.
+3. Validation Status and Remaining Issues.
+4. Existing Unified Dashboard Feature Compatibility.
+5. Data Preparation and Preprocessing Requirements.
+6. Prioritized Implementation Roadmap.
+7. Final Conclusion.
+
+The goal is for our team to read Section M and clearly understand:
+
+**What we discovered about the real DERCONNECT data, which existing dashboard features it can support without anomaly detection, what still needs validation, and exactly what we need to prepare before beginning real-data integration.**
+```
+
+AI contribution: reviewed saved A–G outputs and the existing local executed H–K notebook, descriptive summary tables, execution metadata and figures; reviewed Section L and current dashboard code. Appended eight Markdown cells for Section M with all seven requested subsections, section-by-section purpose/findings/implications, compact transcribed numerical summaries, measurement usability and validation tables, A–E feature readiness, feature-specific preparation/schema/reuse recommendations and a five-phase implementation roadmap/checklist. Clarified an earlier L description: Buildings has a Power quality placeholder but no functioning measurement renderer; L itself is unchanged. Did not infer verified units, physical mappings, fault labels or forecast evidence. Human contributed the request; no owner sign-off or review is invented.
+
+Files modified in this task: `notebooks/01_derconnect_data_exploration.ipynb`, `DEVELOPMENT_LOG.md`, `AI_USE.md` only. Preserved all 39 pre-task A–L cells, outputs, code and metadata plus notebook-level metadata; earlier uncommitted helper/tests remain untouched. Existing local execution artifacts were read, not overwritten. No raw scan, new EDA, data export, preprocessing/model/backend/frontend implementation or application change.
+
+Validation: `PYTHONDONTWRITEBYTECODE=1 MPLCONFIGDIR=/tmp/derconnect-m-mpl IPYTHONDIR=/tmp/derconnect-m-ipython "$HOME/miniforge3/bin/python3.12" /tmp/validate_derconnect_section_m.py` passed. Checks notebook schema, unchanged A–L prefix/top-level metadata, eight Markdown-only added cells, existing-code AST, seven subsections, nine rendered rectangular tables, numerical transcription of raw phase-A statistics and outward quantile bounds/aggregate peaks against existing local summaries, and prior-log prefix preservation. `git diff --check` and task-scope/status review passed. Exact limits and commands are recorded in DEVELOPMENT_LOG.md. No new analysis or browser/model/unit-test execution; prior H–L test results are identified as historical evidence, not rerun validation.
+
+Limitations: H–K saved outputs are cleared in the source notebook and were reviewed through the existing Git-ignored local execution copy, which will not be present in a fresh checkout. M states that provenance and transcribes only supported descriptive results. Raw percentile bounds, unverified electrical semantics/calendar, physical mapping gaps and a proposed—not executed—pilot remain explicit. No private measurement values are copied into this AI-use record. Human review pending; associated commits: none.
+
+
+## 2026-11-11 — Update EDA against supplied Meter Reading Mapping
+
+Human: requesting team member (task and mapping CSV). AI: OpenAI Codex (unit/header/calculation review, notebook corrections, updated readiness and tests). Human engineering/content review pending. Branch `feature/derconnect-dashboard-eda-addition`; base `aad7710b123b07c7ab9c83580618b5d839a1555e`. Pre-existing notebook/log/helper/test changes retained. The mapping CSV was already present as an untracked user input; its bytes were preserved. Associated commits: none; no commit/push/branch switch.
+
+Complete verbatim attached task prompt (private attachment/IDE path metadata omitted):
+
+```text
+## Task: Update DERCONNECT EDA Using Meter Reading Mapping
+
+Please review and update our existing DERCONNECT EDA notebook:
+
+`notebooks/01_derconnect_data_exploration.ipynb`
+
+Using the register names and documented measurement units from:
+
+`data/Meter Reading Mapping.csv`
+
+### Objective
+
+Use the meter reading mapping to improve the accuracy of our existing EDA, update measurement validation findings, and reassess which existing unified dashboard prototype features can be supported by real DERCONNECT measurements without anomaly detection models.
+
+### 1. Review and validate existing EDA
+
+- Compare the CSV's register names and units against the actual DERCONNECT dataset columns.
+- Check that all existing calculations, visualizations, statistics, and labels use the correct measurement units.
+- Verify unit conversions, especially active power from watts (W) to kilowatts (kW).
+- Identify and correct any incorrect unit-dependent calculations.
+- Review Sections A–K and update affected analyses without unnecessarily repeating the EDA.
+- Rerun affected cells when possible, and do not leave outdated outputs that contradict updated code.
+
+### 2. Update measurement validation
+
+Use the mapping CSV to identify which measurement definitions and units are now documented.
+
+Clearly distinguish between:
+
+- **Documented:** Register names and units confirmed by the mapping CSV.
+- **Programmatically validated:** Data quality, timestamp consistency, completeness, and calculations verified through the EDA.
+- **Partially validated:** Measurements that appear usable but still have unresolved assumptions.
+- **Not validated:** Calibration, scaling, sign conventions, phase relationships, meter-to-building mappings, or other information not established by the available evidence.
+
+Do not assume that documented units automatically prove measurement accuracy.
+
+### 3. Update Section M — EDA Findings and Dashboard Integration Readiness
+
+Review the existing Section M and update it based on the meter reading mapping and any corrected EDA findings.
+
+Preserve its complete summary of Sections A–K.
+
+Update the following subsections:
+
+1. **EDA findings:** Correct any findings affected by measurement units or calculations.
+2. **Measurement usability:** Identify which electrical measurements can be used for dashboard monitoring and which require further validation.
+3. **Validation status:** Explain which validation issues the mapping resolves and which remain outstanding.
+4. **Dashboard feature compatibility:** Reassess which features already present in our unified dashboard can use real DERCONNECT data without anomaly detection or forecasting models.
+5. **Data preparation:** Identify required cleaning, aggregation, unit conversion, timestamp handling, and output formats for each supported feature.
+6. **Next steps:** Prioritize the remaining validation and preprocessing tasks needed before integrating real measurements.
+
+### 4. Focus on existing unified dashboard features
+
+Inspect the actual unified dashboard code and determine which existing features can use DERCONNECT measurements.
+
+Prioritize:
+
+- Historical active-power trends.
+- Peak demand monitoring.
+- Daily and weekly load profiles.
+- Meter comparisons.
+- Data completeness indicators.
+- Other existing features supported by the available electrical measurements.
+
+For each feature, clearly state:
+
+- Required DERCONNECT columns.
+- Whether those measurements are documented and usable.
+- Remaining validation requirements.
+- Necessary preprocessing and aggregation.
+- Whether frontend data mapping or additional development is required.
+- Whether the feature can operate independently of anomaly detection models.
+
+### 5. Recommend the next implementation steps
+
+Based on the updated findings, provide a practical roadmap for:
+
+1. Completing the remaining essential validation.
+2. Preparing a small real-data sample using E2451 and `Active_Power_A`.
+3. Generating validated 15-minute and hourly summaries.
+4. Testing the processed measurements against raw readings and notebook results.
+5. Preparing the data for the existing historical power visualization.
+6. Expanding the same preprocessing approach to other supported dashboard features.
+
+### Requirements
+
+- Preserve the notebook's existing structure, analyses, and valid outputs.
+- Reuse existing code where possible.
+- Make only necessary corrections and documentation updates.
+- Do not fabricate results or claim unresolved measurements are fully validated.
+- Do not sum electrical phases or interpret cumulative energy registers as consumption without supporting evidence.
+- Do not implement a preprocessing pipeline, frontend integration, or anomaly detection models yet.
+- Do not modify unrelated files.
+- Do not commit or push changes automatically.
+
+### Expected Deliverable
+
+An updated EDA notebook with corrected measurement interpretations, revised validation findings, and an updated Section M.
+
+At the end, summarize:
+
+1. What changed in the notebook.
+2. Which validation issues were resolved using the mapping CSV.
+3. Which issues remain unresolved.
+4. Which existing dashboard features can move forward with data preparation.
+5. The immediate next steps toward integrating real DERCONNECT measurements.
+```
+
+AI contribution: compared all mapping register/unit rows with actual CSV headers and existing helper units; added a notebook-local documentation reader/header audit that rejects duplicate/empty/mismatched documentation; confirmed existing W-to-kW arithmetic against bounded raw observations and completed summaries. Updated affected A–K unit descriptions, tables and plots, L/M readiness/preparation/roadmap, and explicit Documented/Programmatically validated/Partially validated/Not validated distinctions. Corrected E's histogram count axis that previously carried W, while retaining the data/power axis in W. Preserved literal PF `--` without claiming a verified ratio/percent convention; documented THD/unbalance % without multiplying source numbers by 100. No demand statistics required rescaling. Refreshed affected outputs and visually reviewed figures while preserving unaffected outputs, code, cell identities and all cell/notebook metadata. Added mapping-mismatch/duplicate and actual histogram-axis regression checks; existing helper computation code unchanged.
+
+Files changed in this task: `notebooks/01_derconnect_data_exploration.ipynb`, `tests/test_derconnect_additional_eda.py`, `DEVELOPMENT_LOG.md`, `AI_USE.md`. Input `data/Meter Reading Mapping.csv` retained unchanged. No raw/generated dataset, helper computation, dashboard component, backend or model changes. Human supplied the CSV/request; no calibration, sign/phase, timezone, physical mapping or engineering approval is inferred from units.
+
+Validation: 20 synthetic unittest cases pass; mapping/header checks cover every actual monthly CSV; bounded E2451 raw W reconciliation passes for 5/15/60-minute mean/min/max/std. Affected cells re-executed sequentially under Python/Agg using the same completed F/I–J objects, with exact data/index/dtype/metadata equality against the caches; no full scan repeated. Notebook/Python schema checks, same 47 cell identities/all metadata, unaffected-output and input/helper-byte preservation, nine rendered M tables/seven subsections, visual plot QA, log-prefix preservation, full-prompt inclusion, diff/status and whitespace review pass. Exact commands, intermediate validation-harness corrections and limitations are recorded in DEVELOPMENT_LOG.md.
+
+Limits: documentation establishes names/unit tokens, not calibration/additional scaling, signs, PF numeric convention, additive phases, cumulative-energy semantics, source calendar/cadence or physical building/topology mapping. Raw quantiles remain bounds. Historical scans are reused rather than claimed as new full-data execution; the ZIP member inventory fingerprint is not a source-content hash. No private electrical readings copied into these records. No pipeline/frontend/model implementation or browser/model testing; those sources are unchanged. Human review pending; no associated commit.
+
+
+## 2026-11-11 — Simplify Section M for the capstone team
+
+Human: requesting team member (concise-summary request and continuation). AI: OpenAI Codex (Markdown edit and preservation/render checks). Human review pending. Branch `feature/derconnect-dashboard-eda-addition`, base `aad7710b123b07c7ab9c83580618b5d839a1555e`; all pre-existing work retained. No commit/push/branch switch; associated commits none.
+
+Complete verbatim task messages, kept separate as received (the first ends mid-sentence; the second supplies the continuation). Private IDE path metadata omitted.
+
+Message 1:
+
+```text
+Please simplify **Section M** of `notebooks/01_derconnect_data_exploration.ipynb`.
+
+Section M is currently too detailed. I want it to serve as a concise, easy-to-understand summary of the completed EDA and what our dashboard team should do next.
+
+Keep Sections A–L unchanged. Only revise Section M.
+
+## 1. Summary of EDA findings
+
+Create a short summary table covering Sections A–L.
+
+For each section, include:
+
+- Section name.
+- What was analyzed (one short sentence).
+- Most important findings or results, including relevant numbers when useful.
+- Why the findings matter for preparing or integrating DERCONNECT data.
+
+Use the actual notebook results. Do not repeat detailed methodologies, code, or every statistic.
+
+## 2. Unified dashboard feature readiness
+
+Create a concise table of the features that already exist in our unified dashboard prototype.
+
+For each feature, include:
+
+- Feature name.
+- Status: Ready for preprocessing / Needs additional validation / Requires additional implementation or model outputs.
+- Required DERCONNECT measurements.
+- What is still needed before real-data integration.
+
+Focus especially on features that can work independently of anomaly detection models, such as:
+
+- Historical power consumption trends.
+- Peak demand monitoring.
+- Daily and weekly load profiles.
+- Meter comparisons.
+- Data completeness monitoring.
+- Other applicable existing dashboard features.
+
+Clearly distinguish between features that can use existing meter measurements and those that require anomaly detection outputs, forecasting models, or additional metadata.
+
+Do not describe a feature as fully integration-ready if essential validation or preprocessing remains incomplete.
+
+## 3. Short next-steps plan
+
+Provide a brief, prioritized action plan for moving from EDA to real DERCONNECT data integration.
+
+Focus only on work that can be completed independently of anomaly detection models:
+
+1. Finish essential validation of measurement units, timestamps, phase interpretations, and other relevant assumptions.
+2. Clean and preprocess the available meter data.
+3. Generate appropriate time aggregations, such as 15-minute and hourly measurements.
+4. Validate the
+```
+
+Message 2:
+
+```text
+1. &#x20;the processed data against the original measurements.
+2. Prepare dashboard-ready datasets.
+3. Integrate the data into existing supported dashboard visualizations, starting with a small pilot before expanding.
+
+Keep this section short and actionable. Identify any blockers that require information from DERCONNECT.
+
+## Formatting requirements
+
+- Section M should be concise and readable for our capstone team.
+- Prefer summary tables and short explanations.
+- Avoid lengthy technical discussions, repeated validation details, and unnecessary subsections.
+- Reference findings from Sections A–L rather than reproducing the analyses.
+- Use only findings supported by the existing notebook and repository.
+- Do not perform additional EDA or modify existing analyses.
+- Do not implement preprocessing, dashboard integration, or anomaly detection models.
+- Do not commit or push changes automatically.
+
+The final Section M should quickly answer three questions:
+
+1. **What did we discover from our EDA?**
+2. **Which existing dashboard features can use real DERCONNECT data, and what is still needed?**
+3. **What should our dashboard team do next to validate, preprocess, and integrate real data without depending on the anomaly detection team?**
+```
+
+AI contribution: replaced only Section M's eight long Markdown cells with four concise Markdown cells: a short introduction, one A–L summary table, one existing-feature readiness table using the user's three statuses, and six prioritized actions plus DERCONNECT information blockers. Kept unit documentation distinct from engineering validation; “Ready for preprocessing” means a pilot can be prepared, not full integration readiness. Retained supported numerical results without repeating full statistics, schemas or implementation details. Human supplied the desired scope/continuation; no new approvals or measurements assumed.
+
+Files changed: `notebooks/01_derconnect_data_exploration.ipynb` (M only), `DEVELOPMENT_LOG.md`, `AI_USE.md` (required append-only records). All 39 A–L cells, code, saved outputs and metadata and notebook-level metadata preserved exactly. Existing helper/tests/mapping data remain untouched.
+
+Validation: `PYTHONDONTWRITEBYTECODE=1 IPYTHONDIR=/tmp/derconnect-summary-ipython "$HOME/miniforge3/bin/python3.12" /tmp/validate_derconnect_concise_m.py` passed: exact A–L/metadata preservation, notebook schema/existing Python AST, Markdown-only M, three subsections, two rendered four-column tables (12 sections and nine existing-feature groups), required statuses and six steps, under 1,000 rendered words and log-prefix preservation. `git diff --check`, task-specific Markdown/status review and full task-message inclusion passed. No code execution/EDA, source-data scan, regression/browser/model tests, new pipeline or frontend integration; documentation-only checks were appropriate.
+
+Limitations: summary relies on the existing notebook evidence; unit documentation does not resolve calibration/additional scaling, signs, phase relationships, source calendar/cadence or physical metadata. No private measured values copied into this AI-use record. Human review pending; no associated commit.
+
+
+## 2026-11-11 — Section M: shared preprocessing and pilot-first readiness
+
+Human: requesting team member (attached revision request). AI: OpenAI Codex (documentation review/edit and preservation/render checks). Human review pending. Branch `feature/derconnect-dashboard-eda-addition`; base `aad7710b123b07c7ab9c83580618b5d839a1555e`; pre-existing work retained. No commit/push/branch switch; associated commits none.
+
+Complete verbatim attached task prompt (private IDE/attachment path metadata omitted):
+
+```text
+# Task: Simplify Section M — DERCONNECT EDA Summary and Dashboard Integration Readiness
+
+Please revise **Section M** of our existing DERCONNECT EDA notebook:
+
+`notebooks/01_derconnect_data_exploration.ipynb`
+
+Use the existing EDA findings from Sections A–L and the measurement documentation in:
+
+`data/Meter Reading Mapping.csv`
+
+## Objective
+
+Section M should be a concise, easy-to-understand summary that helps our capstone dashboard team answer:
+
+1. What did we discover from our EDA?
+2. Which existing dashboard features can use real DERCONNECT measurements without anomaly detection models?
+3. What does standard preprocessing involve?
+4. Why are we starting with one meter and one active-power phase?
+5. What should we work on next to integrate real DERCONNECT data?
+
+The current Section M is too technical and repetitive. Simplify it without losing important findings or actionable recommendations.
+
+**Only modify Section M. Keep Sections A–L unchanged.**
+
+## 1. Summary of EDA findings
+
+Create a concise summary table covering Sections A–L.
+
+Include these columns:
+
+- **Section**
+- **What was analyzed**
+- **Important findings**
+
+For each section:
+- Briefly explain what was investigated.
+- Include the most important findings and numerical results when relevant.
+- Focus on findings that help us understand the DERCONNECT dataset and its usefulness for dashboard development.
+- Avoid repeating detailed methods, calculations, or every statistic.
+
+Use actual notebook findings and preserve their accuracy.
+
+## 2. Which existing dashboard features can use real DERCONNECT data?
+
+### First, briefly explain standard preprocessing
+
+Before the feature-readiness table, explain that **standard preprocessing** means transforming raw DERCONNECT meter readings into a format that the dashboard can use.
+
+It includes:
+
+1. **Cleaning:** Handle missing readings, duplicate timestamps, and invalid values where applicable.
+2. **Transformation:** Convert documented units when appropriate, such as W to kW, and organize readings by meter, phase, and timestamp.
+3. **Aggregation:** Convert high-frequency measurements into useful intervals, such as 15-minute or hourly averages, while accounting for missing readings.
+4. **Verification:** Compare processed results with the original DERCONNECT measurements and existing EDA findings to confirm that calculations are correct.
+
+Explain that these steps apply to most supported dashboard features and therefore should not be repeated in every row of the feature-readiness table.
+
+The existing EDA and `Meter Reading Mapping.csv` have already established useful information about the measurements. Do not present additional external validation as a universal prerequisite for beginning an initial real-data dashboard pilot.
+
+### Dashboard feature-readiness table
+
+Inspect the actual unified dashboard code and create a concise table with these columns:
+
+- **Existing dashboard feature**
+- **Can use real DERCONNECT data without anomaly detection models?** (Yes / Yes, with additional work / No)
+- **Required measurements**
+- **Additional requirements beyond standard preprocessing**
+
+Consider the following features where they actually exist in the dashboard:
+
+- Historical power trends.
+- Peak demand monitoring.
+- Daily and weekly load profiles.
+- Data completeness monitoring.
+- Meter comparisons.
+- Building-level electricity usage.
+- Power quality.
+- CSV upload/preview.
+- Anomaly detection and forecasting visualizations.
+
+For the additional requirements column:
+
+- Only mention requirements specific to that feature.
+- Do not repeat unit conversions, cleaning, aggregation, or general preprocessing.
+- If no additional requirements exist, simply write "None."
+- Clearly distinguish functional dashboard features from placeholders or features requiring additional implementation.
+- Identify features that require external metadata, such as meter-to-building mappings.
+- Identify features that depend on anomaly detection or forecasting model outputs.
+
+Clarify that **"Yes" means the required measurements are available and can support the feature after standard preprocessing. It does not mean the data has already been integrated into the frontend.**
+
+Keep the table simple and understandable.
+
+### Brief note on remaining measurement limitations
+
+Include only one short paragraph explaining that some measurement interpretations still require information from DERCONNECT, such as calibration, power direction, phase aggregation, or physical meter-to-building mappings.
+
+These limitations should not prevent us from developing an initial dashboard pilot displaying clearly labeled individual meter channels.
+
+However, do not make unsupported claims about total building electricity consumption, import/export direction, or physical building identity.
+
+Do not repeatedly list these limitations throughout Section M.
+
+## 3. Why start with Active_Power_A?
+
+Add a short, understandable explanation of why we recommend starting with `Active_Power_A` from one meter, such as E2451.
+
+Explain that:
+
+- `Active_Power_A` is a documented active-power measurement in watts.
+- Active power directly supports several existing dashboard features, including historical power trends, peak demand, and daily/weekly profiles.
+- Starting with one meter and one phase lets us test the entire process of preprocessing, verifying, and displaying real data with less complexity.
+- It helps us identify issues in the data pipeline or frontend before processing all available measurements.
+- It avoids making assumptions about combining multiple phases into total building power.
+
+**Emphasize that this is only an initial testing approach, not a limitation of the final dashboard.**
+
+After successfully integrating Phase A, we should be able to expand the same reusable preprocessing pipeline to:
+
+- `Active_Power_B` and `Active_Power_C`.
+- Other available DERCONNECT meters.
+- Additional electrical measurements, including voltage, current, frequency, and power factor, when supported by dashboard features.
+
+Mention that preprocessing all three active-power phases separately from the beginning is also reasonable if straightforward.
+
+Do not assume that adding the three phases produces a validated building total without supporting documentation.
+
+Keep this section short.
+
+## 4. Recommended next steps
+
+Provide a short, prioritized plan for moving from completed EDA to actual DERCONNECT dashboard integration.
+
+Focus on tasks our dashboard team can perform independently of the anomaly detection team.
+
+Organize the plan into three main stages:
+
+### Step 1 — Preprocess
+
+- Start with a small sample of real DERCONNECT active-power measurements.
+- Convert watts to kilowatts.
+- Handle missing readings and timestamp issues.
+- Generate 15-minute and hourly aggregated datasets.
+- Preserve meter IDs, phase information, timestamps, and data completeness information.
+- Design the preprocessing approach so it can later support additional phases and meters.
+
+### Step 2 — Verify
+
+- Compare processed measurements against the original DERCONNECT CSV files.
+- Confirm that conversions and aggregated averages are calculated correctly.
+- Check that missing readings are handled appropriately.
+- Reuse the completed EDA findings rather than repeating the entire analysis.
+
+### Step 3 — Integrate
+
+- Connect the processed DERCONNECT measurements to an existing historical power visualization.
+- Clearly label the meter, phase, units, and measurement period.
+- Keep real measured data distinguishable from synthetic data, forecasts, or anomaly outputs.
+- Expand to peak demand, daily/weekly profiles, and data completeness monitoring.
+- Later expand to additional phases, meters, and other supported electrical measurements.
+
+Explain that we can begin this work now without waiting for anomaly detection models or additional external metadata, provided the dashboard accurately labels what is being measured.
+
+Briefly identify any features that genuinely require additional documentation, metadata, or frontend implementation.
+
+## Requirements
+
+- Only modify Section M.
+- Preserve Sections A–L and their existing analyses.
+- Keep the writing concise, clear, and understandable to both technical and nontechnical team members.
+- Prefer short explanations and summary tables.
+- Avoid lengthy validation discussions and repeated technical details.
+- Do not make external validation a universal blocker for starting our real-data pilot.
+- Do not confuse measurement availability with completed dashboard integration.
+- Use only findings supported by the existing EDA, meter mapping, and dashboard code.
+- Do not fabricate findings or assume unsupported measurement relationships.
+- Do not implement preprocessing, frontend integration, or anomaly detection models in this task.
+- Do not modify unrelated files.
+- Do not commit or push changes automatically.
+
+## Expected result
+
+Section M should have four clear parts:
+
+1. **Summary of EDA findings**
+2. **Which dashboard features can use real DERCONNECT data?** (including a brief explanation of standard preprocessing before the table)
+3. **Why start with Active_Power_A?**
+4. **Recommended next steps: Preprocess → Verify → Integrate**
+
+The goal is for our dashboard team to quickly understand what we learned from the EDA, what we can build using real DERCONNECT data, and what we should implement next without depending on anomaly detection models.
+```
+
+AI contribution: revised only Section M in the notebook into four clear parts: three-column A–L findings summary; shared cleaning/transformation/aggregation/verification explanation and a Yes/Yes-with-additional-work/No feature table; a short one-meter/phase rationale and expansion path; and Preprocess → Verify → Integrate stages. Rechecked the supplied meter mapping and actual dashboard source locations, including functional measured charts, event-gated comparisons, the unimplemented Power quality placeholder and CSV constraints. Clarified that clearly labeled channel preparation/integration can start without anomaly models or universal external metadata approval, while building totals/physical interpretations and model views need their specific evidence. No new findings, preprocessing or frontend/model implementation. Human supplied the requested scope; no engineering approval is invented.
+
+Files changed in this task: `notebooks/01_derconnect_data_exploration.ipynb` (M only), `DEVELOPMENT_LOG.md`, `AI_USE.md` (required append-only records). All 39 A–L cells/outputs/cell metadata and notebook-level metadata are unchanged. The full A–L JSON prefix is preserved byte-for-byte; source mapping/helper/test/data artifacts were not edited.
+
+Validation: `PYTHONDONTWRITEBYTECODE=1 IPYTHONDIR=/tmp/derconnect-summary-ipython "$HOME/miniforge3/bin/python3.12" /tmp/validate_derconnect_final_m.py` PASS. Checks exact A–L bytes/objects/outputs/metadata, Markdown-only M, notebook schema/existing-code AST, four requested parts, 12-row three-column summary and nine-row four-column feature table, the requested Yes statuses, four shared preprocessing steps and three next stages. Markdown rendered to `/tmp/derconnect-final-section-m.html` without notebook execution; 1,044 rendered words. Prior-log preservation, full prompt inclusion, task-specific Markdown/status review and `git diff --check` pass. No EDA/scans/regression/browser/model execution, dependencies, pipeline or integration.
+
+Limitations: existing EDA and mapping document the stated measurements and provisional coverage assumptions; calibration, direction, phase aggregation and physical relationships are not newly established. Those are feature-specific interpretation limits, not universal blockers to a labeled channel pilot. No private measurement values or personal paths copied into this record. Human content review pending; associated commits none.
