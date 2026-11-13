@@ -4718,3 +4718,106 @@ Complete prompt:
 commit and push this as a PR appropriately named
 ```
 Human authorizes commit, feature-branch push and PR creation. AI reviews existing scoped comparison source/tests/docs, checks current remote base, reruns focused regressions, prepares commit and PR titled “Add synchronized phase and meter comparisons to Historical Monitoring”. Branch codex/historical-comparisons, base 195a8b1. Earlier local documentation retained. Files: README.md, docs/HISTORICAL_DATA.md, DEVELOPMENT_LOG.md, AI_USE.md, css/styles.css, index.html, js/sections/historical.js, js/history-comparison.js, tests/fixtures/history-comparison.cjs, tests/history-comparison.cjs, tests/history-comparison-browser.cjs. Validation: focused unit/core/browser, syntax and staged whitespace/privacy checks; outcomes in DEVELOPMENT_LOG.md. No measurements/screenshots/private exports, detector changes or actual multi-product validation claims. Associated commit/PR not yet created at writing; see resulting history. No main commit, merge or deployment authorized/performed.
+
+## 2026-11-13 — Historical Overview source selection
+
+### Complete prompt (verbatim)
+
+```text
+Add a data-source selector to the main Overview so users can switch between the existing Synthetic Demo and loaded Historical DERCONNECT measurements.\
+\
+Read AGENTS.md, inspect Git status, and review the current Overview, historical adapter, Historical Monitoring, synchronized comparisons, routing and tests. Preserve teammates’ changes. Create a separate branch named codex/historical-overview.\
+\
+Keep this task strictly scoped: add only what is necessary, modify existing code only where integration requires it, and reuse existing helpers and conventions. Do not refactor, restyle or clean up unrelated code. Preserve the plain HTML/CSS/JavaScript and custom SVG architecture.\
+\
+1\. Overview source selector\
+\- Offer “Synthetic Demo” and “Historical DERCONNECT.”\
+\- Preserve the existing synthetic Overview, calculations, filters and links.\
+\- Historical mode must use schema-validated historical exports already loaded in this browser session.\
+\- If none are loaded, show a clear empty state and a link to Historical Monitoring.\
+\- Never silently substitute synthetic data for missing historical measurements.\
+\- Clearly identify historical data as historical, not live.\
+\
+2\. Shared historical selection\
+\- Introduce the smallest suitable shared historical session state so Overview and Historical Monitoring can reuse loaded products without choosing the same files again.\
+\- Support both the original single-export loader and the comparison loader.\
+\- Define a predictable policy for loading, replacing and selecting products. Do not silently merge incompatible or duplicate products.\
+\- Keep selected device, phase and campus-date scope consistent when navigating between the historical Overview and Historical Monitoring.\
+\- Keep comparison-panel selection separate where its multiple-product scope differs.\
+\- Preserve existing single-export and comparison behavior; explain any necessary selection reset.\
+\- Validate exports at the loading boundary using the existing contract. Avoid independent copies of measurements or duplicated validation/time logic.\
+\- Keep historical state separate from the synthetic store. Do not persist private measurements to localStorage or upload them.\
+\
+3\. Historical Overview content\
+\- Lead with a compact source/scope summary: device ID, phase, units, aggregation resolution, available dates and selected dates.\
+\- Label the last available measurement timestamp clearly; do not call it a live update.\
+\- Allow selection of one loaded device/channel product and an inclusive America/Los_Angeles date range, retaining UTC instants internally.\
+\- Show:\
+&#x20; • Mean observed phase power.\
+&#x20; • Maximum observed sample in usable bins.\
+&#x20; • Valid-slot coverage with enough precision to avoid misleading rounded completeness.\
+&#x20; • Usable versus unavailable intervals.\
+\- Reuse existing historical summary calculations and quality policies.\
+\- Add an observed-power chart with visible missing/rejected intervals.\
+\- Explain that these are phase-level readings. Do not present them as whole-building or campus demand.\
+\- Do not calculate phase/meter totals, energy, savings or costs in this task.\
+\
+4\. Investigation links\
+\- Link the selected device/channel/date range to Historical Monitoring for detail.\
+\- Provide a route to synchronized comparisons when compatible loaded products are available.\
+\- Preserve selected scope through navigation without changing unrelated synthetic filters.\
+\- Clearly explain that these links open observed measurements, not detected faults.\
+\
+5\. Anomalies and quality\
+\- Do not reuse synthetic events, forecasts, weather, occupancy or review records in historical mode.\
+\- Replace historical anomaly KPIs and the priority-event queue with an explicit “Anomaly detection not connected for these measurements” state.\
+\- Present telemetry-quality issues separately from demand behavior.\
+\- Show counts by unavailable/rejected reason and explain the distinction between valid-slot coverage and whole-bin eligibility.\
+\- Do not label a large change as an anomaly, diagnose a cause or imply that no detections means normal operation.\
+\- Use stable device IDs and verified metadata; do not infer building names or electrical hierarchy.\
+\
+6\. Plain-language help\
+\- Add a native “Need Help?” disclosure, collapsed by default, explaining:\
+&#x20; • Synthetic Demo versus Historical DERCONNECT.\
+&#x20; • Historical versus live data.\
+&#x20; • How loading files makes them available across these sections.\
+&#x20; • Device/phase/date selection and phase-level power.\
+&#x20; • Coverage, unavailable intervals and visible chart gaps.\
+&#x20; • Why forecasts, anomaly counts and combined totals are unavailable.\
+\- Derive dates and labels from loaded products, not hardcoded fixture values.\
+\- Support keyboard use, both themes, narrow screens and reduced-motion preferences.\
+\
+Validation\
+\- Use small, explicitly synthetic historical fixtures to test the feature.\
+\- Verify source switching leaves the synthetic Overview’s values, filters, links and review records unchanged.\
+\- Test no loaded data, single/multiple products, replacement, incompatible/duplicate products, empty ranges, rejected bins, zero/negative readings and DST boundaries.\
+\- Verify Overview and Historical Monitoring retain the same selected product/date scope through navigation.\
+\- Verify the existing single-export loader and synchronized comparisons still work.\
+\- Check real browser chart output, keyboard behavior, both themes, mobile layout, reload behavior and page/console errors.\
+\- Run relevant existing regressions and git diff --check. Do not weaken assertions.\
+\- Do not generate additional real exports unless necessary and authorized. Synthetic tests do not establish actual-data reconciliation.\
+\
+Update README.md, docs/HISTORICAL_DATA.md, DEVELOPMENT_LOG.md and AI_USE.md with the shared-state policy, exact checks, outcomes and limitations. Keep raw measurements, private exports, reports and screenshots out of Git.\
+\
+Deliver a concise summary of changes, validation, remaining limitations and proposed PR scope.\
+\
+Do not commit, push, open a PR or merge until requested.
+
+input the historical data and open the page for me when it is finished
+```
+
+Human contribution: requirements, no publishing authorization and request to load the existing historical product/open page. AI contributions: scoped historical session/catalog, Overview source switch/rendering, shared detail controls, necessary loader integration, regression checks and docs. Branch codex/historical-overview from cafb0e5 (comparison PR #14 dependency; main remained 195a8b1). Files: js/history-session.js, js/sections/historical-overview.js, tests/historical-session.cjs, tests/historical-overview-browser.cjs; js/sections/overview.js, js/sections/historical.js, js/history-comparison.js, js/app.js, index.html, css/styles.css, README.md, docs/HISTORICAL_DATA.md, DEVELOPMENT_LOG.md, AI_USE.md. Validation: focused session/Overview checks and existing adapter/comparison/core/navigation/dashboard/CSV/PDF suites passed; exact commands/outcomes in DEVELOPMENT_LOG.md. Synthetic fixtures test engineering behavior, not actual-source reconciliation. No additional real exports or detector runs. Existing private product has one previously documented input-kind mismatch; not relabeled as all-PASS. Human review pending; no associated commit/push/PR/merge. Browser opening result recorded at completion.
+
+Completion: existing private E2451 phase-A JSON loaded into the shared session; historical Overview opened and retained for user at loopback port 8002. A fresh local origin bypassed stale in-app script caching without modifying application assets/security settings. Actual-data screenshot remains outside Git; no private measurement values copied into shared records. No new raw reconciliation claim or additional export. No commit/push/PR/merge.
+
+## 2026-11-13 — Combined-feature verification and single-PR packaging
+
+Verbatim user prompts:
+```text
+ensure that when both PRS are merged together its fine
+```
+```text
+actually can u just take back the previous PR i made and combine them into a singular PR
+```
+
+Human contribution: compatibility request, then explicit authorization to consolidate into one replacement PR. AI contribution: refreshed remote references, confirmed PR #14 open/unmerged and branch ancestry; ran combined regression/browser checks, corrected an asynchronous rendering race in the new Overview test without weakening assertions, and prepared scoped combined PR packaging. No application changes in this follow-up. Changed files for this follow-up: tests/historical-overview-browser.cjs, DEVELOPMENT_LOG.md, AI_USE.md. Full feature files/validation/limitations are recorded in the preceding entry. Exact checks/outcomes and failed launch/test attempts documented in DEVELOPMENT_LOG.md. No additional private exports generated, uploaded or included in Git. No claims of new raw-data reconciliation. Human review pending. Existing comparison commit cafb0e5 retained; new commit/PR not yet created at record time. User now authorizes commit/push/new combined PR and closing superseded #14, but not merging or changing main.

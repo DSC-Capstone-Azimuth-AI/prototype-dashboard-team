@@ -31,6 +31,10 @@
 
   function render(root) {
     DC.clear(root);
+    const source = el("select", { id: "overview-source", "aria-label": "Overview data source", onchange: evt => { DC.history.session.setSource(evt.target.value); DC.setState({}); document.querySelector('#overview-source')?.focus({preventScroll:true}); } }, el("option", { value: "synthetic", text: "Synthetic Demo" }), el("option", { value: "historical", text: "Historical DERCONNECT" }));
+    source.value = DC.history.session.source;
+    root.append(el("label", { class: "overview-source" }, el("span", { text: "Overview data source" }), source));
+    if (DC.history.session.source === "historical") { DC.historicalOverview.render(root); return; }
     const s = DC.state, [t0, t1] = DC.range();
     const events = DC.events();
     const open = events.filter(DC.isOpen);

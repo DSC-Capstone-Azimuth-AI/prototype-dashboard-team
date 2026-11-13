@@ -650,3 +650,7 @@ footer { font-size: 10px; }
 .comparison-choice { display:inline-flex; align-items:center; gap:6px; padding:8px; }
 #comparison-cursor { display:block; width:100%; margin:12px 0; }
 [data-comparison-readout] { min-height:3em; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+.overview-source { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:18px; }
+.overview-source select { max-width:100%; padding:8px; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--ink); }
+#historical-overview-scope, #historical-overview-quality { padding:16px; margin:16px 0; overflow-wrap:anywhere; }
+#overview-history-detail { display:inline-block; box-sizing:border-box; max-width:100%; white-space:normal; margin:12px 0; }
