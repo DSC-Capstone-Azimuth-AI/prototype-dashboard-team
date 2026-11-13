@@ -2,7 +2,7 @@
 (function () {
   "use strict";
   const DC = window.DC, D = DC.D, M = DC.META, $ = DC.$;
-  const SECTIONS = ["overview", "investigate", "buildings", "models", "upload", "export"];
+  const SECTIONS = ["overview", "investigate", "buildings", "models", "upload", "export", "historical"];
 
   // ---------- filters ----------
   const fill = (sel, options, value) => {
@@ -37,8 +37,8 @@
     const s = DC.state, detail = !!s.routeId;
     const primary = s.section === "overview" ? ["range", "building"] : s.section === "investigate" ? ["range", "building", "severity", "status"] : s.section === "models" ? ["detector", "range"] : (s.profile ? ["range", "detector"] : ["range"]);
     const filters = $("#filters");
-    filters.hidden = ["upload", "export"].includes(s.section) || (detail && s.section === "investigate");
-    $("#data-banner").hidden = s.section === "upload";
+    filters.hidden = ["upload", "export", "historical"].includes(s.section) || (detail && s.section === "investigate");
+    $("#data-banner").hidden = ["upload", "historical"].includes(s.section);
     for (const id of ["range", "subgrid", "building", "meter", "type", "severity", "status", "detector"]) {
       const node = $("#f-" + id).closest(".filter");
       (primary.includes(id) ? filters : $("#advanced-filter-body")).append(node);

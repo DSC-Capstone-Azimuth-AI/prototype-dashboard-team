@@ -2,6 +2,16 @@
    Colour roles follow one palette: categorical slots for anomaly type, a reserved status
    palette for severity, neutral ink for measured / expected series. */
 
+/* Independent historical view uses the existing theme and card system. */
+.history-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin: 18px 0; }
+.history-controls .filter { min-width: 0; max-width: 100%; }
+.history-controls select, .history-controls input { max-width: 100%; }
+.history-chart { width: 100%; min-width: 0; overflow: hidden; }
+.history-chart svg { display: block; width: 100%; height: auto; }
+#sec-historical .technical-json { white-space: pre-wrap; overflow-wrap: anywhere; }
+#sec-historical p { overflow-wrap: anywhere; }
+#history-file { max-width: 100%; }
+
 :root {
   color-scheme: light;
   --page: #f9f9f7;
