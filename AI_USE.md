@@ -4601,3 +4601,120 @@ Report the commit SHA and confirm the working tree is clean.
 
 I will then pull the updated branch onto my Mac and run the validator against my local DERConnect ZIP and JSON export.
 ````
+
+## 2026-11-13 — Generate local Historical Monitoring file
+
+### Complete prompt (verbatim)
+
+```text
+generate the file locally using the preprocessing script
+```
+
+Human contribution: requested local file generation following the discussed E2451 January 1–7 pilot. AI contributions: inspected current exporter/contract and ignore rules; ran the exporter on authorized local extracted CSVs; started independent validation against the original ZIP; verified actual-file browser rendering and restarted a loopback server. Base 195a8b1; documentation branch codex/local-history-export-record preserves main. Outputs: Git-ignored local-data/derconnect-history.json and local-results/historical-validation.json. Tracked changes only DEVELOPMENT_LOG.md and AI_USE.md; no private measurements included. Validation outcome/commands and limitations recorded in DEVELOPMENT_LOG.md. No source/detector/data-fixture modifications, commit, push or PR. No inference of confirmed faults, calibration or publication permission from this local preprocessing request.
+
+Final validation outcome: actual-file browser load/chart passed; independent validator matched all numerical/source-hash comparisons across every bin, but reports FAIL for one transport-provenance difference (export from csv_directory vs validation using zip). Failure report preserved without weakening checks or altering metadata. Gated PASS-report browser reconciliation skipped; direct schema/render check passed. Only record files modified; all measurement products remain ignored. No commit/push/PR.
+
+## 2026-11-13 — Show local historical graphs
+
+Complete prompt:
+```text
+run it and show me the graphs
+```
+Human requested graph display. AI loaded existing private historical JSON through the local browser file picker, verified both graph sections and retained the visible tab; screenshot stored outside Git. Record files: DEVELOPMENT_LOG.md, AI_USE.md. No application or measurement changes, no repeated full-data processing, no new all-PASS reconciliation claim, no commit/push/PR.
+
+## 2026-11-13 — Synchronized historical comparisons
+
+### Complete prompt (verbatim)
+
+````text
+```sql
+Add synchronized comparisons to Historical Monitoring so users can investigate phases A/B/C or compare selected meters over the same time window.
+
+Read AGENTS.md, inspect Git status and the current historical exporter, data contract, adapter, charts and tests. Preserve teammates’ work. Create a focused codex/historical-comparisons branch and prepare reviewable changes. Keep the existing plain HTML/CSS/JavaScript and custom SVG architecture.
+
+Use only validated historical measurements. Do not connect synthetic forecasts/events, run detectors, modify raw files or commit private measurements.
+
+Comparison modes:
+
+1. Phases within one meter
+   - Compare available Active_Power_A, Active_Power_B and Active_Power_C exports.
+   - Clearly label the device, phase and units.
+   - Show unavailable phases explicitly; never fabricate them.
+
+2. Selected meters
+   - Compare the same active-power phase across up to three meters.
+   - Label devices by their stable IDs and verified metadata.
+   - Do not infer building names, feeder relationships or parent/child topology.
+
+Data loading:
+- Extend the existing single-export workflow with the smallest suitable local comparison loader, such as selecting multiple validated JSON exports.
+- Validate every export using the existing contract.
+- Require compatible units, aggregation resolution and UTC bin alignment.
+- Reject duplicate meter/channel products and clearly explain incompatible selections.
+- If exports have different coverage periods, default to their overlapping time range and disclose each product’s coverage.
+- Show an explicit empty state when there is no common time range.
+- Keep existing single-export loading working.
+- Use existing preprocessing tools to generate additional local exports only when needed and authorized. Keep them Git-ignored.
+
+Synchronized charts:
+- Use separate aligned charts with a shared time axis and a shared kW scale by default.
+- Synchronize the hover cursor and timestamp across all panels.
+- Provide an accessible keyboard-operated cursor and a clearly labeled reading for each series.
+- Use exact matching UTC bins, not nearest-neighbor matching.
+- Show “Unavailable” with its quality reason when a selected series has no usable value at that timestamp.
+- Preserve missing/rejected bins as gaps. Do not interpolate, forward-fill or substitute zero.
+- Apply date-range changes consistently across every panel using America/Los_Angeles display dates and UTC instants internally.
+- Distinguish observed bin means from raw-sample minima/maxima.
+- Keep the controls usable on narrow screens, in both themes and with reduced motion.
+
+Interpretation and scope:
+- Do not sum phases or meters in this task.
+- Explain that shared timing or similar patterns do not establish a common cause or electrical relationship.
+- Keep quality metrics and provenance separate for each product.
+- Explain that these are observed measurements, not detector outputs or confirmed faults.
+- Retain the existing warning that rounded slot coverage and usable-bin counts measure different things.
+
+Add a collapsed-by-default “Need Help?” disclosure explaining:
+- When to compare phases versus meters.
+- Why units, resolution and timestamps must match.
+- How to read the synchronized cursor and shared scale.
+- Why gaps remain visible.
+- Why the dashboard does not calculate a combined total.
+
+Validation:
+- Add small synthetic fixtures covering compatible comparisons, missing/rejected bins, different coverage periods, no overlap, duplicate products and incompatible units/resolutions.
+- Test exact-bin alignment, shared scales, synchronized mouse/keyboard cursors, date filters, DST boundaries and per-series unavailable readouts.
+- Verify single-export behavior, both themes, mobile layout and absence of page/console errors in a real browser.
+- If local real-data exports are used, document their validation status honestly; synthetic test passes do not establish actual-data reconciliation.
+- Run relevant existing checks and git diff --check. Do not weaken assertions to obtain a pass.
+
+Update README.md, docs/HISTORICAL_DATA.md, DEVELOPMENT_LOG.md and AI_USE.md as required. Keep private exports, raw data and screenshots out of Git.
+
+Deliver a concise summary of changes, validation, limitations and proposed PR scope. Do not commit, push or merge until requested.
+
+Keep this implementation strictly scoped to synchronized historical comparisons. Add only the code necessary for this feature, and modify existing code only where required to integrate it. Reuse existing helpers and conventions. Do not refactor, restyle, rename or clean up unrelated code.
+
+Preserve all unrelated functionality, including single-export Historical Monitoring, synthetic anomaly views, CSV Upload, PDF reports, navigation, filters, themes and saved review records. Add regression checks for shared code affected by the integration, and verify existing behavior remains intact. Every changed file and line should have a clear connection to the requested feature.
+
+do not commit or push, only create branch named appropriately
+
+```
+````
+
+Human contribution: specified comparison requirements, narrow scope and no commit/push. AI contributions: optional independent validated comparison module, minimal historical-section/script/CSS integration, explicit missing/quality/provenance handling, synchronized pointer/keyboard charts, synthetic fixtures/unit/browser checks and docs. Branch codex/historical-comparisons, base 195a8b1; earlier two uncommitted record edits retained. Files: js/history-comparison.js, js/sections/historical.js, index.html, css/styles.css, tests/fixtures/history-comparison.cjs, tests/history-comparison.cjs, tests/history-comparison-browser.cjs, README.md, docs/HISTORICAL_DATA.md, DEVELOPMENT_LOG.md, AI_USE.md. Validation commands/results, environment, initial test corrections and temporary python3 launcher compatibility are recorded in DEVELOPMENT_LOG.md. New comparison unit/browser suites and existing historical/core/navigation/CSV/PDF regressions passed; both-theme 390px screenshots visually reviewed. No actual multi-product reconciliation, private exports, raw-data edits, detector execution, new dependencies, commit/push/PR/merge. Human review and actual-product validation remain pending; synthetic fixtures are not real-data validation.
+
+## 2026-11-13 — Load local export for user
+
+Complete prompt:
+```text
+choose the file and run it for me
+```
+AI loaded the existing ignored local E2451 phase-A export into the original historical view and optional comparison loader using the local browser. Verified rendered chart, cursor, quality text and unavailable B/C notices; retained tab. Human contribution: requested loading. Record files: DEVELOPMENT_LOG.md, AI_USE.md. No additional actual exports, code changes, source validation claims, commit or push. Screenshot remains outside Git.
+
+## 2026-11-13 — Commit and publish historical comparison PR
+
+Complete prompt:
+```text
+commit and push this as a PR appropriately named
+```
+Human authorizes commit, feature-branch push and PR creation. AI reviews existing scoped comparison source/tests/docs, checks current remote base, reruns focused regressions, prepares commit and PR titled “Add synchronized phase and meter comparisons to Historical Monitoring”. Branch codex/historical-comparisons, base 195a8b1. Earlier local documentation retained. Files: README.md, docs/HISTORICAL_DATA.md, DEVELOPMENT_LOG.md, AI_USE.md, css/styles.css, index.html, js/sections/historical.js, js/history-comparison.js, tests/fixtures/history-comparison.cjs, tests/history-comparison.cjs, tests/history-comparison-browser.cjs. Validation: focused unit/core/browser, syntax and staged whitespace/privacy checks; outcomes in DEVELOPMENT_LOG.md. No measurements/screenshots/private exports, detector changes or actual multi-product validation claims. Associated commit/PR not yet created at writing; see resulting history. No main commit, merge or deployment authorized/performed.

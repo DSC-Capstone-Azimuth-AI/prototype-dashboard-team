@@ -2,7 +2,7 @@
 (function () {
   "use strict";
   const DC = window.DC, H = DC.history, el = DC.el;
-  let data = null, error = "", loading = false, started = false, token = 0, from = "", to = "", chartId = 0;
+  let data = null, error = "", loading = false, started = false, token = 0, from = "", to = "", chartId = 0, comparisonOpen = false;
   const number = v => v === null ? "Unavailable" : DC.fmt.kw(v);
   const redraw = () => { if (DC.state.section === "historical") DC.setState({}); };
   const svgNode = (tag, attrs, parent) => {
@@ -148,6 +148,10 @@
     } }));
     if (configured) picker.body.append(el("button", { class: "btn", type: "button", text: "Reload configured export", onclick: () => read(() => H.load(configured)) }));
     root.append(picker.card);
+    const comparisons = el("details", { class: "disclosure", open: comparisonOpen, ontoggle: evt => { comparisonOpen = evt.target.open; } }, el("summary", { text: "Compare historical exports" }));
+    const comparisonHost = el("div"); comparisons.append(comparisonHost); root.append(comparisons);
+    DC.historyComparison.render(comparisonHost);
+    comparisons.addEventListener("toggle", () => { if (comparisons.open) DC.historyComparison.render(comparisonHost); });
     if (!started) { started = true; if (configured) { read(() => H.load(configured)); return; } }
     if (loading) root.append(el("p", { role: "status", text: "Loading historical export…" }));
     else if (error) root.append(el("p", { class: "csv-status rejected", role: "alert", id: "history-error", text: error }));

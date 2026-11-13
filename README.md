@@ -413,3 +413,13 @@ For an explicitly synthetic demonstration, generate a labeled test export using
 `PYTHONDONTWRITEBYTECODE=1 python3 tests/test_derconnect_export.py --fixture work/history-fixture`
 and choose its `derconnect-history-fixture.json` in the view. This never stands in
 for real-data validation. Exact validation outcomes are in DEVELOPMENT_LOG.md.
+
+## Synchronized historical comparisons
+
+Open **Compare historical exports** in Historical Monitoring. Choose 1–9 local JSON exports together (10 MB each, 30 MB combined). Each product passes the existing schema 1.0 validator; duplicate meter/channel pairs, mixed units/resolutions/cadences or mixed actual/test origins are rejected as a batch. This loader is independent of the original single-file picker and does not upload or persist files.
+
+Choose **Phases within one meter** for A/B/C (unloaded phases remain explicitly unavailable), or **Selected meters — same phase** for up to three loaded meters. The default common window is the intersection of available selected products' half-open UTC ranges. Campus-date filters use the existing America/Los_Angeles helper, including DST. No overlap gives an empty state. Charts share UTC bin positions and a kW scale; hover any chart or use the timestamp slider's arrow/Home/End keys for synchronized exact-bin readouts. Missing/rejected bins stay gaps; readouts distinguish observed means from raw-sample min/max. No nearest-bin substitution, interpolation, phase totals, meter totals or topology inference.
+
+Per-product disclosures retain coverage, quality threshold and provenance. Slot coverage and usable-bin counts have different denominators. **Need Help?** starts collapsed and explains comparisons and limitations. Schema acceptance does not establish instrument calibration or independent raw-data reconciliation. No actual multi-product exports are bundled. Existing single export, synthetic sections, CSV Upload and PDF reporting remain separate.
+
+Tests: `node tests/history-comparison.cjs` and, with Playwright/Edge or `CHROMIUM_PATH` configured and the local server running, `node tests/history-comparison-browser.cjs`. Browser outputs default to the OS temporary directory; never commit screenshots/private exports.
