@@ -3487,3 +3487,1117 @@ Files changed: `notebooks/02_derconnect_building_types_forecasting_anomalies.ipy
 Validation: see the matching DEVELOPMENT_LOG.md entry (sequential execution with 0 errors, AST parse, private-path scan, ignore check, `git diff --check`).
 
 Limitations: screening candidates are not faults or labels; the academic calendar and weather are not encoded; saved notebook outputs contain real-data figures and tables. No private measured values or personal paths are recorded in this entry.
+
+
+## 2026-11-12 — Historical Monitoring implementation
+
+Date/time and timezone: November 12, 2026, America/Los_Angeles.
+Human contributor: requesting DSC capstone dashboard team member (name not supplied). AI tool: OpenAI Codex. Branch `feature/derconnect-historical-monitoring`; base `f9ae47dc0c24fbb43a53546f69076a64248948d9` after fetching latest main from clean initial `work`/`aad7710b123b07c7ab9c83580618b5d839a1555e`. Associated commits: none created; no push or merge.
+
+Complete verbatim Codex task from the user's attached Pasted text.txt (no credentials/private measurement rows):
+
+````text
+# Codex Task: Implement Real DERConnect Historical Monitoring in the Shared Dashboard
+
+## 1. Project context and objective
+
+You are working in the UC San Diego DSC 180A/B capstone repository for Azimuth AI:
+
+https://github.com/DSC-Capstone-Azimuth-AI/prototype-dashboard-team
+
+I am a member of the Dashboard Team. Our capstone aims to build an electricity monitoring and anomaly investigation dashboard using UC San Diego's DERConnect measurements.
+
+The existing dashboard is implemented in plain HTML, CSS and JavaScript with custom SVG charts. It already supports synthetic anomaly investigation, building profiles, detection-quality analysis, CSV upload and PDF reports.
+
+Our major remaining limitation is that the primary dashboard views still use synthetic electrical measurements, while our team has separately performed substantial exploratory analysis of real DERConnect data.
+
+**Your primary objective is to implement a small, robust, independently demonstrable real-data historical monitoring feature that turns our existing DERConnect EDA outputs into useful dashboard functionality.**
+
+The first milestone should demonstrate actual measured power for one DERConnect meter, including time-series exploration, daily demand patterns and data-quality information.
+
+Do not train anomaly detection models, redesign the existing dashboard or replace its synthetic dataset.
+
+This is an implementation task. You are authorized to modify the codebase, add tests and update documentation, subject to the repository contribution and data-safety requirements below.
+
+## 2. Mandatory repository investigation
+
+Before modifying anything:
+
+1. Inspect the repository's current branch, working-tree status, latest commits, open pull requests and relevant instructions.
+2. Read `AGENTS.md`, `README.md`, `DEVELOPMENT_LOG.md` and `AI_USE.md`.
+3. Inspect the existing frontend architecture and script-loading order.
+4. Carefully review Matthew's and Jared's recent EDA code and notebook conclusions.
+5. Identify reusable preprocessing functions and verify their actual return values.
+6. Check for new code or teammates' work that might overlap with this task.
+7. Confirm whether the actual DERConnect data archive or derived caches are accessible in this execution environment.
+
+Important files include:
+
+- `index.html`
+- `css/styles.css`
+- `js/app.js`
+- `js/store.js`
+- `js/charts.js`
+- `js/ui.js`
+- `js/csv.js`
+- `js/sections/overview.js`
+- `js/sections/buildings.js`
+- `js/sections/upload.js`
+- `data/derconnect-data.js`
+- `data/Meter Reading Mapping.csv`
+- `tools/build_data.py`
+- `tools/derconnect_full_quality.py`
+- `tools/derconnect_additional_eda.py`
+- `tools/derconnect_prep.py`
+- `tools/inspect_derconnect.py`
+- `notebooks/01_derconnect_data_exploration.ipynb`
+- `notebooks/02_derconnect_building_types_forecasting_anomalies.ipynb`
+- Existing Python and JavaScript tests.
+
+Do not rely solely on this prompt's description of the repository. Inspect the current implementation and adapt the plan if there have been new commits.
+
+Do not duplicate existing EDA or preprocessing work.
+
+### Existing functionality to preserve
+
+The synthetic dashboard includes an Overview, Buildings, Anomaly Investigation, Detection Quality, CSV Upload and Export Reports.
+
+The existing frontend uses the global `window.DERCONNECT_DATA` dataset through `js/store.js`. Much of the synthetic application assumes fixed hourly samples, indexed series, known building relationships and detector outputs.
+
+Those assumptions are not generally valid for real DERConnect measurements.
+
+Preserve the synthetic dataset and all existing features.
+
+## 3. Real DERConnect dataset
+
+Our team has access to DERConnect measurements from January–May 2026 for five meters:
+
+- E2451 — Instructional
+- E3020 — Mixed
+- E3510 — Office
+- E7080 — Office
+- E7085 — Office
+
+The facility classifications came from facilities management. They do not establish specific named-building identities.
+
+The archive contains approximately 25 monthly CSV files, 3.5 GB compressed and 11.95 GB uncompressed.
+
+Preliminary inspection found approximately two-second sampling, offset-aware `_time` timestamps and a consistent schema across the files.
+
+Matthew has performed additional full-dataset quality and aggregation analysis, including timestamp coverage, duplicates, invalid measurements, temporal aggregation and daily/weekly patterns.
+
+Do not assume any teammate-reported numerical result has been independently verified unless you reproduce it or inspect the underlying calculation and evidence.
+
+The raw dataset is intentionally excluded from Git.
+
+### Important measurement channels
+
+According to the repository's meter reading mapping:
+
+- `Active_Power_A`: W
+- `Active_Power_B`: W
+- `Active_Power_C`: W
+- `Voltage_A-N`: V
+- `Frequency`: Hz
+- Active-energy quadrant registers: kWh
+
+Preserve source units and document conversions.
+
+**Do not automatically sum active-power phases A/B/C.**
+
+Jared's preprocessing currently computes a `P_total_*` aggregate, whereas Matthew's full-quality code requires explicit verification before treating phases as additive. Until electrical semantics are confirmed, do not interpret these combined fields as verified building demand.
+
+Do not sum readings across meters without verified meter hierarchy.
+
+For the initial implementation, prefer a single verified active-power phase from E2451.
+
+## 4. Implementation scope
+
+Implement a complete vertical slice consisting of:
+
+1. A reproducible backend preprocessing/export utility.
+2. A validated, versioned historical data contract.
+3. A frontend adapter for the exported data.
+4. A dedicated historical monitoring dashboard view.
+5. Data-quality indicators.
+6. Daily demand-pattern visualization.
+7. Automated tests and documentation.
+
+Do not implement only the backend or only a mock frontend. The objective is an integrated, working feature.
+
+Keep the implementation modular and minimize changes to existing shared modules.
+
+### 4.1 Real-data processing/export utility
+
+Create a new utility, tentatively:
+
+`tools/export_derconnect_history.py`
+
+Its job is to convert a limited set of real DERConnect measurements into a compact frontend-readable data product.
+
+Before writing new processing logic, investigate these existing utilities:
+
+- `scan_archive()` in `tools/derconnect_full_quality.py`
+- `aggregation_summary()`
+- `_parse_times()`
+- `_resolutions()`
+- `calendar_tables()` in `tools/derconnect_additional_eda.py`
+- Jared's `prepare()`, `process_file()` and `load()` in `tools/derconnect_prep.py`
+
+Prefer adapting or reusing their validated results rather than independently recreating timestamp parsing, coverage calculation and duplicate handling.
+
+The exporter should support selecting:
+
+- Meter ID.
+- Measurement channel.
+- Date range or month.
+- Aggregation interval, initially 15 minutes.
+- Minimum coverage threshold.
+- Output path.
+
+Support the actual archive or documented local derived-data inputs as appropriate to the existing code.
+
+A reasonable initial target is E2451, `Active_Power_A`, a limited January 2026 interval and 15-minute aggregates.
+
+Implement 5-minute and hourly resolution only if the existing aggregation infrastructure makes this straightforward and their correctness can be tested. Otherwise, architect for later extension without presenting nonexistent options.
+
+#### Processing requirements
+
+- Parse offset-aware source timestamps.
+- Normalize timestamps to UTC.
+- Preserve explicit campus-local timezone metadata using `America/Los_Angeles`.
+- Handle duplicate timestamps and out-of-order observations.
+- Preserve missing-data information.
+- Never silently fill missing observations with zero.
+- Convert W to kW only for appropriate display or aggregate fields.
+- Retain mean, minimum and maximum power when supported.
+- Preserve valid observation counts and expected sampling-slot counts.
+- Calculate coverage using expected cadence slots, not simply raw row counts.
+- Apply an explicit minimum-coverage policy.
+- Mark rejected or unusable aggregates instead of presenting them as valid.
+- Preserve important source and transformation provenance.
+- Use bounded/chunked processing for large inputs rather than loading all five months and meters into memory.
+
+Pay particular attention to daylight-saving transitions, duplicate records, boundary conditions and intervals with insufficient observations.
+
+The exporter should produce deterministic results for identical inputs and settings.
+
+### 4.2 Data contract
+
+Create a compact, versioned data format that the frontend can validate.
+
+JSON is acceptable for the small pilot. Select another static-browser-compatible format if there is a compelling engineering reason.
+
+An illustrative structure is:
+
+```json
+{
+  "schema_version": "1.0",
+  "dataset_type": "historical_measurements",
+  "source": "DERConnect",
+  "meter_id": "E2451",
+  "facility_type": "Instructional",
+  "channel": "Active_Power_A",
+  "source_unit": "W",
+  "display_unit": "kW",
+  "timezone": "America/Los_Angeles",
+  "aggregation_minutes": 15,
+  "minimum_coverage": 0.8,
+  "provenance": {},
+  "records": []
+}
+```
+
+Each record should contain an explicit UTC time-bin identifier, measured power summaries, valid/expected observation information, coverage and a quality status or reason.
+
+Define exact half-open bin boundaries and timestamp semantics.
+
+Non-finite values must be serialized as JSON `null`, never `NaN` or `Infinity`.
+
+Do not fabricate forecast values, anomaly classifications, ground-truth labels or operational diagnoses.
+
+Use a clearly documented schema version and validation rules.
+
+The data contract should eventually accommodate anomaly detector outputs using the same meter/channel/time identity, but do not require those outputs for this task.
+
+### 4.3 Frontend real-data adapter
+
+Create a separate frontend module, tentatively:
+
+`js/real-data.js`
+
+This module should:
+
+- Load and validate the exported historical data.
+- Check schema versions and required fields.
+- Validate meter IDs, channels, units, timestamps, numeric values and series ordering.
+- Expose a clear interface to the historical monitoring view.
+- Distinguish missing data from legitimate zero readings.
+- Provide understandable unavailable/error states.
+- Avoid unnecessary duplication of data in memory.
+- Keep real measurements separate from synthetic detector outputs.
+
+**Do not overwrite `window.DERCONNECT_DATA` or force real data into the existing hourly synthetic store.**
+
+Do not change the global synthetic sampling interval or reinterpret existing event indexes as real timestamps.
+
+Prefer an independent, small real-data store/adapter for this milestone. Use existing chart and UI primitives when they genuinely support timestamp-based observations; otherwise, implement a narrowly scoped chart helper.
+
+Because this is a static dashboard, verify that data loading works when the application is served through the documented local HTTP server. File-protocol support is optional, but failures must be clear.
+
+### 4.4 Historical monitoring view
+
+Add a new dashboard section, tentatively:
+
+`js/sections/historical.js`
+
+Label the navigation destination **Historical Monitoring** or **Real Data**, consistent with the existing design.
+
+The new view should display actual DERConnect historical measurements, not synthetic demonstration data disguised as real measurements.
+
+Implement the following user-facing features:
+
+**Meter and measurement selection**
+
+- Display the selected meter ID and facility classification.
+- Display the measurement channel and correct units.
+- Start with E2451 and one active-power phase.
+- Only enable additional meters, channels or resolutions when the corresponding validated data is available.
+
+**Historical power chart**
+
+- Plot measured active power over time.
+- Use actual UTC timestamps converted to campus-local display time.
+- Support a useful date range or time-window selection.
+- Make missing or rejected intervals visually distinguishable.
+- Preserve negative values if present and meaningful under the source's sign convention.
+- Avoid connecting lines across long missing intervals as though measurements were continuous.
+- Provide appropriate labels, legends and tooltips.
+
+**Demand summaries**
+
+Where supported by actual available measurements, display:
+
+- Mean observed power (kW).
+- Maximum observed power (kW).
+- Coverage percentage.
+- Number of usable and unavailable intervals.
+
+Do not label mean power as energy consumption.
+
+If peak demand is reported, make clear whether it is a peak observed sample, a maximum aggregate-bin mean, or another specifically defined metric.
+
+**Daily demand patterns**
+
+Provide a simple, useful daily profile, such as mean power by hour of campus-local day for the selected meter/channel.
+
+Account for uneven sample counts, missing bins and daylight-saving effects.
+
+Require sufficient valid data before displaying a profile. Show its coverage or supporting sample count.
+
+Do not compute unsupported seasonal conclusions from a single short pilot period.
+
+**Quality and provenance**
+
+Provide a compact description of:
+
+- Dataset source.
+- Time range.
+- Meter and channel.
+- Aggregation resolution.
+- Coverage threshold.
+- Missing or rejected intervals.
+- Whether readings are actual measurements or simulated outputs.
+
+No anomaly model needs to run.
+
+### 4.5 Integration with existing navigation
+
+Update `index.html`, `js/app.js` and related files only as necessary.
+
+Preserve:
+
+- Existing navigation and deep links.
+- Synthetic Overview.
+- Building profiles.
+- Anomaly Investigation.
+- Detection Quality.
+- CSV Upload.
+- PDF report export.
+- Theme behavior.
+- Responsive layouts.
+
+Use the current styling system and existing frontend conventions.
+
+Do not introduce React, Streamlit, a CDN dependency, a new backend service or a major framework.
+
+Do not modify teammates' PDF reporting or CSV upload logic merely to add this feature.
+
+The new section should work as an independent historical-data view, with a clear distinction from the synthetic anomaly demonstration.
+
+## 5. Data availability and privacy
+
+First determine whether the raw archive or preprocessed caches are available locally.
+
+Possible inputs may include:
+
+- A local ZIP archive.
+- Extracted DERConnect monthly CSV files.
+- Existing local EDA caches.
+- A path supplied through an environment variable such as `DERCONNECT_DATA_PATH`.
+
+Do not assume any particular local absolute path.
+
+Do not download or expose private measurements through unrelated services.
+
+Do not commit:
+
+- The raw DERConnect archive.
+- Large private intermediate files.
+- Credentials.
+- Local absolute paths.
+- Notebook outputs containing sensitive raw measurements.
+- Real-data derived artifacts without appropriate sharing authorization.
+
+Design the exporter to accept a configurable output location.
+
+For automated tests, create small, synthetic CSV fixtures matching the required schema and expected edge cases.
+
+If the raw measurements are available, validate the pipeline against a bounded real-data interval and document the observed results.
+
+If the raw measurements are unavailable, **do not fabricate a real-data export or claim that actual measurements were integrated and validated**.
+
+Instead:
+
+1. Fully implement the exporter, adapter, UI and tests using synthetic fixtures.
+2. Make the real-data view clearly indicate that no real export is currently configured.
+3. Document the exact command and configuration required to generate an actual E2451 export locally.
+4. Clearly distinguish completed engineering work from validation pending actual measurements.
+
+Avoid silently falling back to the synthetic anomaly fixture in the real-data view.
+
+## 6. Testing and validation
+
+Add focused automated tests for the new preprocessing, data contract and frontend behavior.
+
+At minimum, cover:
+
+**Backend tests**
+
+- Offset-aware timestamp parsing.
+- UTC conversion.
+- Expected two-second cadence.
+- Missing observations.
+- Duplicate timestamps.
+- Out-of-order timestamps.
+- Invalid numeric values.
+- Valid zero readings.
+- Negative power readings.
+- W-to-kW conversion.
+- Aggregation boundaries.
+- Coverage threshold behavior.
+- Minimum/maximum/mean calculations.
+- JSON serialization and schema validity.
+- Deterministic output.
+- Missing input files and invalid configuration.
+
+**Frontend tests**
+
+- Successful data loading.
+- Validated meter/channel metadata.
+- Correct timestamp ordering.
+- Correct units.
+- Missing-data visualization.
+- Empty datasets.
+- Invalid or unsupported schema versions.
+- Date filtering.
+- Daily profile calculation.
+- No synthetic anomaly labels presented as real.
+- Existing synthetic dashboard functionality preserved.
+- Navigation, reload and responsive behavior.
+
+Use the repository's established Python unittest and JavaScript/browser-test patterns.
+
+Run the relevant existing test suites, not just the new tests.
+
+Perform syntax checks on changed Python and JavaScript files.
+
+If browser automation is available, serve the dashboard locally and exercise the historical view in an actual browser, including narrow viewport and light/dark theme checks.
+
+Do not claim any test passed unless you actually ran it and observed success.
+
+Record exact commands, results and skipped checks.
+
+## 7. Suggested file ownership and modifications
+
+Prefer a small diff.
+
+Likely new files:
+
+```text
+tools/export_derconnect_history.py
+js/real-data.js
+js/sections/historical.js
+tests/test_derconnect_export.py
+tests/historical-monitoring.cjs
+```
+
+Likely existing files needing small changes:
+
+```text
+index.html
+js/app.js
+css/styles.css
+README.md
+.gitignore
+DEVELOPMENT_LOG.md
+AI_USE.md
+```
+
+These are suggestions, not an instruction to add unnecessary files. First inspect whether a better existing module can be reused.
+
+Avoid broad modifications to:
+
+```text
+tools/build_data.py
+data/derconnect-data.js
+data/synthetic-labels.js
+js/store.js
+js/sections/investigate.js
+js/sections/models.js
+js/sections/upload.js
+js/sections/export.js
+```
+
+Changes to shared modules must be justified and covered by regression tests.
+
+## 8. Scientific and engineering constraints
+
+The dashboard must distinguish:
+
+1. Observed electrical measurements.
+2. Data-quality diagnostics.
+3. Preliminary statistical deviations.
+4. Model-generated forecasts and anomaly scores.
+5. Operational hypotheses.
+6. Independently confirmed physical faults.
+
+Do not conflate these categories.
+
+In particular:
+
+- An unusual reading is not necessarily a physical fault.
+- A missing reading is not automatically zero demand.
+- A flatline is not automatically a broken meter.
+- Facility-type differences are not automatically anomalies.
+- No legitimate precision, recall or F1 can be inferred from unlabeled real data.
+- A model forecast must not be presented as an observed value.
+- A high anomaly score is not automatically a probability of equipment failure.
+- A fifteen-minute mean can conceal short-duration events.
+- A power mean in kW is not interchangeable with energy in kWh.
+
+Prioritize interpretable, correct results over an ambitious feature count.
+
+## 9. Documentation — mandatory
+
+**You must update both `AI_USE.md` and `DEVELOPMENT_LOG.md` as part of this implementation.**
+
+Read their existing contents and formatting requirements before editing.
+
+### `AI_USE.md`
+
+Append a new dated entry for this task.
+
+Include:
+
+- The complete, verbatim Codex task prompt supplied by the user, in accordance with the repository's established logging policy.
+- The AI-assisted work performed.
+- Files created or modified.
+- Important technical decisions and assumptions.
+- Human contributions, including the existing EDA work being reused.
+- Validation performed.
+- Results and limitations.
+- Remaining human review requirements.
+- Actual associated commit identifiers, if commits exist.
+
+Do not fabricate human review, approvals, test results or commit hashes.
+
+Preserve all previous AI-use entries.
+
+### `DEVELOPMENT_LOG.md`
+
+Append a dated implementation entry describing:
+
+- Task objective.
+- Human and AI contributors.
+- Base revision and working branch.
+- Relevant files changed.
+- Existing components reused.
+- Export/data contract design.
+- Frontend functionality implemented.
+- Data-quality and aggregation decisions.
+- Validation commands and results.
+- Data-access limitations.
+- Known unresolved issues.
+- Recommended next steps.
+
+Use the existing repository format and America/Los_Angeles dates.
+
+Do not overwrite or substantially reorganize previous development records.
+
+Also update `README.md` with concise instructions for generating the export, starting the dashboard, using the historical view, running relevant tests and understanding data provenance/limitations.
+
+Documentation must describe actual implemented behavior, not planned features presented as complete.
+
+## 10. Git and collaboration requirements
+
+Follow `AGENTS.md` and existing contribution practices.
+
+- Do not commit directly to `main`.
+- Work from the latest appropriate shared baseline.
+- Check for existing local changes before beginning.
+- Preserve uncommitted and untracked teammate work.
+- Use a focused feature branch when appropriate.
+- Do not force-push, reset, clean or overwrite unrelated changes.
+- Keep the work reviewable as a focused pull request.
+- Do not merge into `main` without explicit authorization.
+- Do not publish private derived measurements without approval.
+- Do not create a commit or push changes unless explicitly authorized by the surrounding Codex workflow or user.
+
+Review the full diff before finishing.
+
+Run `git diff --check` and relevant regression checks.
+
+If another contributor has introduced overlapping work, incorporate it carefully rather than replacing it wholesale.
+
+## 11. Acceptance criteria
+
+The task is complete when:
+
+1. A reusable exporter can generate a validated, versioned historical dataset from appropriately available DERConnect inputs.
+2. Timestamp, unit and coverage handling are explicit and tested.
+3. A new Historical Monitoring section is integrated into the existing navigation.
+4. The historical view can display correctly labeled measured power, time ranges and quality information.
+5. A daily demand profile is available for a sufficiently complete interval.
+6. Missing and unreliable data are visibly distinguished.
+7. Real and synthetic data remain isolated.
+8. Existing dashboard functionality continues to work.
+9. The implementation requires no unnecessary framework or backend.
+10. Automated tests cover the new functionality and relevant edge cases.
+11. `README.md` describes reproducible usage.
+12. `AI_USE.md` contains the required task record.
+13. `DEVELOPMENT_LOG.md` contains the required development record.
+14. The final implementation report clearly identifies validated features, unavailable real-data checks and unresolved dependencies.
+
+If access to the real archive prevents a genuine real-data demonstration, complete the testable implementation, report the blocker explicitly and provide precise local execution instructions. Do not weaken the data-integrity requirements to produce a misleading demo.
+
+## 12. Final deliverables and report
+
+After implementation, provide a concise but technically substantive summary covering:
+
+**A. Implemented functionality**
+
+Explain what was built and how it changes the dashboard.
+
+**B. Architecture**
+
+Describe the exporter, data contract, frontend adapter and historical view, including why the existing synthetic store was preserved.
+
+**C. Reuse of existing work**
+
+Identify which Matthew/Jared utilities were reused and which limitations or assumptions were discovered.
+
+**D. Files changed**
+
+List new and modified files, with their specific purposes.
+
+**E. Validation**
+
+Provide exact commands, passing/failing results, browser verification and any tests that could not run.
+
+**F. Real-data evidence**
+
+State whether the implementation was executed against actual DERConnect measurements, which meter/channel/date interval was used, and which findings were independently verified.
+
+**G. Documentation**
+
+Confirm updates to `README.md`, `AI_USE.md` and `DEVELOPMENT_LOG.md`.
+
+**H. Remaining work**
+
+Identify the minimum steps required to expand to all five meters, incorporate verified building relationships and connect future anomaly detection outputs.
+
+## 13. Execution priorities
+
+Work in this order:
+
+1. Inspect current repository and integration boundaries.
+2. Verify and select reusable EDA/preprocessing functions.
+3. Define and implement the quality-aware data export.
+4. Add synthetic fixture tests and validate the export contract.
+5. Implement the separate frontend data adapter.
+6. Build the integrated historical monitoring view.
+7. Run automated and browser-level regression checks.
+8. Update README and the required AI/development records.
+9. Review the full diff and report the implementation results.
+
+Do not stop after producing a plan or pseudocode. Implement as much of the working vertical slice as can be completed safely in the current execution environment.
+
+Avoid unrelated redesigns, speculative features and unnecessary refactors.
+
+**The overarching goal is to advance the dashboard from a purely synthetic anomaly demonstration toward a scientifically defensible monitoring system that displays genuine DERConnect historical measurements and can eventually incorporate model-generated anomaly results.**
+````
+
+AI contributions: investigated current repository/remote PRs and newer Matthew/Jared EDA; implemented a chunked raw-input exporter, documented version 1.0 measurement contract, independent validated browser adapter and integrated Historical Monitoring UI. Added synthetic exporter/contract/browser tests, updated navigation tests for seven destinations and deterministic render completion, updated setup/provenance documentation and ignore rules, ran existing regressions and browser/PDF checks. No synthetic store/data, notebook/EDA helper, CSV-upload or PDF product logic changed.
+
+Files created/modified: `tools/export_derconnect_history.py`, `js/real-data.js`, `js/sections/historical.js`, `tests/test_derconnect_export.py`, `tests/historical-monitoring.cjs`, `tests/historical-browser.cjs`, `docs/HISTORICAL_DATA.md` (new); `index.html`, `js/app.js`, `css/styles.css`, `.gitignore`, `tests/navigation.cjs`, `tests/section-navigation.cjs`, `README.md`, `DEVELOPMENT_LOG.md`, `AI_USE.md` (modified).
+
+Technical decisions: single-meter individual active-power phase; W→kW only; dense half-open UTC bins with campus display timezone; slot-based two-second coverage; no missing-as-zero or imputation; conservative rejection of any repeated cadence-slot observation; observed min/mean/max and null rejection statuses. Tested 5/15/60-minute resolutions reuse existing weighted aggregation. SHA-256 inputs/code/mapping and dependency/chunk/policy provenance; bounded ≤32-day state with chunked full-file I/O. Frontend data stays independent of synthetic indices/detectors, with explicit unconfigured/error/empty/test-fixture states. Campus-date filtering and sample-weighted daily profile preserve DST elapsed support; a ≥23-hour/18-hour-group/80%-support rule avoids unsupported profiles. Defaults never present a test fixture as real measurements.
+
+Human contributions and reused work: user supplied full scope, facility types, constraints and authorization. Matthew's existing _parse_times/_numbers/_accumulate/_resolutions are directly reused after return-value inspection; scan_archive/aggregation_summary/calendar_tables informed policies. Jared's prepare/process_file/load and notebook 02 were reviewed, not replaced: current caches lack duplicate/unique-slot evidence and the phase-sum claim still needs engineering review. Existing notebook results are previous work, not newly verified findings. Human implementation review, source-data validation and sharing authorization remain pending.
+
+Validation actually performed:
+- `PYTHONDONTWRITEBYTECODE=1 MPLCONFIGDIR=/tmp/history-mpl python3 -m unittest discover -s tests -p 'test_*.py'`: PASS, 30 tests (20 existing plus 10 new), including existing notebook synthetic/missing-input harnesses. Existing matplotlib identical-x-axis and pandas to_pydatetime deprecation warnings observed; no failed tests. After final provenance/count-validation refinements, `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p test_derconnect_export.py`: PASS, 10 tests.
+- `node tests/historical-monitoring.cjs`: PASS (also rerun after final refinements), consuming Python-exported 48-hour synthetic fixture; strict metadata/ordering/units/counts/provenance/null validation, zero/negative values, weighted summaries, coverage, inclusive campus dates, spring/fall DST profiles, HTTP failures/file mode/same-origin policy and isolation.
+- `node tests/regression.cjs`, `node tests/csv-upload.cjs`, `node tests/reports.cjs`: PASS. Existing 8 buildings, 11 synthetic meters, 161 events and four detectors remain valid; reports/custom-note contracts unchanged.
+- Servers: `python3 -m http.server 8000 --bind 127.0.0.1` and `python3 -m http.server 8001 --bind 127.0.0.1` (the latter supports existing hard-coded report test URLs).
+- `SCREENSHOT_DIR=work/history-qa node tests/historical-browser.cjs`: PASS, rerun after final source/test refinements. Actual Chromium loads the exporter-generated synthetic fixture: unconfigured/default state, gaps and disconnected segments, null/zero/negative values, units/selection controls, hover counts/extrema/quality, daily profile/support, filtering/empty scope, invalid schema/malformed JSON/empty/all-missing exports, configured same-origin HTTP reload, Back/Forward, theme persistence, light/dark and 390px fit, all six existing destinations and exact synthetic-data isolation. No page/console errors. Reviewed light/dark desktop and mobile PNGs; mobile axis label overlap found and fixed with separate date/time lines, then screenshots regenerated/reviewed. Screenshots are ignored local test assets, not real-data evidence.
+- `node tests/browser.cjs`: PASS, 242 charts checked, 8 building profiles, all four detectors, details/filters/history/review persistence/missing context and labels/themes/390px, no page/console errors.
+- `node tests/navigation.cjs`: PASS after fixing the existing route helper to wait for the selected section, active DOM and cleared aria-busy instead of an 80ms delay; two earlier runs failed at building-card count (0 vs 8) while rendering was pending. Every original assertion retained, all 161 event routes verified on the final run. No product routing workaround introduced.
+- `node tests/section-navigation.cjs`: PASS, including Historical Monitoring, 7 navigation destinations/icons, transitions/rapid navigation/fallback/reduced motion/mobile and existing analysis views. Only destination counts and new-section coverage changed.
+- `node tests/csv-upload-browser.cjs`, `node tests/meter-comparison.cjs`, `node tests/investigation-views.cjs`: PASS, no page/console errors; existing upload, comparisons, missing context, themes/mobile and evidence behaviors preserved.
+- Unmodified `node tests/reports-browser.cjs` initially FAILED TO LAUNCH: its hard-coded `channel: 'msedge'` points to an absent Edge installation. Retested all assertions with an ignored temporary Playwright launch-only override in `work/chromium-reports.cjs`, preserving test sources and assertions. Exact successful commands: `TEMP=/workspace/prototype-dashboard-team/work REPORT_QA_DIR=work/report-qa node -r ./work/chromium-reports.cjs tests/reports-browser.cjs`; `TEMP=/workspace/prototype-dashboard-team/work node -r ./work/chromium-reports.cjs tests/reports-usability.cjs`; `TEMP=/workspace/prototype-dashboard-team/work node -r ./work/chromium-reports.cjs tests/report-notes-browser.cjs`. All PASS, including snapshot/building/anomaly PDF downloads, previews, notes/privacy, empty scope, help, theme/mobile/reload. This validates Chromium, not Edge.
+- Python `ast.parse` on changed Python files, `find js tests -type f \( -name '*.js' -o -name '*.cjs' \) -print0 | xargs -0 -n1 node --check`: PASS. `git diff --check`, full diff/new-file/status review, private-output ignore checks, previous-record prefix/verbatim-prompt preservation and byte comparisons of both existing notebooks and synthetic datasets against HEAD: PASS.
+
+Results and limitations: No actual raw ZIP, extracted monthly CSVs, or legacy EDA caches were found in the accessible workspace/data/temp locations; DERCONNECT_DATA_PATH and DERCONNECT_DATA_DIR are unset. Actual E2451/Active_Power_A/January measurements were NOT exported, plotted or independently validated. No reported EDA numerical finding, phase-additivity conclusion, candidate event, fault, calibration or model performance was independently confirmed. The JSON producer's actual_measurements declaration is provenance, not origin authentication. Signs/scaling, the provisional two-second cadence, engineering semantics and building/feeder hierarchy require review; coverage alone cannot establish flatline/calibration quality. All-month input scanning may be I/O intensive, but retained state is limited to a ≤32-day single-channel window plus a configured chunk. Any-slot collision rejection deliberately withholds jitter collisions as well as exact duplicates. UI accepts one product at a time, fetches only configured same-origin URLs, and defaults to no export. Existing notebook outputs were preserved, not copied into new artifacts. No dependency installation, detector/model run, training, deployment, external message, commit, push or merge. Human code/engineering/data-sharing review remains pending.
+
+See the matching DEVELOPMENT_LOG.md entry for versions, exact report Chromium override and intermediate failures/corrections. README.md and docs/HISTORICAL_DATA.md provide the exact local E2451 January command, configuration, test-fixture demonstration and extension path. Minimum remaining human work is local authorized measurement validation and code/policy review, followed by separate meter/phase exports and verified topology; detector results need their own run/model provenance. No human approval, model/fault result or commit identifier has been invented.
+
+
+## 2026-11-12 — Actual-measurement validation blocked by remote access
+
+Date/timezone: November 12, 2026, America/Los_Angeles. Human: requesting team member supplied the Mac archive location and requested actual-data validation. AI: OpenAI Codex checked executor access, branch/status, CLI syntax, planned bounds and ignore rules; recorded this limitation. Branch `feature/derconnect-historical-monitoring`, base `f9ae47dc0c24fbb43a53546f69076a64248948d9`; all prior uncommitted work preserved. No commits, push, PR or merge.
+
+The Linux executor has no /Users mount and cannot access the supplied Mac-local file. This is an execution-location limitation, not evidence that the ZIP is absent on the Mac. Archive structure/E2451 contents could not be inspected. No real export was generated; no real power/coverage statistics, raw-data reconciliation, comparison against Matthew's utilities or real-measurement browser rendering was performed. No source bug was established or fixed. Only AI_USE.md and DEVELOPMENT_LOG.md changed in this follow-up; README and contract instructions remain applicable.
+
+Checks actually run: `git branch --show-current`, `git status --short`; Python Path.exists() on the supplied path and /Users (both false in this executor), shell readability check (not readable); `python3 tools/export_derconnect_history.py --help` PASS; existing bounds() called for January 1 inclusive through January 8 exclusive campus time at 15 minutes PASS: planned UTC bounds 2026-01-01T08:00:00Z to 2026-01-08T08:00:00Z, 672 expected bins, 450 expected cadence slots/bin. These are configuration arithmetic, not measured findings. `git check-ignore local-data/derconnect-history.json` PASS. `git diff --check` PASS; reviewed the append-only documentation diff and overall status. No regression/browser tests rerun because no implementation changed; earlier synthetic test passes do not establish actual-measurement validity.
+
+Local command (run on the Mac in the feature-branch checkout; set DERCONNECT_DATA_PATH privately to the supplied ZIP):
+```bash
+python3 tools/export_derconnect_history.py --meter E2451 --channel Active_Power_A --start 2026-01-01T00:00:00-08:00 --end 2026-01-08T00:00:00-08:00 --minutes 15 --minimum-coverage 0.8 --output local-data/derconnect-history.json
+python3 -m http.server 8000 --bind 127.0.0.1
+```
+Inspect ZIP inventory before exporting; exporter streams matching CSVs without extraction and refuses output overwrite. Load the export at http://127.0.0.1:8000/#historical using the file picker. Actual validation still requires independent raw-sample/bin reconciliation (UTC/local times, W/kW, boundaries, counts, collisions, coverage and extrema/mean), source/provenance verification, daily-profile/filter/browser checks, and existing synthetic regressions after any fixes. Do not publish private source/derived measurements. Human review and actual-data validation remain pending; feature readiness for a PR is not established by this follow-up.
+
+Prompt handling: AGENTS.md prohibits personal data in AI-use records and directs secure handling of sensitive prompt content. The sole identifying Mac-local path is redacted below; every other character of the supplied task is preserved. The original attachment remains the verbatim source and was not copied into tracked documentation. No human review or real-data result is claimed.
+
+````text
+I located the actual DERConnect dataset on my Mac.
+
+**Dataset path:**
+`[REDACTED: identifying Mac-local archive path]`
+
+Continue working in the `prototype-dashboard-team` repository on the existing `feature/derconnect-historical-monitoring` branch.
+
+Your task is to **validate the newly implemented Historical Monitoring feature against actual DERConnect measurements**, focusing initially on meter E2451 and channel `Active_Power_A`.
+
+### 1. Verify local data access
+
+- Confirm that the ZIP exists at the specified path and is readable.
+- Inspect its structure before running the exporter.
+- Verify that it contains the expected E2451 measurements.
+- Do not extract the entire archive unnecessarily.
+- Do not modify or overwrite the original ZIP.
+
+If the path is inaccessible because Codex is running in a remote environment, explain the access limitation rather than assuming the archive is missing.
+
+### 2. Generate the real-data export
+
+Use the exporter implemented in the previous task:
+
+`tools/export_derconnect_history.py`
+
+Generate a pilot export for:
+
+- Meter: E2451
+- Channel: `Active_Power_A`
+- Date range: January 1–7, 2026 (campus-local time)
+- Resolution: 15 minutes
+- Output: `local-data/derconnect-history.json`
+
+Use the existing CLI options and validate their syntax before executing.
+
+Preserve timestamp, unit, missing-data, duplicate-handling and coverage policies.
+
+Do not invent or impute measurements.
+
+### 3. Validate the exported measurements
+
+Independently reconcile a sample of exported aggregates with the raw CSV readings.
+
+Specifically verify:
+
+- UTC timestamp conversions and campus-local display times.
+- W-to-kW conversions.
+- Fifteen-minute aggregation boundaries.
+- Mean, minimum and maximum power.
+- Expected versus valid sample counts.
+- Missing observations and duplicate timestamps.
+- Coverage percentages and thresholds.
+- Correct handling of invalid or incomplete intervals.
+- Source provenance and schema correctness.
+
+Compare results with Matthew's existing EDA utilities wherever applicable.
+
+Report actual numerical findings, including the exported date range, number of usable bins, coverage and observed power statistics.
+
+Do not assume Matthew's previously reported approximately 99.7% coverage necessarily applies to this meter, channel or selected period.
+
+### 4. Validate the frontend
+
+Start the dashboard locally and open:
+
+`http://127.0.0.1:8000/#historical`
+
+Load the generated real-data export using the existing supported mechanism.
+
+Verify that:
+
+- Actual E2451 measurements are displayed.
+- The correct meter, channel, units and date range appear.
+- The measured-power chart renders correctly.
+- Gaps and rejected intervals are visible.
+- Coverage statistics are accurate.
+- The daily demand profile matches the underlying measurements.
+- Campus-local filtering works correctly.
+- The frontend clearly distinguishes real measurements from synthetic data.
+- Existing synthetic anomaly views still function normally.
+
+If necessary, fix narrowly scoped issues discovered during validation. Avoid unrelated changes or major refactoring.
+
+### 5. Run tests
+
+Run relevant Python, JavaScript and browser regression tests after any fixes.
+
+Record exact commands and results.
+
+Do not claim successful real-data integration unless the exported measurements have been independently checked and displayed in the browser.
+
+### 6. Update documentation
+
+**Mandatory: Update both `AI_USE.md` and `DEVELOPMENT_LOG.md`.**
+
+Append new dated entries documenting:
+
+- This complete, verbatim prompt in `AI_USE.md`, consistent with repository instructions.
+- The actual data source and validation scope.
+- Export settings and transformation assumptions.
+- Numerical findings and reconciliation results.
+- Any bugs discovered and fixes made.
+- Tests performed and their results.
+- Remaining limitations.
+- Files changed.
+- Human and AI contributions.
+
+Update `README.md` and `docs/HISTORICAL_DATA.md` if the real-data validation produces new usage instructions or clarifies existing behavior.
+
+Do not include private raw measurements, unnecessary local identifying paths, or sensitive information in committed documentation.
+
+### 7. Git and privacy requirements
+
+- Preserve the existing feature branch and all previous work.
+- Do not modify the original ZIP.
+- Do not commit the ZIP or private derived measurement exports.
+- Confirm generated data remains ignored by Git.
+- Do not commit, push or open a pull request yet.
+- Review the full diff and run `git diff --check`.
+
+### 8. Final report
+
+Provide a detailed summary of:
+
+1. Whether the ZIP was accessible.
+2. Whether the real E2451 export succeeded.
+3. Actual data-quality and power statistics.
+4. Independent numerical reconciliation results.
+5. Whether the real measurements rendered successfully in Historical Monitoring.
+6. Bugs fixed, if any.
+7. Tests passed or failed.
+8. Documentation updated.
+9. Any remaining work before the feature is ready for a pull request.
+
+**The goal is to establish that our dashboard genuinely displays correctly processed DERConnect measurements, rather than merely passing tests using synthetic fixtures.**
+````
+
+
+## 2026-11-12 — Package Historical Monitoring for Mac transfer
+
+Human: requesting team member explicitly authorized commit and push of the complete existing feature; no PR or merge authorized. AI: OpenAI Codex. Branch `feature/derconnect-historical-monitoring`, base `f9ae47dc0c24fbb43a53546f69076a64248948d9`. Preserved all prior implementation and records. Verified all 16 intended source/test/documentation files are present, reviewed ignore rules and staged changes, and excluded ignored work assets, all measurement exports, raw archives and unrelated files. Only these two records changed during packaging. Prior implementation/browser validation is recorded above; actual-measurement validation remains blocked by Mac-local archive access. No new actual-data or human-review claim.
+
+Packaging checks: Python AST parsing; `node tests/historical-monitoring.cjs`, `node tests/regression.cjs`, `node tests/csv-upload.cjs`, `node tests/reports.cjs`; all application/test JavaScript syntax; staged diff/whitespace/privacy inventory. Commit and push results are reported in the task response and Git history after execution; no commit hash is invented before creation. No force-push, main modification or PR creation. Human code/engineering review and actual-data reconciliation remain pending.
+
+Complete user prompt (verbatim):
+
+````text
+I cloned the shared dashboard repository onto my Mac, but the Historical Monitoring implementation is missing because your changes are still uncommitted in the remote Codex workspace.
+
+Please prepare the existing `feature/derconnect-historical-monitoring` changes for transfer to my Mac.
+
+First inspect the working tree and verify all implementation, test, and documentation files are present. Review `.gitignore` and the staged diff to ensure there are no raw DERConnect measurements, private exports, credentials, or unrelated files.
+
+Then commit the complete implementation to the existing feature branch and push that branch to `origin`.
+
+Do not merge into `main` or create a pull request. Do not overwrite remote branches or force-push.
+
+If pushing is unavailable, create a downloadable Git patch containing the complete changes and tell me how to apply it locally.
+
+Report the resulting commit SHA and whether the push succeeded. Keep `AI_USE.md` and `DEVELOPMENT_LOG.md` updated in accordance with repository requirements.
+````
+
+
+## 2026-11-12 — Final pre-PR independent reconciliation tooling
+
+Human: requesting team member reports successful real-export rendering on their Mac, supplies pilot settings and UI aggregates, and requests independent verification. AI: OpenAI Codex. Branch `feature/derconnect-historical-monitoring`, base/implementation commit `d907e024a8a0405ebde32f4c752eef693ec26361`; initially clean. No commit, push, PR or merge in this task. Human code/engineering review pending.
+
+Access limitation: this executor cannot access either supplied Mac-local input or its localhost browser. User-reported E2451/Active_Power_A January 1–7, 2026 (campus time), 15-minute results have NOT been independently verified here. No actual raw measurements were processed, and no actual-data browser claim is made. Exact causes/timestamps of the ten unavailable bins and unrounded actual coverage cannot be determined without the private inputs. Existing approximate EDA coverage was not substituted. No raw readings or identifying account paths were added.
+
+Added tools/validate_derconnect_history.py (standalone stdlib independent raw-ZIP validator), tests/test_derconnect_reconciliation.py, tests/historical-reconcile-browser.cjs; modified tests/historical-monitoring.cjs (rounded coverage counterexample), docs/HISTORICAL_DATA.md (exact local commands and limits), AI_USE.md and DEVELOPMENT_LOG.md. README instructions remain applicable. No exporter, UI, synthetic dataset, EDA notebook, phase semantics or thresholds changed. No product defect established; regression documents the existing distinction between valid-slot coverage and whole-bin eligibility.
+
+Method: independent csv/datetime/zoneinfo/SQLite implementation, all selected bins rather than merely ten samples, distinct occupied/finite/noncolliding/collision counts, W/1000, half-open UTC bins, fixed expected slots, explicit quality precedence, observed mean/extrema and weighted overall/hour profiles. Full decompressed source-byte hashes plus exporter/helper/mapping hashes are checked. Power comparisons use math.isclose(abs_tol=1e-8, rel_tol=1e-9); counts/statuses/hashes exact. A private local JSON report lists every discrepancy and all unavailable UTC/local timestamps with reasons, full counts and unrounded coverage. Temporary database deleted; no full archive extraction or modification. Local browser checker requires PASS report plus matching export SHA-256, compares independently computed statistics and hourly support to adapter/UI, labels/markers/origin and narrow layout.
+
+Validation observed: `PYTHONDONTWRITEBYTECODE=1 MPLCONFIGDIR=/tmp/history-mpl python3 -m unittest discover -s tests -p 'test_*.py'` PASS 32 tests, including two new independent reconciliation cases (normal and tampered mean/hash). After final validator raw-row diagnostics refinement, `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p test_derconnect_reconciliation.py` PASS 2. Existing matplotlib identical-x-axis and pandas deprecation warnings only. `node tests/historical-monitoring.cjs`, `node tests/regression.cjs`, `node tests/csv-upload.cjs`, `node tests/reports.cjs` PASS. Independently reconciled a generated 192-bin, 48-hour synthetic ZIP with zero discrepancies, then `HISTORY_EXPORT=work/independent-qa/derconnect-history.json HISTORY_REPORT=work/independent-qa/report.json DASHBOARD_URL=http://127.0.0.1:8010 node tests/historical-reconcile-browser.cjs` PASS (synthetic_fixture only). Its diagnostic-row refinement is covered by the final two unit tests; numerical formulas/browser source are unchanged.
+
+Browser server: `python3 -m http.server 8010 --bind 127.0.0.1` (old port-8000 process returned curl exit 52/HTTP 000, so an isolated server was started). `DASHBOARD_URL=http://127.0.0.1:8010 node tests/historical-browser.cjs`, same environment with `node tests/browser.cjs` and `node tests/section-navigation.cjs`: PASS, no page/console errors, 242 synthetic charts, four detectors/eight building profiles, historical errors/filtering/gaps/themes/mobile/navigation/reload. Python AST and `find js tests -type f \( -name '*.js' -o -name '*.cjs' \) -print0 | xargs -0 -n1 node --check` PASS. `git diff --check`, ignored ZIP/export/private-report checks and final diff/status review PASS. Separate CSV/comparison/investigation/PDF-download browser suites were not rerun because product code is unchanged; prior results remain in the earlier implementation record. No test claim applies to the private real files.
+
+Readiness: NOT READY for an independently verified real-data PR. Engineering/synthetic regressions pass, but the user must run the provided all-bin raw reconciliation and browser comparison locally, review the ten explicit withheld-bin reasons and unrounded coverage, and resolve any discrepancies. Rounded coverage can conceal a small deficit, and whole-bin collision rejection can withhold many valid samples from power summaries; this is a verified general policy explanation, not a diagnosis of those ten real bins. Scientific limits: provisional cadence/scaling/signs/calibration, no verified named-building/hierarchy mapping, no phase totals or model/fault evidence. Review against fetched origin/main and existing teammate work preserves the prior isolated feature scope.
+
+Complete task prompt (verbatim; paths use generic home-relative notation and contain no identifying account name; numerical figures are explicitly user-reported UI aggregates, not raw rows):
+
+````text
+# Final Pre-PR Validation — DERConnect Historical Monitoring
+
+We have successfully generated and displayed a historical measurement export from the actual DERConnect archive on my Mac.
+
+**Repository:** `DSC-Capstone-Azimuth-AI/prototype-dashboard-team`
+
+**Branch:** `feature/derconnect-historical-monitoring`
+
+**Implementation commit:** `d907e024a8a0405ebde32f4c752eef693ec26361`
+
+**Local files:**
+- Archive: `~/Desktop/Haojian_Data.zip`
+- Export: `~/Desktop/prototype-dashboard-team/local-data/derconnect-history.json`
+
+The dashboard is running at `http://127.0.0.1:8000/#historical`.
+
+## Current observed dashboard results
+
+The Historical Monitoring page displays:
+
+- Meter: E2451 (Instructional)
+- Channel: `Active_Power_A`
+- Period: January 1–7, 2026, campus-local time
+- Aggregation resolution: 15 minutes
+- Mean observed power: 25.4 kW
+- Maximum observed sample in usable bins: 60.5 kW
+- Displayed valid-slot coverage: 100.0%
+- Usable intervals: 662
+- Unavailable intervals: 10
+- Observations supporting the daily demand profile: 297,892
+
+These figures are taken from the dashboard UI and are **not yet independently verified against the raw archive**.
+
+Your task is to perform a rigorous, reproducible final validation before we open a pull request.
+
+Do not add unrelated dashboard features or redesign the interface.
+
+## Phase 1 — Verify the environment and provenance
+
+1. Confirm the current branch and working-tree status.
+2. Inspect the existing exporter, data contract and test suite.
+3. Confirm the actual ZIP and generated JSON exist and are readable.
+4. Verify the JSON provenance, meter, channel, time range, aggregation settings and source hashes.
+5. Confirm that `local-data/` and the raw ZIP are excluded from Git.
+
+If running in a remote environment without access to my Mac files, **do not claim to have completed real-data validation**. Instead, provide the exact local commands or a self-contained local validation script that I can run on my Mac.
+
+## Phase 2 — Independently reconcile actual measurements
+
+Implement a focused validation script or test that independently reads the relevant raw records from `Haojian_Data.zip` and compares them against `local-data/derconnect-history.json`.
+
+Avoid simply calling the exporter's aggregation functions again and treating identical outputs as independent validation.
+
+Check at least 10 representative 15-minute bins, selected across different days and power levels, including boundary periods and bins adjacent to unavailable intervals.
+
+For each selected bin, independently calculate:
+
+- Expected two-second sampling slots.
+- Number of unique observed slots.
+- Valid finite power readings.
+- Duplicate/colliding slots.
+- Mean power in kW.
+- Minimum and maximum observed power in kW.
+- Coverage fraction.
+- Expected quality classification.
+
+Compare those calculations with the exported JSON.
+
+Use explicit numerical tolerances and report all discrepancies.
+
+If possible, reconcile the displayed overall mean, maximum and daily demand profile against independently computed values rather than simply trusting the frontend.
+
+## Phase 3 — Investigate the 10 unavailable intervals
+
+The dashboard reports 662 usable intervals and 10 unavailable intervals despite coverage rounding to 100.0%.
+
+Determine exactly why those 10 bins are unavailable.
+
+For each unavailable bin, report:
+
+- UTC timestamp.
+- Campus-local timestamp.
+- Quality classification.
+- Expected slots.
+- Observed slots.
+- Valid observations.
+- Collision count.
+- Coverage.
+- Reason the bin was withheld.
+
+Determine whether the unavailable intervals are caused by duplicate observations, missing data, invalid measurements, insufficient coverage or another issue.
+
+Explain how the dashboard can display 100.0% aggregate coverage while some intervals remain unavailable. If this is caused by rounding, show the unrounded coverage.
+
+If the result reveals a calculation error or misleading UI label, fix it with the smallest defensible change and add a regression test.
+
+Do not modify the underlying measurements or lower quality thresholds merely to make the dashboard display more complete data.
+
+## Phase 4 — Frontend reconciliation
+
+Validate that the Historical Monitoring UI accurately represents the exported dataset.
+
+Check:
+
+1. Correct meter and channel labels.
+2. Correct W-to-kW conversion.
+3. Correct campus-local time conversion.
+4. Correct date filtering and selected-range semantics.
+5. Accurate mean and maximum statistics.
+6. Accurate usable/unavailable interval counts.
+7. Correct handling of missing or rejected intervals.
+8. Daily profile values and supporting sample counts.
+9. Clear distinction between real measurements and synthetic data.
+10. Existing dashboard navigation and synthetic features remain intact.
+
+Perform browser checks if available.
+
+Do not claim browser validation if the environment cannot run or access the browser.
+
+## Phase 5 — Fix only verified defects
+
+If you discover bugs, make narrowly scoped corrections.
+
+Do not:
+
+- Introduce a new frontend framework.
+- Replace the synthetic dataset.
+- Add anomaly detection models.
+- Sum electrical phases without verified semantics.
+- Attribute E2451 to an unverified named building.
+- Change the original ZIP.
+- Fabricate or interpolate missing readings.
+- Commit private measurements.
+
+Every correction must include an appropriate regression test.
+
+## Phase 6 — Regression testing
+
+Run all relevant existing Python and JavaScript tests, including browser tests where available.
+
+Also run:
+
+- Python syntax checks.
+- JavaScript syntax checks.
+- `git diff --check`.
+- Git status and ignored-file verification.
+
+Report the exact commands, results, failures and skipped checks.
+
+## Phase 7 — Mandatory documentation
+
+Update both:
+
+- `AI_USE.md`
+- `DEVELOPMENT_LOG.md`
+
+Follow all instructions in `AGENTS.md`.
+
+Append entries documenting this validation task, including the complete prompt as required by repository policy, with sensitive local identifiers handled according to the project's privacy requirements.
+
+Record:
+
+- Validation date.
+- Actual meter, channel and selected dates.
+- Independent reconciliation methodology.
+- Numerical results and discrepancies.
+- Explanations of the 10 unavailable intervals.
+- Any verified bugs and fixes.
+- Test commands and results.
+- Remaining scientific limitations.
+- Files changed.
+- Human and AI contributions.
+
+Update `docs/HISTORICAL_DATA.md` and `README.md` only when necessary to clarify the actual validated behavior.
+
+Avoid adding private raw readings or identifying local filesystem paths to tracked documentation.
+
+## Phase 8 — Pull request readiness assessment
+
+Review the final diff against `origin/main`.
+
+Determine whether the implementation is ready for team review based on:
+
+- Correctness of exported measurements.
+- Accurate and explainable quality statistics.
+- Frontend consistency.
+- Passing tests.
+- Data privacy.
+- Scope and maintainability.
+- Documentation completeness.
+- Compatibility with teammates' work.
+
+Finish with a clear recommendation:
+
+**READY FOR PR**, **READY WITH CAVEATS**, or **NOT READY**.
+
+Explain the reasons and any remaining blockers.
+
+**Do not commit, push, create a PR or merge anything yet.** I want to review your validation report before taking those actions.
+
+The goal is to establish independently that the dashboard's displayed E2451 measurements are correct and defensible, not merely that the interface renders successfully.
+````
+
+
+## 2026-11-12 — Transfer independent validation tooling to Mac
+
+Human: requesting team member explicitly authorizes committing and pushing the independent validation changes; local actual-data execution remains their next step. AI: OpenAI Codex. Branch `feature/derconnect-historical-monitoring`; base `d907e024a8a0405ebde32f4c752eef693ec26361`. Reviewed complete source/test/documentation changes and ignore rules; only the seven intended validation/test/record files are included. No raw ZIP, measurement CSV, private JSON report/export, credentials or unrelated files included. No exporter/UI/threshold changes. Preserved previous records and all prior implementation.
+
+Focused packaging verification: `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p test_derconnect_reconciliation.py` PASS 2; `node tests/historical-monitoring.cjs` PASS; `node --check tests/historical-reconcile-browser.cjs` and Python AST checks PASS; staged whitespace/privacy/inventory review PASS. Earlier full synthetic/browser validation is recorded above and was not repeated for packaging. Real-data reconciliation and human review remain pending; no actual-measurement validation claim. Files: tools/validate_derconnect_history.py, tests/test_derconnect_reconciliation.py, tests/historical-reconcile-browser.cjs, tests/historical-monitoring.cjs, docs/HISTORICAL_DATA.md, AI_USE.md, DEVELOPMENT_LOG.md. Commit/push results will be reported after execution and visible in Git history; no hash is invented in advance. No PR/merge/force-push authorized or performed.
+
+Complete prompt (verbatim):
+
+````text
+Please prepare the independent historical validation changes for use on my Mac.
+
+Stay on `feature/derconnect-historical-monitoring`.
+
+Review the complete diff and confirm that no raw measurements, private exports, credentials or unrelated changes are included.
+
+Then commit and push the new validation scripts, tests and documentation updates to the existing feature branch.
+
+Do not merge into main or create a PR. Do not force-push or overwrite unrelated changes.
+
+Report the commit SHA and confirm the working tree is clean.
+
+I will then pull the updated branch onto my Mac and run the validator against my local DERConnect ZIP and JSON export.
+````

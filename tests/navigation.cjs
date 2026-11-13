@@ -14,8 +14,9 @@ const shots = process.env.SCREENSHOT_DIR;
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   const route = async hash => {
     await page.evaluate(h => { location.hash = h; }, hash);
-    await page.waitForFunction(h => location.hash === '#' + h && DC.state.routeId === (h.split('/')[1] || null), hash);
-    await page.waitForTimeout(80);
+    await page.waitForFunction(h => location.hash === '#' + h && DC.state.section === h.split('/')[0] &&
+      DC.state.routeId === (h.split('/')[1] || null) && document.querySelector('.section.active')?.id === 'sec-' + h.split('/')[0] &&
+      !document.querySelector('#main-content').hasAttribute('aria-busy'), hash);
   };
   const screenshot = async name => { if (shots) { fs.mkdirSync(shots, { recursive: true }); await page.evaluate(() => window.scrollTo(0, 0)); await page.screenshot({ path: path.join(shots, name + '.png'), fullPage: name.startsWith('mobile-') }); } };
   const geometry = async () => {

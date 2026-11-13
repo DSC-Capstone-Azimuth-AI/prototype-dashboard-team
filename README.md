@@ -29,6 +29,7 @@ python3 -m http.server 8000   # then visit http://localhost:8000
 | **Anomaly Investigation** | Filtered, sortable event list or optional gallery. Every event opens a separate `#investigate/CR-030` detail route: four key facts, highlighted demand chart, evidence, definition and browser-local operator review/notes. Weather, quality, score/threshold, forecast quantiles, detector overlap, synthetic labels, history and scatter remain in disclosures. |
 | **Detection Quality** | Detector comparisons, precision/recall/F1, false-positive analysis, synthetic scenarios, threshold diagnostics and ground-truth comparisons. Comparison metrics describe the complete evaluation run; diagnostic panels retain their existing scope. |
 | **CSV Upload** | Checks a meter CSV in the browser and reports rejected rows, gaps, duplicates and cadence, then plots the measured readings. Results stay in memory, separate from the simulated dataset, and no detector runs on them. |
+| **Historical Monitoring** | Loads a separate, validated DERConnect phase-power export with campus-local dates, observed-power summaries, visible gaps, daily profiles and coverage/provenance. No actual export is bundled or configured by default. |
 
 Navigation uses URL hashes and supports browser Back/Forward and detail reloads. Page-specific filter scopes are retained during navigation in the current session. A detail URL identifies its record independently of list filters; returning to the list restores that list's scope. Filter scopes themselves are not serialized across reloads. Unknown record IDs show an explicit unavailable state.
 
@@ -115,9 +116,10 @@ every view without UI changes.
 
 ## Switching to real DERCONNECT data
 
-Replace `simulate_campus()` in `tools/build_data.py` with a loader that returns hourly arrays
-for weather, building occupancy and meters, then remove the injection step. Building Data
-Genome 2 can stand in until DERCONNECT access is confirmed. The JSON schema the page reads:
+Use the independent **Historical Monitoring** view below for actual observed channels.
+Its versioned timestamp contract preserves gaps and UTC instants without changing the
+synthetic store. Replacing `simulate_campus()` alone cannot satisfy those requirements.
+The following remains the existing **synthetic anomaly** display schema:
 
 ```text
 meta        start, n, clean_prefix, calibration_start, detector_start, generator_version, seeds
@@ -173,7 +175,7 @@ tools/build_data.py        data builder that wraps the anomaly team's detector c
 
 ## Notes and limits
 
-- All data is **simulated**. There are 8 real UCSD demonstration building names and 3 simulated PV arrays; the weather
+- The bundled anomaly data is **simulated**. Optional historical exports are separate and explicitly identify their origin. There are 8 real UCSD demonstration building names and 3 simulated PV arrays; the weather
   includes a heat wave and the calendar includes an open house as negative controls.
 - Investigation status is saved in your browser only (localStorage). A shared status would
   need a small backend.
@@ -351,3 +353,63 @@ unverified. This preliminary exploration does not validate real-data anomaly det
 or integrate measurements into the dashboard. Measurements, plots and execution outputs
 are not included in this documentation update. See DEVELOPMENT_LOG.md and AI_USE.md
 for execution provenance and the distinction between human and AI contributions.
+
+## Historical Monitoring (November 12, 2026)
+
+This independent `#historical` view displays a single meter/active-power phase:
+observed kW over actual timestamps, inclusive campus-date filtering, mean observed
+power, maximum observed sample in usable bins, valid-slot coverage, rejected/missing
+intervals, a daily demand profile and source hashes. It uses America/Los_Angeles,
+including DST, and never joins synthetic forecasts, labels or events. Existing
+synthetic views, CSV preview and PDF reports retain their own data and behavior.
+
+**No raw archive or derived cache was available here. No actual measurements were
+exported or validated.** The default view says no real export is configured.
+
+With the existing NumPy/pandas EDA dependencies, run from the repository root:
+
+```bash
+export DERCONNECT_DATA_PATH="/path/to/authorized/local/Haojian_Data.zip"
+python3 tools/export_derconnect_history.py \
+  --meter E2451 --channel Active_Power_A \
+  --start 2026-01-01T00:00:00-08:00 --end 2026-01-08T00:00:00-08:00 \
+  --minutes 15 --minimum-coverage 0.8 \
+  --output local-data/derconnect-history.json
+python3 -m http.server 8000 --bind 127.0.0.1
+```
+
+Open `http://127.0.0.1:8000/#historical` and choose that JSON. Local file selection
+clears on reload. To reload automatically over HTTP, set the existing
+`<meta name="derconnect-history" content="">` element in your local `index.html`
+to `content="local-data/derconnect-history.json"`. Keep exports Git-ignored and
+private; do not deploy them to public hosting. A failed load never falls back to
+synthetic data. Existing outputs are not overwritten; choose a new filename.
+
+`--input` also accepts extracted raw meter directories or a single raw CSV.
+`--month 2026-01` selects a full campus-local month instead of explicit bounds.
+Tested resolutions: 5, 15 and 60 minutes; maximum selection: 32 elapsed days.
+Coverage assumes two-second slots, never raw row counts. Any repeated observation
+in a slot rejects its entire bin. Missing data stays null; zeros/negative readings
+remain values. W is divided by 1,000 for kW; no phase or meter totals are inferred.
+Legacy EDA aggregate caches lack the unique-slot evidence this contract requires.
+
+Daily profiles weight supporting observations, need at least 23 elapsed hours and
+18 eligible local-hour groups, and withhold hours below 80% supporting slot coverage.
+Power means are not energy, coverage is not calibration, and quality issues are not
+confirmed physical faults. See [the contract and provenance guide](docs/HISTORICAL_DATA.md)
+for exact fields, policies, preprocessing reuse, limitations and expansion steps.
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 MPLCONFIGDIR=/tmp/history-mpl python3 -m unittest discover -s tests -p 'test_*.py'
+node tests/historical-monitoring.cjs
+node tests/regression.cjs
+node tests/csv-upload.cjs
+node tests/reports.cjs
+# With the HTTP server running and Playwright/Chromium installed:
+node tests/historical-browser.cjs
+```
+
+For an explicitly synthetic demonstration, generate a labeled test export using
+`PYTHONDONTWRITEBYTECODE=1 python3 tests/test_derconnect_export.py --fixture work/history-fixture`
+and choose its `derconnect-history-fixture.json` in the view. This never stands in
+for real-data validation. Exact validation outcomes are in DEVELOPMENT_LOG.md.

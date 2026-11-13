@@ -87,12 +87,12 @@ const base = process.env.DASHBOARD_URL || 'http://127.0.0.1:8000';
     assert.equal(await page.locator('#sec-overview .kpi .value').first().textContent(), '0');
     await staticMetrics(page);
     await page.evaluate(() => DC.setState({ ...DC.DEFAULT }));
-    assert.equal(await page.locator('.tabs a').count(), 6);
+    assert.equal(await page.locator('.tabs a').count(), 7);
     assert.equal(await page.locator('.nav-group').count(), 0);
-    assert.equal(await page.locator('.tabs a .nav-icon[aria-hidden="true"]').count(), 6);
+    assert.equal(await page.locator('.tabs a .nav-icon[aria-hidden="true"]').count(), 7);
     assert.equal(await page.locator('.tabs a').evaluateAll(links => links.every(link => document.getElementById(link.getAttribute('aria-controls')))), true);
     await alignedNavigation(page);
-    for (const section of ['investigate', 'buildings', 'models', 'overview']) {
+    for (const section of ['historical', 'investigate', 'buildings', 'models', 'overview']) {
       await clickSection(page, section);
       assert.equal(await page.locator('.section.active').count(), 1);
       assert.equal(await page.locator('.tabs a[aria-current="page"]').count(), 1);

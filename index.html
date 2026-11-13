@@ -4,6 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DERCONNECT Unified Dashboard</title>
+  <!-- Optional same-origin local export URL. Keep private measurements out of Git. -->
+  <meta name="derconnect-history" content="">
   <meta name="description" content="Anomaly-focused monitoring for DERCONNECT buildings and sub-grids: detect, classify, visualize, investigate, interpret.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M9 1 3 9h4l-1 6 6-8H8z' fill='%232a78d6'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="css/styles.css">
@@ -32,6 +34,7 @@
       <a href="#models" data-section="models" aria-label="Detection Quality" aria-controls="sec-models"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3v17h17M8 15v-4M13 15V5M18 15V8"/></svg><span class="nav-copy">Detection Quality<small aria-hidden="true">Synthetic evaluation</small></span></a>
       <a href="#upload" data-section="upload" aria-label="CSV Upload" aria-controls="sec-upload"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 15v5h16v-5"/></svg><span class="nav-copy">CSV Upload<small aria-hidden="true">Check a meter file</small></span></a>
       <a href="#export" data-section="export" aria-label="Export Reports" aria-controls="sec-export"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/></svg><span class="nav-copy">Export Reports<small aria-hidden="true">Download a scoped PDF</small></span></a>
+      <a href="#historical" data-section="historical" aria-label="Historical Monitoring" aria-controls="sec-historical"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3v17h17M6 14l4-5 4 3 6-7"/></svg><span class="nav-copy">Historical Monitoring<small aria-hidden="true">DERConnect measurements</small></span></a>
     </nav>
   </header>
 
@@ -70,6 +73,7 @@
     <section class="section" id="sec-models" aria-labelledby="h-models"></section>
     <section class="section" id="sec-upload" aria-labelledby="h-upload"></section>
     <section class="section" id="sec-export" aria-labelledby="h-export"></section>
+    <section class="section" id="sec-historical" aria-labelledby="h-historical"></section>
   </main>
   <footer>
     <details class="footer-details"><summary>Data &amp; research references</summary>
@@ -86,6 +90,8 @@
   <script src="js/charts.js"></script>
   <script src="js/store.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/real-data.js"></script>
+  <script src="js/sections/historical.js"></script>
   <script src="js/sections/overview.js"></script>
   <script src="js/sections/investigate.js"></script>
   <script src="js/sections/buildings.js"></script>
