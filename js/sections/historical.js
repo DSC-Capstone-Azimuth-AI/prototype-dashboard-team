@@ -2,7 +2,7 @@
 (function () {
   "use strict";
   const DC = window.DC, H = DC.history, el = DC.el;
-  let data = null, error = "", loading = false, started = false, token = 0, from = "", to = "", chartId = 0;
+  let data = null, error = "", loading = false, started = false, token = 0, from = "", to = "", chartId = 0, comparisonOpen = false, sessionVersion = -1;
   const number = v => v === null ? "Unavailable" : DC.fmt.kw(v);
   const redraw = () => { if (DC.state.section === "historical") DC.setState({}); };
   const svgNode = (tag, attrs, parent) => {
@@ -13,12 +13,12 @@
   async function read(task) {
     const mine = ++token;
     loading = true; data = null; error = ""; from = ""; to = ""; redraw();
-    try { const next = await task(); if (mine === token) data = next; }
-    catch (err) { if (mine === token) error = err instanceof SyntaxError ? "Historical export is not valid JSON." : err.message || "Could not read the historical export."; }
+    try { const next = await task(); if (mine === token) { H.session.replace([next], "single-export loader"); data = H.session.selected; } }
+    catch (err) { if (mine === token) { error = err instanceof SyntaxError ? "Historical export is not valid JSON." : err.message || "Could not read the historical export."; H.session.failed(error); } }
     finally { if (mine === token) { loading = false; redraw(); } }
   }
 
-  function chart(node, records, daily = false) {
+  function chart(node, records, daily = false, product = data) {
     const W = Math.max(240, node.clientWidth || 700), height = 280;
     const m = { l: 52, r: 16, t: 22, b: 48 }, iw = W - m.l - m.r, ih = height - m.t - m.b;
     const means = records.map(r => daily ? r.mean : r.mean_kw).filter(v => v !== null);
@@ -26,7 +26,7 @@
     if (low === high) { low -= 1; high += 1; }
     const pad = (high - low) * 0.08; low -= pad; high += pad;
     const a = daily ? 0 : H.timestamp(records[0].timestamp_utc);
-    const b = daily ? 24 : H.timestamp(records[records.length - 1].timestamp_utc) + data.aggregation_minutes * 60000;
+    const b = daily ? 24 : H.timestamp(records[records.length - 1].timestamp_utc) + product.aggregation_minutes * 60000;
     const x = v => m.l + (v - a) / (b - a) * iw, y = v => m.t + ih - (v - low) / (high - low) * ih;
     const svg = svgNode("svg", { viewBox: `0 0 ${W} ${height}`, width: W, height, role: "img",
       "aria-label": daily ? "Mean observed phase power by campus-local hour in kW" : "Observed phase power in kW; shaded intervals are unavailable" });
@@ -58,7 +58,7 @@
     const defs = svgNode("defs", {}, svg), pattern = svgNode("pattern", { id: patternId, width: 6, height: 6, patternUnits: "userSpaceOnUse" }, defs);
     svgNode("path", { d: "M0 6L6 0", stroke: DC.css("--ink-2"), "stroke-width": 1, opacity: 0.4 }, pattern);
     let path = "", previous = false, run = null;
-    const step = data.aggregation_minutes * 60000;
+    const step = product.aggregation_minutes * 60000;
     const endGap = end => {
       if (run === null) return;
       svgNode("rect", { x: x(run), y: m.t, width: Math.max(1, x(end) - x(run)), height: ih,
@@ -84,7 +84,7 @@
         { label: "Observed sample min / max", value: `${number(r.min_kw)} / ${number(r.max_kw)}` },
         { label: "Valid / expected slots", value: `${r.valid_observations} / ${r.expected_slots}` },
         { label: "Quality", value: `${r.quality} · ${DC.fmt.pct(r.coverage)}` },
-      ], note: `${data.aggregation_minutes}-minute bin, end exclusive · America/Los_Angeles` });
+      ], note: `${product.aggregation_minutes}-minute bin, end exclusive · America/Los_Angeles` });
     });
     hit.addEventListener("mouseleave", () => DC.charts.tip.hide());
   }
@@ -96,7 +96,7 @@
     root.append(el("p", { id: "history-kind", class: "csv-status", text: data.measurement_kind === "synthetic_fixture"
       ? "Synthetic test fixture — these are not actual DERConnect measurements."
       : "DERConnect historical measurements — single phase; no detector has run on this export." }));
-    const controls = el("div", { class: "history-controls" });
+    const controls = el("div", { class: "history-controls" }, H.session.productControl("history-product", () => { error = ""; redraw(); }));
     for (const [label, value] of [["Meter / facility", `${data.meter_id} · ${data.facility_type}`], ["Channel", `${data.channel} (kW)`], ["Resolution", `${data.aggregation_minutes} minutes`]]) {
       controls.append(el("label", { class: "filter" }, el("span", { text: label }), el("select", { disabled: true, "aria-label": label }, el("option", { text: value }))));
     }
@@ -104,9 +104,9 @@
     for (const [label, key] of [["From campus date", "from"], ["Through campus date", "to"]]) {
       controls.append(el("label", { class: "filter" }, el("span", { text: label }), el("input", { type: "date", id: "history-" + key,
         value: key === "from" ? from : to, min: first ? H.localDay(first.timestamp_utc) : "", max: last ? H.localDay(last.timestamp_utc) : "",
-        onchange: evt => { if (key === "from") from = evt.target.value; else to = evt.target.value; redraw(); } })));
+        onchange: evt => { if (key === "from") from = evt.target.value; else to = evt.target.value; H.session.scope(from, to); redraw(); } })));
     }
-    controls.append(el("button", { class: "btn", type: "button", text: "Full export range", onclick: () => { from = ""; to = ""; redraw(); } }));
+    controls.append(el("button", { class: "btn", type: "button", text: "Full export range", onclick: () => { from = ""; to = ""; H.session.scope("", ""); redraw(); } }));
     root.append(controls);
     if (!data.records.length) { root.append(el("p", { class: "empty", text: "This export contains no historical intervals." })); return; }
     const records = H.select(data, from, to), summary = H.summarize(records);
@@ -137,6 +137,10 @@
     requestAnimationFrame(() => { if (plot.isConnected) { chart(plot, records); if (profile.available) chart(dailyPlot, profile.hours, true); } });
   }
   function render(root) {
+    if (sessionVersion !== H.session.version && !loading) error = "";
+    sessionVersion = H.session.version;
+    data = H.session.selected; from = H.session.from; to = H.session.to;
+    if (H.session.takeComparisonRequest()) comparisonOpen = true;
     DC.clear(root); DC.charts.tip.hide();
     root.append(el("div", { class: "section-head" }, el("div", { class: "section-eyebrow", text: "Observed-channel history" }),
       el("h2", { id: "h-historical", text: "Historical Monitoring" }), el("p", { text: "Explore a validated DERConnect meter/channel export independently of the synthetic anomaly demonstration. Local files are read in your browser and are not uploaded." })));
@@ -144,15 +148,19 @@
     const picker = DC.ui.card("Historical export", "Choose the JSON produced by tools/export_derconnect_history.py (up to 10 MB)");
     picker.body.append(el("input", { type: "file", id: "history-file", accept: ".json,application/json", "aria-label": "Choose historical JSON export", onchange: evt => {
       const file = evt.target.files[0];
-      if (file) read(async () => { if (file.size > H.MAX_BYTES) throw new Error("Historical export exceeds the 10 MB pilot limit."); return H.validate(JSON.parse(await file.text())); });
+      if (file) read(async () => { if (file.size > H.MAX_BYTES) throw new Error("Historical export exceeds the 10 MB pilot limit."); return JSON.parse(await file.text()); });
     } }));
     if (configured) picker.body.append(el("button", { class: "btn", type: "button", text: "Reload configured export", onclick: () => read(() => H.load(configured)) }));
-    root.append(picker.card);
+    root.append(picker.card, el("p", { id: "history-session-notice", role: "status", text: H.session.notice }));
+    const comparisons = el("details", { class: "disclosure", open: comparisonOpen, ontoggle: evt => { comparisonOpen = evt.target.open; } }, el("summary", { text: "Compare historical exports" }));
+    const comparisonHost = el("div"); comparisons.append(comparisonHost); root.append(comparisons);
+    DC.historyComparison.render(comparisonHost);
+    comparisons.addEventListener("toggle", () => { if (comparisons.open) DC.historyComparison.render(comparisonHost); });
     if (!started) { started = true; if (configured) { read(() => H.load(configured)); return; } }
     if (loading) root.append(el("p", { role: "status", text: "Loading historical export…" }));
     else if (error) root.append(el("p", { class: "csv-status rejected", role: "alert", id: "history-error", text: error }));
     else if (data) measurements(root);
     else root.append(el("p", { class: "empty", id: "history-unconfigured", text: "No real export is currently configured. Generate an E2451 Active_Power_A export locally, then choose the JSON above. To retain it across reloads, configure the derconnect-history metadata path in index.html and serve over HTTP. See README for the exact command. No actual measurements are bundled." }));
   }
-  DC.sections = DC.sections || {}; DC.sections.historical = { render };
+  DC.sections = DC.sections || {}; DC.sections.historical = { render, chart };
 })();

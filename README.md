@@ -413,3 +413,23 @@ For an explicitly synthetic demonstration, generate a labeled test export using
 `PYTHONDONTWRITEBYTECODE=1 python3 tests/test_derconnect_export.py --fixture work/history-fixture`
 and choose its `derconnect-history-fixture.json` in the view. This never stands in
 for real-data validation. Exact validation outcomes are in DEVELOPMENT_LOG.md.
+
+## Synchronized historical comparisons
+
+Open **Compare historical exports** in Historical Monitoring. Choose 1–9 local JSON exports together (10 MB each, 30 MB combined). Each product passes the existing schema 1.0 validator; duplicate meter/channel pairs, mixed units/resolutions/cadences or mixed actual/test origins are rejected as a batch. Comparison-panel scope is separate from the single-product selection. Successful loads replace the shared historical catalog used by Overview and Historical Monitoring; files are never uploaded or persisted.
+
+Choose **Phases within one meter** for A/B/C (unloaded phases remain explicitly unavailable), or **Selected meters — same phase** for up to three loaded meters. The default common window is the intersection of available selected products' half-open UTC ranges. Campus-date filters use the existing America/Los_Angeles helper, including DST. No overlap gives an empty state. Charts share UTC bin positions and a kW scale; hover any chart or use the timestamp slider's arrow/Home/End keys for synchronized exact-bin readouts. Missing/rejected bins stay gaps; readouts distinguish observed means from raw-sample min/max. No nearest-bin substitution, interpolation, phase totals, meter totals or topology inference.
+
+Per-product disclosures retain coverage, quality threshold and provenance. Slot coverage and usable-bin counts have different denominators. **Need Help?** starts collapsed and explains comparisons and limitations. Schema acceptance does not establish instrument calibration or independent raw-data reconciliation. No actual multi-product exports are bundled. Existing single export, synthetic sections, CSV Upload and PDF reporting remain separate.
+
+Tests: `node tests/history-comparison.cjs` and, with Playwright/Edge or `CHROMIUM_PATH` configured and the local server running, `node tests/history-comparison-browser.cjs`. Browser outputs default to the OS temporary directory; never commit screenshots/private exports.
+
+## Overview data source and shared historical session
+
+Overview offers **Synthetic Demo** (the unchanged synthetic workflow) and **Historical DERCONNECT** (one loaded device/phase product). Historical mode shows an explicit no-data state when nothing is loaded; it never substitutes simulation data. A historical test fixture stays labeled as synthetic. This is historical phase power, not live data or whole-building/campus totals. The source switch and private measurements reset on reload; configured HTTP loading, when explicitly set locally, retains its existing behavior.
+
+A successful single-file, configured-file or comparison-batch load **replaces the shared historical catalog**, selects the first product and resets Overview/detail dates to its full range. No automatic merging or stitching. Batches use the existing schema/compatibility/duplicate checks. Invalid loads retain the previous valid shared catalog with a visible notice (an invalid comparison batch still clears its own comparison panels). The single-product dropdown selects among the current catalog; changing it resets dates. Overview and Historical Monitoring share product and inclusive campus-date scope. Comparison-panel selection/date scope remains independent; the Overview comparison action explicitly seeds it from the shared selection. No measurement objects are copied to the synthetic store, localStorage or a remote service.
+
+Historical Overview shows coverage with four decimal places and exact supporting counts, usable/unavailable bins, observed mean/sample maximum, actual scope, last usable observed-bin timestamp and a gap-preserving chart reused from Historical Monitoring. Quality reasons are separate from demand behavior. Anomaly detection/forecasts remain explicitly unavailable. Need Help? is collapsed by default. Detail navigation retains historical scope and synthetic filters remain unchanged.
+
+Tests: `node tests/historical-session.cjs` and `node tests/historical-overview-browser.cjs` (same local Playwright/Edge/server setup as comparison checks). New tests use explicitly synthetic historical products, not real-data reconciliation. Public deployment of private exports is not authorized by these features.

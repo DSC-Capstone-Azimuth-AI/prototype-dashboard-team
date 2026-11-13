@@ -1,0 +1,11 @@
+/* Small synthetic contract products, never real measurements or detector outputs. */
+const crypto = require('node:crypto');
+const hash = crypto.createHash('sha256').update('historical-comparison synthetic fixture v1').digest('hex');
+const facilities = {E2451:'Instructional',E3020:'Mixed',E3510:'Office',E7080:'Office',E7085:'Office'};
+function fixture({meter='E2451',phase='A',start='2026-01-01T08:00:00Z',bins=192,minutes=15,offset=0,gaps=true}={}) {
+ const step=minutes*60000, expected=minutes*30;
+ const records=Array.from({length:bins},(_,i)=>({timestamp_utc:new Date(Date.parse(start)+i*step).toISOString().replace('.000Z','Z'),mean_kw:offset+i%24-5,min_kw:offset+i%24-6,max_kw:offset+i%24-3,valid_observations:expected,expected_slots:expected,observed_slots:expected,collision_slots:0,coverage:1,quality:'ok'}));
+ if(gaps&&bins>3){Object.assign(records[1],{mean_kw:null,min_kw:null,max_kw:null,valid_observations:0,observed_slots:0,coverage:0,quality:'missing'});Object.assign(records[3],{mean_kw:null,min_kw:null,max_kw:null,valid_observations:expected-1,collision_slots:1,coverage:(expected-1)/expected,quality:'cadence_collision'});}
+ return {schema_version:'1.0',dataset_type:'historical_measurements',source:'DERConnect',meter_id:meter,facility_type:facilities[meter],channel:'Active_Power_'+phase,source_unit:'W',display_unit:'kW',timezone:'America/Los_Angeles',measurement_kind:'synthetic_fixture',aggregation_minutes:minutes,cadence_seconds:2,minimum_coverage:.8,start_utc:start,end_utc:new Date(Date.parse(start)+bins*step).toISOString().replace('.000Z','Z'),records,provenance:{exporter:'export_derconnect_history/1.0',duplicate_policy:'reject_any_cadence_collision_bin',input_kind:'csv',inputs:[{sha256:hash,bytes:1}],code_sha256:Object.fromEntries(['export_derconnect_history.py','derconnect_full_quality.py','inspect_derconnect.py'].map(k=>[k,hash])),mapping_sha256:hash,pandas:'synthetic fixture',numpy:'synthetic fixture',assumptions:'Generated synthetic measurements for tests only; hashes identify this fixture descriptor, not source CSV files.',chunksize:1,diagnostics:Object.fromEntries(['rows_scanned','other_meter_rows','missing_timestamps','naive_timestamps','invalid_timestamps','outside_range_rows','backwards_steps','missing_values','invalid_values','cadence_collision_slots'].map(k=>[k,0]))}};
+}
+module.exports=fixture;
