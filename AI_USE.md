@@ -4353,3 +4353,251 @@ If pushing is unavailable, create a downloadable Git patch containing the comple
 
 Report the resulting commit SHA and whether the push succeeded. Keep `AI_USE.md` and `DEVELOPMENT_LOG.md` updated in accordance with repository requirements.
 ````
+
+
+## 2026-11-12 — Final pre-PR independent reconciliation tooling
+
+Human: requesting team member reports successful real-export rendering on their Mac, supplies pilot settings and UI aggregates, and requests independent verification. AI: OpenAI Codex. Branch `feature/derconnect-historical-monitoring`, base/implementation commit `d907e024a8a0405ebde32f4c752eef693ec26361`; initially clean. No commit, push, PR or merge in this task. Human code/engineering review pending.
+
+Access limitation: this executor cannot access either supplied Mac-local input or its localhost browser. User-reported E2451/Active_Power_A January 1–7, 2026 (campus time), 15-minute results have NOT been independently verified here. No actual raw measurements were processed, and no actual-data browser claim is made. Exact causes/timestamps of the ten unavailable bins and unrounded actual coverage cannot be determined without the private inputs. Existing approximate EDA coverage was not substituted. No raw readings or identifying account paths were added.
+
+Added tools/validate_derconnect_history.py (standalone stdlib independent raw-ZIP validator), tests/test_derconnect_reconciliation.py, tests/historical-reconcile-browser.cjs; modified tests/historical-monitoring.cjs (rounded coverage counterexample), docs/HISTORICAL_DATA.md (exact local commands and limits), AI_USE.md and DEVELOPMENT_LOG.md. README instructions remain applicable. No exporter, UI, synthetic dataset, EDA notebook, phase semantics or thresholds changed. No product defect established; regression documents the existing distinction between valid-slot coverage and whole-bin eligibility.
+
+Method: independent csv/datetime/zoneinfo/SQLite implementation, all selected bins rather than merely ten samples, distinct occupied/finite/noncolliding/collision counts, W/1000, half-open UTC bins, fixed expected slots, explicit quality precedence, observed mean/extrema and weighted overall/hour profiles. Full decompressed source-byte hashes plus exporter/helper/mapping hashes are checked. Power comparisons use math.isclose(abs_tol=1e-8, rel_tol=1e-9); counts/statuses/hashes exact. A private local JSON report lists every discrepancy and all unavailable UTC/local timestamps with reasons, full counts and unrounded coverage. Temporary database deleted; no full archive extraction or modification. Local browser checker requires PASS report plus matching export SHA-256, compares independently computed statistics and hourly support to adapter/UI, labels/markers/origin and narrow layout.
+
+Validation observed: `PYTHONDONTWRITEBYTECODE=1 MPLCONFIGDIR=/tmp/history-mpl python3 -m unittest discover -s tests -p 'test_*.py'` PASS 32 tests, including two new independent reconciliation cases (normal and tampered mean/hash). After final validator raw-row diagnostics refinement, `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p test_derconnect_reconciliation.py` PASS 2. Existing matplotlib identical-x-axis and pandas deprecation warnings only. `node tests/historical-monitoring.cjs`, `node tests/regression.cjs`, `node tests/csv-upload.cjs`, `node tests/reports.cjs` PASS. Independently reconciled a generated 192-bin, 48-hour synthetic ZIP with zero discrepancies, then `HISTORY_EXPORT=work/independent-qa/derconnect-history.json HISTORY_REPORT=work/independent-qa/report.json DASHBOARD_URL=http://127.0.0.1:8010 node tests/historical-reconcile-browser.cjs` PASS (synthetic_fixture only). Its diagnostic-row refinement is covered by the final two unit tests; numerical formulas/browser source are unchanged.
+
+Browser server: `python3 -m http.server 8010 --bind 127.0.0.1` (old port-8000 process returned curl exit 52/HTTP 000, so an isolated server was started). `DASHBOARD_URL=http://127.0.0.1:8010 node tests/historical-browser.cjs`, same environment with `node tests/browser.cjs` and `node tests/section-navigation.cjs`: PASS, no page/console errors, 242 synthetic charts, four detectors/eight building profiles, historical errors/filtering/gaps/themes/mobile/navigation/reload. Python AST and `find js tests -type f \( -name '*.js' -o -name '*.cjs' \) -print0 | xargs -0 -n1 node --check` PASS. `git diff --check`, ignored ZIP/export/private-report checks and final diff/status review PASS. Separate CSV/comparison/investigation/PDF-download browser suites were not rerun because product code is unchanged; prior results remain in the earlier implementation record. No test claim applies to the private real files.
+
+Readiness: NOT READY for an independently verified real-data PR. Engineering/synthetic regressions pass, but the user must run the provided all-bin raw reconciliation and browser comparison locally, review the ten explicit withheld-bin reasons and unrounded coverage, and resolve any discrepancies. Rounded coverage can conceal a small deficit, and whole-bin collision rejection can withhold many valid samples from power summaries; this is a verified general policy explanation, not a diagnosis of those ten real bins. Scientific limits: provisional cadence/scaling/signs/calibration, no verified named-building/hierarchy mapping, no phase totals or model/fault evidence. Review against fetched origin/main and existing teammate work preserves the prior isolated feature scope.
+
+Complete task prompt (verbatim; paths use generic home-relative notation and contain no identifying account name; numerical figures are explicitly user-reported UI aggregates, not raw rows):
+
+````text
+# Final Pre-PR Validation — DERConnect Historical Monitoring
+
+We have successfully generated and displayed a historical measurement export from the actual DERConnect archive on my Mac.
+
+**Repository:** `DSC-Capstone-Azimuth-AI/prototype-dashboard-team`
+
+**Branch:** `feature/derconnect-historical-monitoring`
+
+**Implementation commit:** `d907e024a8a0405ebde32f4c752eef693ec26361`
+
+**Local files:**
+- Archive: `~/Desktop/Haojian_Data.zip`
+- Export: `~/Desktop/prototype-dashboard-team/local-data/derconnect-history.json`
+
+The dashboard is running at `http://127.0.0.1:8000/#historical`.
+
+## Current observed dashboard results
+
+The Historical Monitoring page displays:
+
+- Meter: E2451 (Instructional)
+- Channel: `Active_Power_A`
+- Period: January 1–7, 2026, campus-local time
+- Aggregation resolution: 15 minutes
+- Mean observed power: 25.4 kW
+- Maximum observed sample in usable bins: 60.5 kW
+- Displayed valid-slot coverage: 100.0%
+- Usable intervals: 662
+- Unavailable intervals: 10
+- Observations supporting the daily demand profile: 297,892
+
+These figures are taken from the dashboard UI and are **not yet independently verified against the raw archive**.
+
+Your task is to perform a rigorous, reproducible final validation before we open a pull request.
+
+Do not add unrelated dashboard features or redesign the interface.
+
+## Phase 1 — Verify the environment and provenance
+
+1. Confirm the current branch and working-tree status.
+2. Inspect the existing exporter, data contract and test suite.
+3. Confirm the actual ZIP and generated JSON exist and are readable.
+4. Verify the JSON provenance, meter, channel, time range, aggregation settings and source hashes.
+5. Confirm that `local-data/` and the raw ZIP are excluded from Git.
+
+If running in a remote environment without access to my Mac files, **do not claim to have completed real-data validation**. Instead, provide the exact local commands or a self-contained local validation script that I can run on my Mac.
+
+## Phase 2 — Independently reconcile actual measurements
+
+Implement a focused validation script or test that independently reads the relevant raw records from `Haojian_Data.zip` and compares them against `local-data/derconnect-history.json`.
+
+Avoid simply calling the exporter's aggregation functions again and treating identical outputs as independent validation.
+
+Check at least 10 representative 15-minute bins, selected across different days and power levels, including boundary periods and bins adjacent to unavailable intervals.
+
+For each selected bin, independently calculate:
+
+- Expected two-second sampling slots.
+- Number of unique observed slots.
+- Valid finite power readings.
+- Duplicate/colliding slots.
+- Mean power in kW.
+- Minimum and maximum observed power in kW.
+- Coverage fraction.
+- Expected quality classification.
+
+Compare those calculations with the exported JSON.
+
+Use explicit numerical tolerances and report all discrepancies.
+
+If possible, reconcile the displayed overall mean, maximum and daily demand profile against independently computed values rather than simply trusting the frontend.
+
+## Phase 3 — Investigate the 10 unavailable intervals
+
+The dashboard reports 662 usable intervals and 10 unavailable intervals despite coverage rounding to 100.0%.
+
+Determine exactly why those 10 bins are unavailable.
+
+For each unavailable bin, report:
+
+- UTC timestamp.
+- Campus-local timestamp.
+- Quality classification.
+- Expected slots.
+- Observed slots.
+- Valid observations.
+- Collision count.
+- Coverage.
+- Reason the bin was withheld.
+
+Determine whether the unavailable intervals are caused by duplicate observations, missing data, invalid measurements, insufficient coverage or another issue.
+
+Explain how the dashboard can display 100.0% aggregate coverage while some intervals remain unavailable. If this is caused by rounding, show the unrounded coverage.
+
+If the result reveals a calculation error or misleading UI label, fix it with the smallest defensible change and add a regression test.
+
+Do not modify the underlying measurements or lower quality thresholds merely to make the dashboard display more complete data.
+
+## Phase 4 — Frontend reconciliation
+
+Validate that the Historical Monitoring UI accurately represents the exported dataset.
+
+Check:
+
+1. Correct meter and channel labels.
+2. Correct W-to-kW conversion.
+3. Correct campus-local time conversion.
+4. Correct date filtering and selected-range semantics.
+5. Accurate mean and maximum statistics.
+6. Accurate usable/unavailable interval counts.
+7. Correct handling of missing or rejected intervals.
+8. Daily profile values and supporting sample counts.
+9. Clear distinction between real measurements and synthetic data.
+10. Existing dashboard navigation and synthetic features remain intact.
+
+Perform browser checks if available.
+
+Do not claim browser validation if the environment cannot run or access the browser.
+
+## Phase 5 — Fix only verified defects
+
+If you discover bugs, make narrowly scoped corrections.
+
+Do not:
+
+- Introduce a new frontend framework.
+- Replace the synthetic dataset.
+- Add anomaly detection models.
+- Sum electrical phases without verified semantics.
+- Attribute E2451 to an unverified named building.
+- Change the original ZIP.
+- Fabricate or interpolate missing readings.
+- Commit private measurements.
+
+Every correction must include an appropriate regression test.
+
+## Phase 6 — Regression testing
+
+Run all relevant existing Python and JavaScript tests, including browser tests where available.
+
+Also run:
+
+- Python syntax checks.
+- JavaScript syntax checks.
+- `git diff --check`.
+- Git status and ignored-file verification.
+
+Report the exact commands, results, failures and skipped checks.
+
+## Phase 7 — Mandatory documentation
+
+Update both:
+
+- `AI_USE.md`
+- `DEVELOPMENT_LOG.md`
+
+Follow all instructions in `AGENTS.md`.
+
+Append entries documenting this validation task, including the complete prompt as required by repository policy, with sensitive local identifiers handled according to the project's privacy requirements.
+
+Record:
+
+- Validation date.
+- Actual meter, channel and selected dates.
+- Independent reconciliation methodology.
+- Numerical results and discrepancies.
+- Explanations of the 10 unavailable intervals.
+- Any verified bugs and fixes.
+- Test commands and results.
+- Remaining scientific limitations.
+- Files changed.
+- Human and AI contributions.
+
+Update `docs/HISTORICAL_DATA.md` and `README.md` only when necessary to clarify the actual validated behavior.
+
+Avoid adding private raw readings or identifying local filesystem paths to tracked documentation.
+
+## Phase 8 — Pull request readiness assessment
+
+Review the final diff against `origin/main`.
+
+Determine whether the implementation is ready for team review based on:
+
+- Correctness of exported measurements.
+- Accurate and explainable quality statistics.
+- Frontend consistency.
+- Passing tests.
+- Data privacy.
+- Scope and maintainability.
+- Documentation completeness.
+- Compatibility with teammates' work.
+
+Finish with a clear recommendation:
+
+**READY FOR PR**, **READY WITH CAVEATS**, or **NOT READY**.
+
+Explain the reasons and any remaining blockers.
+
+**Do not commit, push, create a PR or merge anything yet.** I want to review your validation report before taking those actions.
+
+The goal is to establish independently that the dashboard's displayed E2451 measurements are correct and defensible, not merely that the interface renders successfully.
+````
+
+
+## 2026-11-12 — Transfer independent validation tooling to Mac
+
+Human: requesting team member explicitly authorizes committing and pushing the independent validation changes; local actual-data execution remains their next step. AI: OpenAI Codex. Branch `feature/derconnect-historical-monitoring`; base `d907e024a8a0405ebde32f4c752eef693ec26361`. Reviewed complete source/test/documentation changes and ignore rules; only the seven intended validation/test/record files are included. No raw ZIP, measurement CSV, private JSON report/export, credentials or unrelated files included. No exporter/UI/threshold changes. Preserved previous records and all prior implementation.
+
+Focused packaging verification: `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p test_derconnect_reconciliation.py` PASS 2; `node tests/historical-monitoring.cjs` PASS; `node --check tests/historical-reconcile-browser.cjs` and Python AST checks PASS; staged whitespace/privacy/inventory review PASS. Earlier full synthetic/browser validation is recorded above and was not repeated for packaging. Real-data reconciliation and human review remain pending; no actual-measurement validation claim. Files: tools/validate_derconnect_history.py, tests/test_derconnect_reconciliation.py, tests/historical-reconcile-browser.cjs, tests/historical-monitoring.cjs, docs/HISTORICAL_DATA.md, AI_USE.md, DEVELOPMENT_LOG.md. Commit/push results will be reported after execution and visible in Git history; no hash is invented in advance. No PR/merge/force-push authorized or performed.
+
+Complete prompt (verbatim):
+
+````text
+Please prepare the independent historical validation changes for use on my Mac.
+
+Stay on `feature/derconnect-historical-monitoring`.
+
+Review the complete diff and confirm that no raw measurements, private exports, credentials or unrelated changes are included.
+
+Then commit and push the new validation scripts, tests and documentation updates to the existing feature branch.
+
+Do not merge into main or create a PR. Do not force-push or overwrite unrelated changes.
+
+Report the commit SHA and confirm the working tree is clean.
+
+I will then pull the updated branch onto my Mac and run the validator against my local DERConnect ZIP and JSON export.
+````

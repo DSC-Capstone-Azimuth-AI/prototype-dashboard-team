@@ -31,6 +31,13 @@ function rejects(edit, pattern) { const next = clone(); edit(next); assert.throw
   assert(data.records.some(r => r.mean_kw === 0));
   assert(data.records.some(r => r.mean_kw < 0));
   assert(data.records.filter(r => r.quality !== 'ok').every(r => r.mean_kw === null));
+  // Synthetic counterexample: rounded slot coverage is not usable-bin fraction.
+  const almostComplete = Array.from({ length: 672 }, (_, i) => ({ quality: i ? 'ok' : 'cadence_collision',
+    mean_kw: i ? 1 : null, max_kw: i ? 1 : null, valid_observations: i ? 450 : 449, expected_slots: 450 }));
+  const rounded = h.summarize(almostComplete);
+  assert.equal(rounded.unavailable, 1);
+  assert.equal((rounded.coverage * 100).toFixed(1), '100.0');
+  assert(rounded.coverage < 1);
   const profile = h.profile(data, data.records);
   assert.equal(profile.available, true);
   assert.equal(profile.hours[0].mean, -6);

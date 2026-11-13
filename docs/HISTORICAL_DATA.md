@@ -225,3 +225,60 @@ time; simultaneous meter switching needs a reviewed manifest. Add named-building
 feeder relationships only after verification. Future detector results should use
 the stable `(meter_id, channel, timestamp_utc, aggregation_minutes)` identity with
 separate run/model provenance; this schema does not imply detector outputs exist.
+
+## Independent pre-PR reconciliation
+
+`tools/validate_derconnect_history.py` is a standalone Python 3.11+ standard-library
+validator. It does not call the exporter or EDA aggregators. It reads every matching
+E2451 CSV in the ZIP, hashes complete decompressed inputs, and independently assigns
+raw observations to two-second slots in a temporary SQLite database. No extraction
+or original-input modification occurs. All exported bins are checked (672 for the
+January 1–7 pilot), exceeding a ten-bin sample and covering every missing-bin neighbor,
+period boundary and power level. The full scan and separate hash pass can take minutes.
+
+From the local feature-branch checkout, run:
+
+```bash
+python3 tools/validate_derconnect_history.py \
+  --archive "$HOME/Desktop/Haojian_Data.zip" \
+  --export local-data/derconnect-history.json \
+  --report local-results/historical-validation.json
+```
+
+The report is private and Git-ignored; it refuses to overwrite an existing report.
+It contains all discrepancies, source/code/mapping hash comparisons, every bin's
+UTC/campus time, counts, quality and observed extrema/mean, every unavailable bin's
+reason, exact valid/expected totals, unrounded coverage and independent weighted
+summary/daily-profile values. Power tolerance is 1e-8 absolute plus 1e-9 relative
+(`math.isclose`); count/status/hash comparisons are exact. Exit 0 means agreement,
+1 means discrepancies, 2 means validation could not run. This is reconciliation
+against the stated contract, not confirmation of instrument calibration, electrical
+semantics, or the provisional two-second schedule. The JSON must still pass the
+frontend's full schema validator. Hash mismatches require source/version review;
+do not edit hashes or relax checks to obtain PASS.
+
+Optional automated frontend comparison (requires local Playwright, Node and Chrome;
+set CHROMIUM_PATH to your actual browser executable on macOS):
+
+```bash
+HISTORY_EXPORT=local-data/derconnect-history.json \
+HISTORY_REPORT=local-results/historical-validation.json \
+CHROMIUM_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+node tests/historical-reconcile-browser.cjs
+```
+
+Run the HTTP server first. This check requires a PASS independent report and verifies
+the exact export's SHA-256 before loading it into the real browser. It compares the
+adapter's summaries and all hourly profile values/counts with the independent raw
+report, verifies displayed summary facts, labels, origin, chart markers and mobile
+fit. The existing historical browser suite separately exercises campus-date filters,
+gap geometry, themes, navigation and reload. Neither check authenticates meter data.
+
+Slot coverage and usable-bin fraction have different denominators: finite,
+noncolliding observations in a rejected bin can contribute to slot coverage while
+its entire power summary is withheld. Thus coverage rounded to one decimal percent
+may show 100.0% with unavailable bins. This behavior has a synthetic regression test;
+it does not identify the cause or exact coverage of any particular private export.
+Use the report's numerator/denominator and per-bin reasons rather than inferring
+quality from rounded figures. The requesting user's reported January UI figures
+remain unverified until this independent check is run on the actual local inputs.
