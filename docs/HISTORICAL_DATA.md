@@ -36,8 +36,8 @@ set this existing metadata element in your **local** `index.html`:
 Keep that path relative and on the dashboard's own HTTP origin. Do not deploy
 private exports with a public site. A failed configured load produces an explicit
 error, with no fallback. Automatic file-protocol fetching is unsupported; serve
-over HTTP. Only the loaded, validated meter/channel/resolution is shown in the
-disabled selection controls. Choose another export to change those selections.
+over HTTP. Choose multiple validated monthly files together to populate the loaded-device/phase selector.
+The current meter classification, phase and resolution are shown alongside it.
 
 `--input /path/to/extracted/tree` overrides the environment variable.
 `--month 2026-01` replaces `--start/--end` and means the complete **campus-local**
@@ -220,8 +220,7 @@ fallbacks and intermediate failures.
 Next: run a bounded authorized E2451 phase-A interval locally and reconcile counts,
 extrema/means and source hashes; review source cadence/scaling/signs. Other four
 meters and separate B/C phases are accepted by the exporter, but need their own
-locally validated exports before display. The current UI loads one product at a
-time; simultaneous meter switching needs a reviewed manifest. Add named-building/
+locally validated exports before display. The catalog supports simultaneous meter/phase switching and validated monthly stitching. Add named-building/
 feeder relationships only after verification. Future detector results should use
 the stable `(meter_id, channel, timestamp_utc, aggregation_minutes)` identity with
 separate run/model provenance; this schema does not imply detector outputs exist.
@@ -282,3 +281,110 @@ it does not identify the cause or exact coverage of any particular private expor
 Use the report's numerator/denominator and per-bin reasons rather than inferring
 quality from rounded figures. The requesting user's reported January UI figures
 remain unverified until this independent check is run on the actual local inputs.
+
+## Optional synchronized comparisons
+
+Both file pickers accept up to 120 local schema-1.0 exports (10 MB each, 60 MB combined). The catalog validates each file before deriving multi-month series. It requires matching units, resolution, cadence, measurement kind, minimum coverage, code/mapping hashes and pandas/NumPy versions. Unknown meters remain rejected by the existing contract: currently E2451, E3020, E3510, E7080 and E7085. Actual exports cannot mix with synthetic fixtures. Source hashes, diagnostics and thresholds remain available per source; schema acceptance is not independent raw-source reconciliation.
+
+Modes: one meter's available A/B/C phases, with unavailable phase labels; or the same phase across up to three selected stable device IDs. No building/hierarchy or combined-power inference. Selection defaults to the common half-open UTC product window. Date controls retain inclusive campus-date semantics via the existing helper, so DST days can contain 23 or 25 elapsed hours. Different start/end coverage is disclosed for each selected product. No overlap or excluding dates yields an explicit empty state.
+
+Each selected available product has a separate chart with identical UTC x positions and shared observed-mean kW y domain. The single accessible timestamp range input supports arrow keys, Home and End; pointer movement in any chart updates every cursor and labeled readout. Readouts use only the exact UTC record, reporting quality reasons for missing/rejected/no-record bins. Raw-sample minima/maxima are labeled separately and do not drive the plotted mean scale. Unusable bins break line segments and remain shaded; zero/negative values remain measurements. Charts retain the selected cursor when the pointer leaves. There is no animation or added motion.
+
+Per-product source provenance/full coverage and selected-scope quality counts are retained. The collapsed native Need Help? disclosure explains phase/meter use, compatibility, cursor/scales, gaps and why totals are absent. Single-file/configured HTTP loading and their summary/profile calculations are retained. Successful single or comparison loads now replace the shared historical session catalog. Comparison-panel scope remains separate and session-only; all loaded products clear on reload. Selecting a replacement batch replaces all comparison products, and an invalid batch retains the last validated shared catalog with a visible failure notice.
+
+`js/history-comparison.js` owns this optional module; integration adds its script before the historical section and a disclosure host in that section. Existing indexed charts/store/exporter are untouched. `tests/fixtures/history-comparison.cjs` creates small, explicitly synthetic schema products with descriptor hashes solely for tests, never model predictions or real source claims. Unit/browser suites cover missing/collision bins, zero/negative values, UTC alignment/compatibility, overlapping/disjoint coverage, DST, missing phases, meter cap, synchronized pointer/keyboard readouts, themes/mobile and single/synthetic isolation. Actual multi-meter/phase reconciliation has not been performed in this change; the earlier private single-export transport-provenance mismatch is not treated as an all-PASS validation.
+
+## Shared historical catalog and Overview selection
+
+`js/history-session.js` keeps one in-memory catalog and one selected product/date scope for Overview/detail. It owns only historical UI session state and the Overview source choice; it does not join `DC.D`/synthetic filters/reviews. Original measurement objects are retained by reference. No storage/upload occurs. On reload, catalog/source reset; an explicitly configured local HTTP product still uses the existing initial historical load path.
+
+Successful loads from either file picker or the configured HTTP source replace the catalog atomically, select the first product and reset the date scope. The catalog explicitly stitches compatible monthly products using the policy below; separate loading actions do not append to the prior catalog. Failures do not replace the valid shared catalog, and a visible notice states retention; comparison scope remains independent. Product selection retains global dates; date inputs use inclusive America/Los_Angeles dates and the existing UTC/local-day helpers, including DST. Invalid calendar dates are rejected via the existing strict timestamp helper. Comparison-panel state is independent; its changes do not change single-product dates. Overview's comparison button is available only when at least a same-meter phase pair or same-phase meter pair is loaded; its explicit action seeds comparisons from the shared selection and opens the disclosure.
+
+The new historical Overview renderer reuses `history.select/summarize` and the original historical SVG chart with its product passed explicitly. Means, extrema, gap semantics and quality policy are unchanged. Historical Monitoring's product/date controls refer to the same shared scope. Overview's historical source hides synthetic global filters/banner only while selected, preserving synthetic values/filters and all other sections. Source/schema/phase/date/units/coverage/last usable bin are explicit; no detector, expected line, totals, energy or cost fields are inferred. Four-decimal coverage plus exact counts distinguishes near-completeness from whole-bin rejection.
+
+Historical fixtures remain unmistakably synthetic. Existing actual E2451 export can be loaded locally; the prior directory-vs-ZIP provenance mismatch is not converted to an all-PASS result by schema acceptance. No new real-data products or reconciling run are required for this UI feature. Source and permissions review, electrical semantics, model integration and named-building mappings remain separate work.
+
+## Multi-month derived catalog policy
+
+`js/history-catalog.js` builds internal `catalog/1.0` products from independently
+validated exports; it does not change the exporter or relax its 32-day limit.
+Derived products are recognized by in-memory identity and cannot be imported as
+schema-1.0 exports. Every original export and its source/transformation provenance
+remain reachable through `source_exports` without modification. Repeated source
+metadata is not combined into misleading diagnostic totals.
+
+All products share the catalog's earliest UTC start and latest exclusive end.
+A dense internal grid marks unloaded intervals `missing` with
+`catalog_status: no_export`; the month selector explicitly identifies unloaded
+months. Original rejected intervals retain their counts and reasons. These added
+gaps describe absence of exports, not independently observed raw-source gaps.
+
+For overlapping bins of the same meter/channel, every numerical summary, quality,
+and slot count must agree exactly. Identical **aggregate** bins count once (reported
+as `identical_overlap_bins`), not as independently verified duplicate raw readings.
+Any disagreement becomes `export_conflict`, with null power and zero *credited*
+valid support; expected slots remain in the denominator. This is conservative
+withholding, not an assertion that raw measurements were zero or absent. The
+`conflicts` metadata identifies UTC instants and source indices, and originals
+retain all alternative readings/counts. No input-order winner, tolerance-based
+merging, averaging, resampling or interpolation resolves a disagreement.
+Incompatible batches fail atomically and retain the prior validated catalog.
+
+Catalog limits: 120 files, 10 MB per file, 60 MB combined, three elapsed years
+and 500,000 total derived bins across products. The existing meter/channel allowlist
+permits at most 15 series. These are deliberate browser-memory safeguards. Large
+charts retain first/last and minimum/maximum means per horizontal bucket and every
+quality boundary; summaries/cursors always use full-resolution records. This reduces
+SVG output, not measurement resolution. Alternating good/bad bins can still produce
+many boundaries. No worker, indexed database or backend is introduced.
+
+Campus dates and hour groups use America/Los_Angeles; all alignment and identities
+use UTC instants. Inclusive date filters handle 23/25-hour DST days. Daily profiles
+retain the existing eligibility rule. Weekly patterns require seven elapsed days;
+weekday and monthly means need 80% supporting slots in usable bins relative to all
+selected expected slots in that group. Partial boundary months are explicitly
+selected-period summaries. Missing groups display Unavailable and never zero.
+All statistics remain signed phase power in kW, with no energy integration.
+
+Each derived product exposes `series_id`, deterministically composed of source,
+measurement kind, meter ID, channel, display unit, aggregation minutes and cadence.
+Future model exports should reference this identity plus exact `timestamp_utc`,
+forecast origin/horizon, units/resolution, and independent run/model/checkpoint
+provenance. Agree on quantiles, scores/thresholds, alert flags and half-open event
+bounds before adding an adapter. No predicted values, anomaly labels or user review
+records are attached to these historical measurements by this implementation.
+
+Validation for this extension uses synthetic contract fixtures and generated raw
+CSV fixtures only. No authorized archive, configured data path, or local export was
+available in this execution environment. Historical records of earlier private
+runs are not evidence for these new multi-meter/multi-month flows. Before operational
+use, reconcile each real export using the existing independent validator, review
+cadence/scaling/sign conventions and transformation provenance, and verify any
+building mapping independently. Exports with differing code/library hashes must
+be regenerated or reviewed under a future explicit compatibility contract.
+
+## Current validation and merge coordination
+
+The requesting contributor reports successful local Mac testing with authorized
+`Haojian_Data.zip` measurements: six exports covering E2451 and E3020 for
+January–March 2026 loaded successfully, and meter/month switching worked.
+They also report independent E2451 January raw-archive reconciliation **PASS for
+all 2,976 intervals**. This establishes user-reported real-data workflow evidence
+and reconciliation for that one export; it does not imply that the other five
+exports have independently passed raw reconciliation. The archive, exports and
+private validation report were not supplied to this execution environment and
+must remain outside GitHub. Automated test results remain synthetic-fixture
+engineering validation, separate from this local real-data report. Comparison UX
+improvements are a nonblocking follow-up identified by the contributor.
+
+PR #15 (`codex/historical-overview`) remains open at
+`d4ae5d56d27b6a86a54e30aef7696d1b2004e437`; its session, historical Overview and
+synchronized comparison code was reused for this expansion. All 17 of its changed
+paths overlap this branch. This branch merges cleanly into current `main`
+(`195a8b1574fee08cdcd648055f56e69daf7545c4`), but a read-only Git merge simulation
+between the two feature heads reports 12 conflicting paths, including shared
+source/tests and documentation. Neither branch should be merged independently
+without coordinating the other PR's disposition. The owners should agree whether
+the expansion supersedes #15 or #15 is merged first and this branch is then
+integrated with it, preserving contributor records and reviewed behavior. No
+other contributor branch has been modified, merged or closed by this task.

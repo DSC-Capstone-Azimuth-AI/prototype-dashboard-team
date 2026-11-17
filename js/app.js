@@ -37,8 +37,9 @@
     const s = DC.state, detail = !!s.routeId;
     const primary = s.section === "overview" ? ["range", "building"] : s.section === "investigate" ? ["range", "building", "severity", "status"] : s.section === "models" ? ["detector", "range"] : (s.profile ? ["range", "detector"] : ["range"]);
     const filters = $("#filters");
-    filters.hidden = ["upload", "export", "historical"].includes(s.section) || (detail && s.section === "investigate");
-    $("#data-banner").hidden = ["upload", "historical"].includes(s.section);
+    const historicalOverview = s.section === "overview" && DC.history.session.source === "historical";
+    filters.hidden = historicalOverview || ["upload", "export", "historical"].includes(s.section) || (detail && s.section === "investigate");
+    $("#data-banner").hidden = historicalOverview || ["upload", "historical"].includes(s.section);
     for (const id of ["range", "subgrid", "building", "meter", "type", "severity", "status", "detector"]) {
       const node = $("#f-" + id).closest(".filter");
       (primary.includes(id) ? filters : $("#advanced-filter-body")).append(node);

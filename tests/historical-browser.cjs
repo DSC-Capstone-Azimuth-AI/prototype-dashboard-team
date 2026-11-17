@@ -33,10 +33,12 @@ const payload = fs.readFileSync(fixture, 'utf8'), base = process.env.DASHBOARD_U
     assert.equal(await page.locator('#history-chart [data-history-gap]').count(), 4);
     assert.equal(await page.locator('#history-chart [data-history-line]').getAttribute('d').then(d => (d.match(/M/g) || []).length), 5);
     assert(await page.locator('#history-profile [data-history-hour]').count() >= 18);
+    await page.getByText('Data quality and source details', { exact: true }).click();
     assert.match(await page.locator('#history-quality').innerText(), /cadence_collision: 1/);
     const text = await page.locator('#sec-historical').innerText();
     for (const forbidden of ['Precision', 'Recall', 'F1', 'CR-030', 'Ground truth', 'Confirmed fault']) assert(!text.includes(forbidden));
     assert.equal(await page.locator('#sec-historical svg').evaluateAll(nodes => nodes.flatMap(n => [...n.querySelectorAll('*')]).filter(n => [...n.attributes].some(a => /NaN|Infinity/.test(a.value))).length), 0);
+    await page.locator('#history-chart svg').scrollIntoViewIfNeeded();
     const chart = await page.locator('#history-chart svg').boundingBox();
     await page.mouse.move(chart.x + chart.width * 0.5, chart.y + 100);
     assert.match(await page.locator('.tooltip').innerText(), /Valid \/ expected slots/);
