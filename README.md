@@ -29,7 +29,7 @@ python3 -m http.server 8000   # then visit http://localhost:8000
 | **Anomaly Investigation** | Filtered, sortable event list or optional gallery. Every event opens a separate `#investigate/CR-030` detail route: four key facts, highlighted demand chart, evidence, definition and browser-local operator review/notes. Weather, quality, score/threshold, forecast quantiles, detector overlap, synthetic labels, history and scatter remain in disclosures. |
 | **Detection Quality** | Detector comparisons, precision/recall/F1, false-positive analysis, synthetic scenarios, threshold diagnostics and ground-truth comparisons. Comparison metrics describe the complete evaluation run; diagnostic panels retain their existing scope. |
 | **CSV Upload** | Checks a meter CSV in the browser and reports rejected rows, gaps, duplicates and cadence, then plots the measured readings. Results stay in memory, separate from the simulated dataset, and no detector runs on them. |
-| **Historical Monitoring** | Loads a separate, validated DERConnect phase-power export with campus-local dates, observed-power summaries, visible gaps, daily profiles and coverage/provenance. No actual export is bundled or configured by default. |
+| **Historical Monitoring** | Loads validated monthly DERConnect exports for multiple meters/phases, with global campus dates, month selection, synchronized comparisons, daily/weekly/monthly power summaries and visible missing/conflicting intervals. No actual export is bundled or configured by default. |
 
 Navigation uses URL hashes and supports browser Back/Forward and detail reloads. Page-specific filter scopes are retained during navigation in the current session. A detail URL identifies its record independently of list filters; returning to the list restores that list's scope. Filter scopes themselves are not serialized across reloads. Unknown record IDs show an explicit unavailable state.
 
@@ -413,3 +413,63 @@ For an explicitly synthetic demonstration, generate a labeled test export using
 `PYTHONDONTWRITEBYTECODE=1 python3 tests/test_derconnect_export.py --fixture work/history-fixture`
 and choose its `derconnect-history-fixture.json` in the view. This never stands in
 for real-data validation. Exact validation outcomes are in DEVELOPMENT_LOG.md.
+
+## Synchronized historical comparisons
+
+Open **Compare historical exports** in Historical Monitoring. Choose 1–120 local JSON exports together (10 MB each, 60 MB combined). Each export passes the existing schema 1.0 validator. Compatible monthly exports form one series per meter/channel; identical overlaps count once and conflicting overlaps are withheld. Incompatible units/resolutions/cadences, transformation provenance or actual/test origins reject the batch. Comparison-panel scope is separate from the single-product selection. Successful loads replace the shared historical catalog used by Overview and Historical Monitoring; files are never uploaded or persisted.
+
+Choose **Phases within one meter** for A/B/C (unloaded phases remain explicitly unavailable), or **Selected meters — same phase** for up to three loaded meters. The default common window is the intersection of available selected products' half-open UTC ranges. Campus-date filters use the existing America/Los_Angeles helper, including DST. No overlap gives an empty state. Charts share UTC bin positions and a kW scale; hover any chart or use the timestamp slider's arrow/Home/End keys for synchronized exact-bin readouts. Missing/rejected bins stay gaps; readouts distinguish observed means from raw-sample min/max. No nearest-bin substitution, interpolation, phase totals, meter totals or topology inference.
+
+Per-product disclosures retain coverage, quality threshold and provenance. Slot coverage and usable-bin counts have different denominators. **Need Help?** starts collapsed and explains comparisons and limitations. Schema acceptance does not establish instrument calibration or independent raw-data reconciliation. No actual multi-product exports are bundled. Existing single export, synthetic sections, CSV Upload and PDF reporting remain separate.
+
+Tests: `node tests/history-comparison.cjs` and, with Playwright/Edge or `CHROMIUM_PATH` configured and the local server running, `node tests/history-comparison-browser.cjs`. Browser outputs default to the OS temporary directory; never commit screenshots/private exports.
+
+## Overview data source and shared historical session
+
+Overview offers **Synthetic Demo** (the unchanged synthetic workflow) and **Historical DERCONNECT** (one loaded device/phase product). Historical mode shows an explicit no-data state when nothing is loaded; it never substitutes simulation data. A historical test fixture stays labeled as synthetic. This is historical phase power, not live data or whole-building/campus totals. The source switch and private measurements reset on reload; configured HTTP loading, when explicitly set locally, retains its existing behavior.
+
+A successful single-file, configured-file or comparison-batch load **replaces the shared historical catalog**, selects the first product and resets Overview/detail dates to its full range. Monthly stitching uses the validated catalog policy documented below; different loading actions do not append to prior sessions. Invalid loads retain the previous valid shared catalog with a visible notice (comparison panels retain their independent scope). The single-product dropdown selects among the current catalog; changing it retains the global dates, including unavailable periods. Overview and Historical Monitoring share product and inclusive campus-date scope. Comparison-panel selection/date scope remains independent; the Overview comparison action explicitly seeds it from the shared selection. No measurement objects are copied to the synthetic store, localStorage or a remote service.
+
+Historical Overview shows coverage with four decimal places and exact supporting counts, usable/unavailable bins, observed mean/sample maximum, actual scope, last usable observed-bin timestamp and a gap-preserving chart reused from Historical Monitoring. Quality reasons are separate from demand behavior. Anomaly detection/forecasts remain explicitly unavailable. Need Help? is collapsed by default. Detail navigation retains historical scope and synthetic filters remain unchanged.
+
+Tests: `node tests/historical-session.cjs` and `node tests/historical-overview-browser.cjs` (same local Playwright/Edge/server setup as comparison checks). New tests use explicitly synthetic historical products, not real-data reconciliation. Public deployment of private exports is not authorized by these features.
+
+## Multiple meters across months
+
+Generate each meter/phase/month independently with the existing 32-day safeguard:
+
+```bash
+python3 tools/export_derconnect_history.py --input /path/to/authorized/raw \
+  --meter E2451 --channel Active_Power_A --month 2026-01 \
+  --output local-data/derconnect-history-E2451-A-2026-01.json
+# Repeat with --month 2026-02, another documented --meter, or phase B/C.
+python3 -m http.server 8000 --bind 127.0.0.1
+```
+
+At `http://127.0.0.1:8000/#historical`, select all desired files together in
+**Historical exports**. Switch device/phase with **Loaded device / phase**;
+facility classifications are shown without inferred building names. Select **Month**
+or inclusive **From/Through campus date**. The catalog range covers all loaded
+series; unloaded months remain hatched gaps. New loads replace the session catalog;
+invalid loads retain it. Reload clears local files. No upload or persistence occurs.
+
+Open **Compare historical exports** to compare loaded A/B/C phases or up to three
+meters on the same phase. Shared scales/cursors use exact UTC bins; comparison dates
+remain independent of the main range. **Weekly patterns and monthly trends** and
+**Data quality and source details** are expandable. Power is kW; no energy or totals
+are calculated. Partial-month statistics describe only selected dates, and period
+means need 80% usable supporting slots. See docs/HISTORICAL_DATA.md for policies,
+limits and stable identifiers for future model outputs.
+
+Additional checks (local server running for browser tests):
+
+```bash
+node tests/history-catalog.cjs
+node tests/history-catalog-browser.cjs
+CHROMIUM_PATH=/usr/bin/chromium DASHBOARD_URL=http://127.0.0.1:8000 node tests/history-comparison-browser.cjs
+CHROMIUM_PATH=/usr/bin/chromium DASHBOARD_URL=http://127.0.0.1:8000 node tests/historical-overview-browser.cjs
+```
+
+This work reuses the unmerged PR #15 implementation at
+`d4ae5d56d27b6a86a54e30aef7696d1b2004e437` in a separate local feature branch.
+Coordinate review with that PR; its contributor branch has not been changed or merged.

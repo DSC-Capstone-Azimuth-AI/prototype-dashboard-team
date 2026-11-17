@@ -18,9 +18,13 @@
     if (!Number.isFinite(ms) || new Date(ms).toISOString().replace(".000Z", "Z") !== value) fail("invalid UTC timestamp.");
     return ms;
   }
+  const dayCache = new Map();
   const localDay = value => {
+    const hour = Math.floor(new Date(value).getTime() / 3600000);
+    if (dayCache.has(hour)) return dayCache.get(hour);
+    if (dayCache.size > 50000) dayCache.clear();
     const parts = Object.fromEntries(dayFormat.formatToParts(new Date(value)).map(p => [p.type, p.value]));
-    return `${parts.year}-${parts.month}-${parts.day}`;
+    const day = `${parts.year}-${parts.month}-${parts.day}`; dayCache.set(hour, day); return day;
   };
 
   function validate(data) {

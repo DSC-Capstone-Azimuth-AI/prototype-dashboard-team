@@ -4601,3 +4601,270 @@ Report the commit SHA and confirm the working tree is clean.
 
 I will then pull the updated branch onto my Mac and run the validator against my local DERConnect ZIP and JSON export.
 ````
+
+
+## 2026-11-16 — Scale Historical Monitoring to multiple meters and months
+
+### Complete user task (verbatim pasted attachment)
+
+````text
+# Task: Scale Up DERConnect Historical Monitoring
+
+You are working in the UC San Diego DSC 180A/B Azimuth AI capstone project's dashboard repository:
+
+https://github.com/DSC-Capstone-Azimuth-AI/prototype-dashboard-team
+
+Our team is developing an anomaly detection dashboard using DERConnect electrical measurements. Our intended audience is building owners and facility managers.
+
+**Our product objective:**
+
+"A building manager can open the dashboard, identify which buildings need attention, investigate unusual energy consumption using real DERConnect measurements and model predictions, and record a review decision."
+
+For this task, focus specifically on scaling up the **Historical Monitoring** page. We currently support loading and visualizing historical DERConnect measurements, but want to move toward exploring multiple meters/buildings and multiple months of data within one coherent interface.
+
+We are coordinating with a separate anomaly detection team, so the architecture should eventually support model-generated predictions and anomaly events. However, do not implement anomaly detection or invent predictions in this task.
+
+## 1. First inspect the existing implementation
+
+Before making any changes:
+
+- Read `README.md`, `AGENTS.md`, `DEVELOPMENT_LOG.md`, and `docs/HISTORICAL_DATA.md`.
+- Inspect `js/sections/historical.js`, `js/sections/overview.js`, `js/real-data.js`, and any existing historical comparison modules.
+- Inspect `tools/export_derconnect_history.py`, the data-quality utilities, and the relevant tests.
+- Examine open pull requests, especially PR #15, which contains historical Overview and synchronized DERConnect comparison functionality.
+- Identify any existing local historical exports or authorized raw data sources, without assuming they exist.
+- Understand how the existing historical export schema, provenance validation, timestamp handling, and data-quality checks work.
+
+**Important:** Do not overwrite or duplicate functionality already implemented in the existing code or pending pull requests. If PR #15 contains relevant changes that are not merged, inspect and reuse them appropriately. Do not merge or modify another contributor's branch without authorization.
+
+Summarize what is already supported and identify the smallest maintainable implementation needed to achieve the goals below.
+
+## 2. Primary goal: Multiple real DERConnect meters
+
+Extend Historical Monitoring so that a user can load and explore measurements from multiple DERConnect meters in the same session.
+
+The interface should support:
+
+- Selecting among available meter IDs.
+- Displaying facility types or verified building names when known.
+- Selecting available measurement channels (e.g., `Active_Power_A`, `Active_Power_B`, `Active_Power_C`).
+- Switching between meters without repeatedly importing individual files.
+- Comparing measurements across compatible meters or phases.
+- Keeping axes, units, timestamps, and data quality indicators consistent.
+
+Our current data includes meters such as E2451 and E3020, with additional meters potentially available.
+
+Do not assume that meter IDs correspond to specific named UCSD buildings unless that mapping has been verified.
+
+For comparisons, do not sum meters or phases unless their electrical relationship and units have been verified.
+
+## 3. Support multiple months of historical measurements
+
+The existing historical export workflow supports bounded date ranges, including month-long exports.
+
+We want to extend the workflow to support multiple months of measurements across compatible exports.
+
+Implement:
+
+- A way to load multiple monthly exports into a validated in-memory catalog.
+- A global date-range selector based on the available data.
+- The ability to select individual months or custom intervals.
+- Clear visualization of data gaps, missing months, and unavailable measurements.
+- Consistent UTC timestamp handling and campus-local date display.
+- Proper handling of daylight saving time, duplicate timestamps, and conflicting measurements.
+
+Do not simply concatenate data files without validating their schemas, provenance, meter identities, channels, timestamps, and overlapping intervals.
+
+If expanding beyond the existing 32-day export limit is necessary, prefer loading multiple independently validated monthly exports rather than removing existing safeguards.
+
+## 4. Improve the Historical Monitoring user experience
+
+Design this page around the questions a facility manager would ask:
+
+- What is this building's electrical consumption behavior?
+- How has it changed across days, weeks, or months?
+- Are there noticeable differences between meters or facilities?
+- Are there missing or unreliable measurements?
+- Which periods deserve closer examination?
+
+Keep the page approachable for a nontechnical audience.
+
+Suggested layout:
+
+**Top controls**
+- Meter/building selector
+- Measurement channel selector
+- Date-range selector
+- Comparison mode
+
+**Summary**
+- Mean observed power
+- Maximum observed power
+- Measurement coverage
+- Available date range
+- Data-quality warnings
+
+**Visualizations**
+- Historical power time series
+- Daily consumption profile
+- Weekly patterns
+- Monthly trends where supported
+- Optional comparison of two or three compatible meters
+
+Include appropriate tooltips, units, legends, and explanations.
+
+Avoid overwhelming the initial view with advanced diagnostics. Preserve access to detailed metadata and data-quality information in expandable sections.
+
+Do not present instantaneous power (kW) as energy consumption (kWh). Only calculate energy if sampling coverage and the integration method justify it, and clearly label any estimates.
+
+## 5. Data integrity and privacy
+
+This is especially important because we're using real electrical measurements.
+
+Preserve the existing data-quality and provenance protections:
+
+- Never silently replace missing measurements with zero.
+- Preserve rejected or unreliable intervals.
+- Distinguish real observations from synthetic fixtures.
+- Preserve source metadata and transformation history.
+- Avoid modifying raw source files.
+- Do not commit private DERConnect measurements, local data archives, credentials, or generated exports to GitHub.
+- Keep the historical data separate from the existing synthetic anomaly demonstration.
+
+If access to raw data is unavailable in the execution environment, implement and test using synthetic fixtures with realistic schemas. Do not claim those fixtures are actual DERConnect measurements.
+
+## 6. Prepare for future anomaly detection integration
+
+Our zero-shot anomaly detection team is working in:
+
+https://github.com/DSC-Capstone-Azimuth-AI/chronos2-sarsim0-anomaly-team
+
+They have been developing Chronos-2 and PatchTST forecasting/anomaly detection workflows using DERConnect data.
+
+Eventually, we want to display:
+
+- Actual measurements
+- Predicted measurements
+- Forecast uncertainty intervals
+- Candidate anomaly events
+- Anomaly scores and detector identifiers
+- Event investigation and user feedback
+
+For now, keep this work focused on historical measurements.
+
+However, structure the data layer so that future model outputs can be associated with a measurement series using a stable identifier, meter ID, measurement channel, and UTC timestamps.
+
+Do not invent anomaly scores, classifications, or ground-truth labels.
+
+Do not integrate the model yet unless a fully compatible, verified export already exists and integration is trivial.
+
+## 7. Testing and verification
+
+Extend the existing tests to cover:
+
+- Loading multiple compatible files.
+- Loading multiple meters and channels.
+- Switching between meters.
+- Selecting dates across month boundaries.
+- Files with overlapping timestamps.
+- Duplicate and conflicting readings.
+- Missing months and partial data.
+- Daylight saving time transitions.
+- Incompatible units or sampling resolutions.
+- Large datasets and reasonable browser performance.
+- Historical measurements remaining isolated from synthetic anomaly data.
+- Correct behavior when no historical data is available.
+
+Run the relevant existing regression tests as well as the new tests.
+
+Do not weaken existing validation rules simply to make the new functionality pass.
+
+## 8. Implementation expectations
+
+Follow the repository's existing coding conventions and architecture.
+
+Prefer small, modular changes over a rewrite.
+
+Maintain the existing plain HTML/CSS/JavaScript architecture unless there is a compelling technical reason not to.
+
+Use existing charting and data-loading utilities wherever possible.
+
+Do not introduce a backend, external visualization framework, or unnecessary dependencies.
+
+Do not change unrelated dashboard sections.
+
+Update documentation with:
+
+- How to generate or load multiple monthly exports.
+- How to switch between meters and channels.
+- How to compare measurements.
+- Known limitations and data-quality assumptions.
+- How the new data structure can support future anomaly model outputs.
+
+## 9. Final deliverables
+
+Implement the functionality in code, not just a design proposal.
+
+When finished, provide:
+
+1. A concise summary of what changed.
+2. The files modified or added.
+3. Instructions for running and testing the updated dashboard.
+4. Test results, including any failures.
+5. A description of what was validated using real data versus synthetic fixtures.
+6. Remaining limitations or unresolved questions.
+7. Recommended next steps before integrating the zero-shot team's anomaly outputs.
+
+**Do not automatically commit, push, merge, or deploy changes.** Leave the implementation ready for review.
+
+The intended outcome is a Historical Monitoring page where a building manager can conveniently explore several authorized DERConnect meters across multiple months, compare electrical measurements, assess data quality, and establish a foundation for future anomaly detection integration.
+````
+
+Human contributions: supplied the complete task above and constraints; human implementation/data review remains pending. AI contributions: inspected repository contracts, local availability and open PR #15; reused its session/comparison/Overview implementation read-only in a separate local branch; implemented validated multi-month catalog, overlap/conflict policy, meter/phase/global date/month controls, weekly/monthly power summaries, stable series identifiers and bounded SVG rendering; added synthetic unit/browser coverage and updated documentation. No anomaly detector, forecast, score, real-data generator run or inferred building mapping was added.
+
+Base revision `195a8b1574fee08cdcd648055f56e69daf7545c4`; branch `codex/historical-multimonth`. Reused PR #15 head `d4ae5d56d27b6a86a54e30aef7696d1b2004e437` locally; no other contributor branch was modified or merged. Associated commits: none. No commit/push/merge/deploy performed.
+
+Files changed:
+- `AI_USE.md`
+- `DEVELOPMENT_LOG.md`
+- `README.md`
+- `css/styles.css`
+- `docs/HISTORICAL_DATA.md`
+- `index.html`
+- `js/app.js`
+- `js/history-catalog.js`
+- `js/history-comparison.js`
+- `js/history-session.js`
+- `js/real-data.js`
+- `js/sections/historical-overview.js`
+- `js/sections/historical.js`
+- `js/sections/overview.js`
+- `tests/fixtures/history-comparison.cjs`
+- `tests/historical-browser.cjs`
+- `tests/historical-overview-browser.cjs`
+- `tests/historical-session.cjs`
+- `tests/history-catalog-browser.cjs`
+- `tests/history-catalog.cjs`
+- `tests/history-comparison-browser.cjs`
+- `tests/history-comparison.cjs`
+
+Validation: 32 Python tests, new catalog unit/browser checks (105,120-bin unit and 52,128-bin browser fixtures), existing historical/exporter/session/comparison/core/CSV/report tests, four synthetic section workflows, navigation, specialized investigation, comparison and PDF browser suites passed. JavaScript syntax/Python AST and final diff/record/privacy checks passed. Native reports browser test failed to launch unavailable Edge; all unchanged assertions passed through a temporary Chromium-only launch override. Intermediate test-assumption and timestamp failures were corrected and the affected suites rerun. Exact commands, versions, failures/corrections, skipped checks, performance and outcomes are in the dated DEVELOPMENT_LOG.md entry.
+
+Limitations: no authorized raw/export data was available, so no new real measurement validation is claimed. All new readings were labeled synthetic; generated raw-CSV regressions are also synthetic. Session/private data is not persisted/uploaded, no private data/screenshots are committed, and original provenance/quality validation is retained. Five known meters, existing source semantics/cadence, bounded browser catalog, independent comparison scope and cross-version provenance compatibility remain explicit limitations. Before model integration, reconcile authorized real exports and agree on stable series/UTC timestamps plus run/model/origin/horizon/quantile/score/threshold/event provenance. Human review pending.
+
+
+## 2026-11-16 — Commit and push Historical Monitoring expansion
+
+### Complete user prompt (verbatim)
+
+````text
+The implementation on `codex/historical-multimonth` is complete, but this branch isn't available on GitHub yet. I have the repository cloned locally on my Mac and want to test the updated Historical Monitoring page with authorized DERConnect data stored on my Desktop.
+
+Please commit the completed code and test/documentation changes on `codex/historical-multimonth`, then push that branch to `origin` so I can fetch it locally.
+
+Before committing, verify that no raw DERConnect measurements, ZIP archives, private exports, credentials, or generated data files are included.
+
+Do not open or merge a pull request, modify `main`, or modify other contributors' branches. Report the resulting commit SHA and confirm whether the push succeeded.
+````
+
+Human contribution: explicitly authorized committing the completed implementation and pushing only codex/historical-multimonth to origin for local Mac testing; no PR/merge/main/other-contributor-branch changes. AI contributions: checked active branch/status/remote refs, reviewed the exact 22-file source/test/documentation inventory and credential patterns, confirmed synthetic fixture provenance and unchanged generated data/raw-processing assets, reran focused tests and JavaScript syntax/whitespace checks, appended these records, and prepared the explicit feature commit/push. Base 195a8b1574fee08cdcd648055f56e69daf7545c4; human source/data review remains pending. No application changes for packaging. Files: the 22 implementation/test/documentation files listed in the preceding entry, with this entry and DEVELOPMENT_LOG.md packaging record appended. Checks: node tests/history-catalog.cjs, tests/historical-session.cjs, tests/history-comparison.cjs and tests/regression.cjs all PASS; all js/tests JavaScript/CJS node --check and git diff --check PASS; data/, tools/, notebooks/ and AGENTS.md unchanged. Full browser/Python results remain in the preceding implementation record and were not repeated for packaging. No private measurement, archive, export, credential, generated data, screenshot or PDF included; only explicit synthetic fixture code is added. Associated commit: the commit containing this entry, intended message "feat: support multi-meter multi-month historical monitoring"; SHA and push outcome reported after execution. No real-data validation or deployment claim.
