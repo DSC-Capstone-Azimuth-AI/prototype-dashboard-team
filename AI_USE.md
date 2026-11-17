@@ -4868,3 +4868,69 @@ Do not open or merge a pull request, modify `main`, or modify other contributors
 ````
 
 Human contribution: explicitly authorized committing the completed implementation and pushing only codex/historical-multimonth to origin for local Mac testing; no PR/merge/main/other-contributor-branch changes. AI contributions: checked active branch/status/remote refs, reviewed the exact 22-file source/test/documentation inventory and credential patterns, confirmed synthetic fixture provenance and unchanged generated data/raw-processing assets, reran focused tests and JavaScript syntax/whitespace checks, appended these records, and prepared the explicit feature commit/push. Base 195a8b1574fee08cdcd648055f56e69daf7545c4; human source/data review remains pending. No application changes for packaging. Files: the 22 implementation/test/documentation files listed in the preceding entry, with this entry and DEVELOPMENT_LOG.md packaging record appended. Checks: node tests/history-catalog.cjs, tests/historical-session.cjs, tests/history-comparison.cjs and tests/regression.cjs all PASS; all js/tests JavaScript/CJS node --check and git diff --check PASS; data/, tools/, notebooks/ and AGENTS.md unchanged. Full browser/Python results remain in the preceding implementation record and were not repeated for packaging. No private measurement, archive, export, credential, generated data, screenshot or PDF included; only explicit synthetic fixture code is added. Associated commit: the commit containing this entry, intended message "feat: support multi-meter multi-month historical monitoring"; SHA and push outcome reported after execution. No real-data validation or deployment claim.
+
+
+## 2026-11-16 — PR preparation and reported local real-data validation
+
+### Complete user prompt (verbatim)
+
+````text
+We're ready to create a pull request for the Historical Monitoring expansion in the `DSC-Capstone-Azimuth-AI/prototype-dashboard-team` repository.
+
+
+
+**Source branch:** `codex/historical-multimonth`\
+**Target branch:** `main`
+
+
+
+I've successfully pulled the implementation onto my Mac and tested it locally using actual DERConnect measurements from `Haojian_Data.zip`.
+
+
+
+Local validation:
+
+- Generated six real historical JSON exports for E2451 and E3020, covering January–March 2026.
+- Successfully loaded and switched between historical datasets in the dashboard.
+- Independently validated E2451 January against the raw archive: PASS across all 2,976 intervals.
+- Confirmed that the new multi-month and multi-meter workflow is functional.
+- The comparison interface could use UX improvements later, but that is not blocking this PR.
+
+Please do the following:
+
+1. Fetch the latest `main` and inspect the changes between `main` and `codex/historical-multimonth`.
+2. Check for overlap with existing historical monitoring PRs, particularly PR #15, and determine whether those changes are already merged or still pending.
+3. Resolve any conflicts carefully, preserving other contributors' work. Do not overwrite unrelated changes.
+4. Confirm that no private DERConnect measurements, raw archives, generated local exports, credentials, or validation reports are tracked or included in the PR.
+5. Run the relevant unit, integration, and browser regression tests.
+6. Update documentation if necessary, including the current implementation and its validation status.
+7. Create a pull request from `codex/historical-multimonth` into `main`, with a clear title and description summarizing the new functionality, tests, and remaining limitations.
+
+Suggested PR title:\
+**Expand Historical Monitoring to Multiple Meters and Months**
+
+
+
+Include a testing section distinguishing automated synthetic-fixture validation from my local real-data validation.
+
+
+
+**Before merging:**
+
+- Check whether the repository requires approvals or reviews.
+- Check whether CI checks have passed.
+- Verify that the PR introduces no unintended changes.
+- Do not bypass branch protections or required reviews.
+- If the PR is mergeable, all required checks pass, and no teammate's pending work would be disrupted, merge it using the repository's standard merge strategy.
+- If approval is required, PR #15 has unresolved dependencies, or any significant conflict remains, leave the PR open and explain what needs to happen before merging.
+
+Afterward, report the PR URL, merge status, checks performed, and any remaining issues.
+
+
+
+Do not upload any private DERConnect datasets to GitHub.
+````
+
+Human contributions: reported six real E2451/E3020 January–March 2026 exports and successful Mac loading/switching; reported independent raw reconciliation PASS for all 2,976 E2451 January intervals; requested PR creation and conditional merge only if review/check/dependency gates are satisfied. AI contributions: fetched main/feature/PR #15 refs; reviewed scope/privacy and simulated merges without touching contributor branches; reran Python/unit/integration/browser checks; updated README.md and docs/HISTORICAL_DATA.md with separately attributed real-data evidence and pending PR #15 coordination; appended this entry and DEVELOPMENT_LOG.md; preparing a documentation commit/push and the requested PR. Implementation commit 9ad4ea47123d52da236efc9e98d2de2e5afbc2b9; branch codex/historical-multimonth; main 195a8b1574fee08cdcd648055f56e69daf7545c4; PR #15 still open at d4ae5d56d27b6a86a54e30aef7696d1b2004e437. Main merges cleanly, but all 17 PR #15 paths overlap and a hypothetical feature-to-feature merge reports 12 conflicted paths. No merge is appropriate until owners coordinate disposition/order. No PR #15/main/other-contributor modifications.
+
+Validation: 32 Python tests; history-catalog/session/comparison/monitoring, regression, CSV and report unit checks; history-catalog/comparison/Overview/single-export browser checks; broad dashboard (242 charts), section navigation, CSV, related-meter, specialized investigation and PDF-download browser checks PASS. PDF assertions run unchanged with the existing ignored Chromium launch wrapper. JS syntax/Python AST/diff/append-only/privacy checks PASS. No product source changes in this follow-up. GitHub branch API reports main unprotected with required checks off; repository rulesets list empty. Detailed branch-protection read returned integration-permission 403; no bypass attempted. PR #15 has no submitted reviews or review threads. The feature head initially has zero check runs and no tracked Actions workflow; post-PR checks will be reported separately. Source/test/documentation-only PR inventory excludes private measurements, archives, exports, credentials, validation reports and generated assets. Private source/report was not transferred here; user-reported reconciliation applies to one export, not all six. Files changed this task: README.md, docs/HISTORICAL_DATA.md, DEVELOPMENT_LOG.md, AI_USE.md. Associated documentation commit is the commit containing this entry; actual PR URL/head/status will be reported after creation. No merge/deployment or new independent real-data verification claimed. Human review and PR #15 coordination pending.

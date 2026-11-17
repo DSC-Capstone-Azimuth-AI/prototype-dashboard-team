@@ -362,3 +362,29 @@ use, reconcile each real export using the existing independent validator, review
 cadence/scaling/sign conventions and transformation provenance, and verify any
 building mapping independently. Exports with differing code/library hashes must
 be regenerated or reviewed under a future explicit compatibility contract.
+
+## Current validation and merge coordination
+
+The requesting contributor reports successful local Mac testing with authorized
+`Haojian_Data.zip` measurements: six exports covering E2451 and E3020 for
+January–March 2026 loaded successfully, and meter/month switching worked.
+They also report independent E2451 January raw-archive reconciliation **PASS for
+all 2,976 intervals**. This establishes user-reported real-data workflow evidence
+and reconciliation for that one export; it does not imply that the other five
+exports have independently passed raw reconciliation. The archive, exports and
+private validation report were not supplied to this execution environment and
+must remain outside GitHub. Automated test results remain synthetic-fixture
+engineering validation, separate from this local real-data report. Comparison UX
+improvements are a nonblocking follow-up identified by the contributor.
+
+PR #15 (`codex/historical-overview`) remains open at
+`d4ae5d56d27b6a86a54e30aef7696d1b2004e437`; its session, historical Overview and
+synchronized comparison code was reused for this expansion. All 17 of its changed
+paths overlap this branch. This branch merges cleanly into current `main`
+(`195a8b1574fee08cdcd648055f56e69daf7545c4`), but a read-only Git merge simulation
+between the two feature heads reports 12 conflicting paths, including shared
+source/tests and documentation. Neither branch should be merged independently
+without coordinating the other PR's disposition. The owners should agree whether
+the expansion supersedes #15 or #15 is merged first and this branch is then
+integrated with it, preserving contributor records and reviewed behavior. No
+other contributor branch has been modified, merged or closed by this task.

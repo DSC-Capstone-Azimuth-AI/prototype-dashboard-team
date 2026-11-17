@@ -473,3 +473,15 @@ CHROMIUM_PATH=/usr/bin/chromium DASHBOARD_URL=http://127.0.0.1:8000 node tests/h
 This work reuses the unmerged PR #15 implementation at
 `d4ae5d56d27b6a86a54e30aef7696d1b2004e437` in a separate local feature branch.
 Coordinate review with that PR; its contributor branch has not been changed or merged.
+
+### Validation status and pending review
+
+The contributor reports successful Mac testing with six **real** E2451/E3020
+January–March 2026 exports and independent raw-archive reconciliation PASS for
+all 2,976 E2451 January intervals. Automated tests use explicitly synthetic
+fixtures; the other five exports are not claimed independently reconciled.
+No private measurements, exports or validation reports are bundled. Comparison
+UX polish is a nonblocking follow-up. See
+[validation and merge coordination](docs/HISTORICAL_DATA.md#current-validation-and-merge-coordination)
+for the precise evidence and the unresolved overlap with open PR #15. Coordinate
+that PR before merging this expansion; its contributor branch is unchanged.
