@@ -416,7 +416,7 @@ for real-data validation. Exact validation outcomes are in DEVELOPMENT_LOG.md.
 
 ## Synchronized historical comparisons
 
-Open **Compare historical exports** in Historical Monitoring. Choose 1–120 local JSON exports together (10 MB each, 60 MB combined). Each export passes the existing schema 1.0 validator. Compatible monthly exports form one series per meter/channel; identical overlaps count once and conflicting overlaps are withheld. Incompatible units/resolutions/cadences, transformation provenance or actual/test origins reject the batch. Comparison-panel scope is separate from the single-product selection. Successful loads replace the shared historical catalog used by Overview and Historical Monitoring; files are never uploaded or persisted.
+Open **Compare historical exports** in Historical Monitoring. Choose 1–120 local JSON exports together (10 MB each, 60 MB combined). Each export passes the existing schema 1.0 validator. Compatible monthly exports form one series per meter/channel; identical overlaps count once and conflicting overlaps are withheld. Incompatible units/resolutions/cadences, transformation provenance or actual/test origins reject the batch. Comparison-panel scope is separate from the single-product selection. Successful loads add to the shared historical catalog used by Overview, Buildings and Historical Monitoring; files are never uploaded or persisted.
 
 Choose **Phases within one meter** for A/B/C (unloaded phases remain explicitly unavailable), or **Selected meters — same phase** for up to three loaded meters. The default common window is the intersection of available selected products' half-open UTC ranges. Campus-date filters use the existing America/Los_Angeles helper, including DST. No overlap gives an empty state. Charts share UTC bin positions and a kW scale; hover any chart or use the timestamp slider's arrow/Home/End keys for synchronized exact-bin readouts. Missing/rejected bins stay gaps; readouts distinguish observed means from raw-sample min/max. No nearest-bin substitution, interpolation, phase totals, meter totals or topology inference.
 
@@ -428,7 +428,7 @@ Tests: `node tests/history-comparison.cjs` and, with Playwright/Edge or `CHROMIU
 
 Overview offers **Synthetic Demo** (the unchanged synthetic workflow) and **Historical DERCONNECT** (one loaded device/phase product). Historical mode shows an explicit no-data state when nothing is loaded; it never substitutes simulation data. A historical test fixture stays labeled as synthetic. This is historical phase power, not live data or whole-building/campus totals. The source switch and private measurements reset on reload; configured HTTP loading, when explicitly set locally, retains its existing behavior.
 
-A successful single-file, configured-file or comparison-batch load **replaces the shared historical catalog**, selects the first product and resets Overview/detail dates to its full range. Monthly stitching uses the validated catalog policy documented below; different loading actions do not append to prior sessions. Invalid loads retain the previous valid shared catalog with a visible notice (comparison panels retain their independent scope). The single-product dropdown selects among the current catalog; changing it retains the global dates, including unavailable periods. Overview and Historical Monitoring share product and inclusive campus-date scope. Comparison-panel selection/date scope remains independent; the Overview comparison action explicitly seeds it from the shared selection. No measurement objects are copied to the synthetic store, localStorage or a remote service.
+A successful single-file, configured-file or comparison-batch load **adds to the shared historical catalog**, retaining the current product and dates (the first load selects its first product). Use **Clear loaded exports** to start over. Monthly stitching and overlap checks apply across separate loading actions. Invalid loads retain the previous valid shared catalog with a visible notice (comparison panels retain their independent scope). The single-product dropdown selects among the current catalog; changing it retains the global dates, including unavailable periods. Overview and Historical Monitoring share product and inclusive campus-date scope. Comparison-panel selection/date scope remains independent; the Overview comparison action explicitly seeds it from the shared selection. No measurement objects are copied to the synthetic store, localStorage or a remote service.
 
 Historical Overview shows coverage with four decimal places and exact supporting counts, usable/unavailable bins, observed mean/sample maximum, actual scope, last usable observed-bin timestamp and a gap-preserving chart reused from Historical Monitoring. Quality reasons are separate from demand behavior. Anomaly detection/forecasts remain explicitly unavailable. Need Help? is collapsed by default. Detail navigation retains historical scope and synthetic filters remain unchanged.
 
@@ -442,7 +442,7 @@ Generate each meter/phase/month independently with the existing 32-day safeguard
 python3 tools/export_derconnect_history.py --input /path/to/authorized/raw \
   --meter E2451 --channel Active_Power_A --month 2026-01 \
   --output local-data/derconnect-history-E2451-A-2026-01.json
-# Repeat with --month 2026-02, another documented --meter, or phase B/C.
+# Repeat with --month 2026-02, another --meter, or phase B/C; or use the batch command below.
 python3 -m http.server 8000 --bind 127.0.0.1
 ```
 
@@ -450,7 +450,7 @@ At `http://127.0.0.1:8000/#historical`, select all desired files together in
 **Historical exports**. Switch device/phase with **Loaded device / phase**;
 facility classifications are shown without inferred building names. Select **Month**
 or inclusive **From/Through campus date**. The catalog range covers all loaded
-series; unloaded months remain hatched gaps. New loads replace the session catalog;
+series; unloaded months remain hatched gaps. New loads add to the session catalog;
 invalid loads retain it. Reload clears local files. No upload or persistence occurs.
 
 Open **Compare historical exports** to compare loaded A/B/C phases or up to three
@@ -485,3 +485,77 @@ UX polish is a nonblocking follow-up. See
 [validation and merge coordination](docs/HISTORICAL_DATA.md#current-validation-and-merge-coordination)
 for the precise evidence and the unresolved overlap with open PR #15. Coordinate
 that PR before merging this expansion; its contributor branch is unchanged.
+
+
+## Batch exports and real measurements in Buildings
+
+Use the existing Python environment with pandas and NumPy. Set `DERCONNECT_DATA_PATH`
+to an authorized raw ZIP/CSV/directory, or supply `--input`:
+
+```bash
+python3 tools/export_derconnect_batch.py \
+  --meters E2451 E3020 E3510 E7080 E7085 \
+  --channel Active_Power_A \
+  --start 2026-01-01T00:00:00-08:00 \
+  --end 2026-01-08T00:00:00-08:00 \
+  --minutes 15 --minimum-coverage 0.8 --output-dir local-data/
+```
+
+The range is half-open: January 1–7 in campus time. Each meter gets a separate
+validated export, for example
+`E2451-Active_Power_A-20260101T080000Z--20260108T080000Z-15min.json`.
+Names include exact UTC bounds, phase and interval to avoid ambiguity across years,
+channels and DST. Existing files are refused. Success/failure is reported per meter;
+exit status is 2 if any fail, while successful exports remain available. Missing
+meters/channels or ranges without observations do not produce a successful export.
+Observed but rejected/low-coverage bins remain explicit nulls. `--month YYYY-MM`
+may replace the bounds; `--chunksize` controls streaming memory.
+
+Open **Buildings & Sub-grids**, choose **Real DERCONNECT**, and add multiple JSON
+exports. Later additions retain earlier meters, selection and dates. Historical
+Monitoring's existing loader and comparison loader use this same catalog. Identical
+overlap bins count once; conflicting aggregates are withheld, with source evidence
+retained. Clear the catalog to remove conflicts or change transformation versions.
+The shared source choice affects Overview and Buildings; anomaly investigation and
+Detection Quality remain the synthetic demonstration. Choose **Prototype Data**
+to return to the existing Buildings workflow. Files and source choice clear on reload.
+
+Both modes use the original searchable building-card grid and click-through profile
+layout. Existing cards, charts, spacing, typography and responsive columns are
+unchanged below the new control panel.
+Real mode creates one meter card per imported ID; phases/months share that card and
+are never summed. Open a card to view power, daily profiles, phase buttons and quality.
+One compact panel directly below the page title contains the highlighted
+**Prototype Data / Real DERCONNECT** toggle and side-by-side **From / To** dates.
+Real mode adds the multi-file JSON loader directly below the toggle, lists loaded
+meter IDs/export counts, and initializes dates from loaded campus-date bounds.
+Later additions retain an explicitly selected date scope; **Full available range**
+restores all loaded dates. **Clear loaded exports** starts a new catalog. Prototype
+dates reuse the existing filter handler and its range limits. The legacy filter
+bar is hidden on Buildings to avoid duplicate controls. With no exports, the
+same directory/search structure displays an empty state and no placeholder buildings.
+Anomaly/forecast/energy panels retain their original slots with unavailable states.
+Original advanced analysis groups remain available; supported profiles, sample peaks
+and same-phase comparisons use measured data. The synchronized comparison action opens
+Historical Monitoring with the current dates. No energy, inferred sub-grid totals,
+forecasts or real anomaly counts are calculated. Exports supply facility **types**,
+not verified names or topology, so meter IDs identify selections. Unknown meter IDs
+are accepted with `facility_type: null`; no building relationship is guessed.
+
+Limits: schema 1.0 still supports only individual `Active_Power_A/B/C` channels in
+W → kW, 5/15/60-minute bins, an assumed two-second cadence, and up to 32 elapsed days
+per export. Other electrical quantities need a separately reviewed schema/UI extension.
+Safe IDs are 1–64 letters/digits/dots/underscores/hyphens, beginning with a letter/digit.
+Older dashboards reject undocumented meters. Catalog exports must share transformation
+hashes, library versions, quality policy and actual/test origin. Do not edit provenance
+to bypass that check. Sequential export scans all matching CSVs through EOF; a short
+range can still take time on a large archive. Browser limits: 120 source files per
+catalog, 10 MB each/60 MB per file selection, three elapsed years/500,000 derived bins.
+Only selected series/date charts are drawn, with gap/extrema-preserving reduction;
+raw two-second data is never loaded into the browser. Keep exports in ignored
+`local-data/`; never commit or publicly serve private measurements.
+
+Checks: `python3 -B -m unittest discover -s tests -p 'test_derconnect_batch.py'`,
+`node tests/historical-session.cjs`, and (with Playwright, browser and local server)
+`node tests/real-buildings-browser.cjs`. See DEVELOPMENT_LOG.md for actual outcomes
+and the distinction between synthetic tests and local real-export checks.

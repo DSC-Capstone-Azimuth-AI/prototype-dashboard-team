@@ -6,6 +6,16 @@
 .history-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin: 18px 0; }
 .history-controls .filter { min-width: 0; max-width: 100%; }
 .history-controls select, .history-controls input { max-width: 100%; }
+/* Buildings controls only; directory cards and chart styling are unchanged. */
+.buildings-controls { display: grid; gap: 12px; padding: 16px; margin-bottom: 24px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); }
+.buildings-controls > .seg { display: flex; width: 100%; flex-wrap: nowrap; }
+.buildings-controls > .seg button { flex: 1; padding: 8px 12px; }
+.buildings-date-range { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.buildings-controls .filter input { width: 100%; min-width: 0; max-width: none; box-sizing: border-box; }
+.buildings-export-upload { display: grid; gap: 6px; min-width: 0; }
+.buildings-control-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.buildings-control-actions input[type="file"] { flex: 1 1 220px; width: 100%; max-width: 100%; min-width: 0; }
+.buildings-controls p { margin: 0; font-size: 12px; overflow-wrap: anywhere; }
 .history-chart { width: 100%; min-width: 0; overflow: hidden; }
 .history-chart svg { display: block; width: 100%; height: auto; }
 #sec-historical .technical-json { white-space: pre-wrap; overflow-wrap: anywhere; }

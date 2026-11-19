@@ -95,8 +95,8 @@
     const m = { l: o.compact ? 4 : 48, r: o.compact ? 4 : 12, t: o.compact ? 4 : 8, b: o.compact ? 4 : 22 };
     const iw = W - m.l - m.r, ih = H - m.t - m.b;
     const t0 = o.t0, t1 = Math.max(o.t0 + 1, o.t1);
-    const ts = [];
-    for (let t = t0; t < t1; t++) ts.push(t);
+    const ts = o.samples || [];
+    if (!o.samples) for (let t = t0; t < t1; t++) ts.push(t);
 
     // y domain from everything drawn
     let lo = Infinity, hi = -Infinity;
@@ -150,11 +150,11 @@
           tx.textContent = d === 0 ? "onset" : (d > 0 ? "+" : "−") + Math.abs(d) + " h";
         }
       } else {
-        const { ticks, step } = timeTicks(t0, t1 - 1, iw);
+        const { ticks, step } = o.xTicks ? { ticks: o.xTicks, step: 0 } : timeTicks(t0, t1 - 1, iw);
         for (const t of ticks) {
           S("line", { x1: x(t), x2: x(t), y1: m.t + ih, y2: m.t + ih + 4 }, gx);
-          const tx = S("text", { x: x(t), y: m.t + ih + 15, "text-anchor": "middle" }, gx);
-          tx.textContent = step < 24 ? (DC.time.hour(t) === 0 ? DC.time.day(t) : String(DC.time.hour(t)).padStart(2, "0") + ":00") : DC.time.day(t);
+          const tx = S("text", { x: x(t), y: m.t + ih + 15, "text-anchor": o.xTicks ? (t === ticks[0] ? "start" : t === ticks[ticks.length - 1] ? "end" : "middle") : "middle" }, gx);
+          tx.textContent = o.xFormat ? o.xFormat(t, step) : step < 24 ? (DC.time.hour(t) === 0 ? DC.time.day(t) : String(DC.time.hour(t)).padStart(2, "0") + ":00") : DC.time.day(t);
         }
       }
     }

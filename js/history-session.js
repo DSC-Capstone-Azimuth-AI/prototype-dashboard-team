@@ -12,6 +12,14 @@
       state.version++;state.products=products;state.id=key(products[0]);state.from='';state.to='';
       state.notice=`Loaded ${products.length} series from ${origin}. Replaced the shared catalog; selected the first product and reset dates to its full range. Comparison-panel scope is separate.`;
     },
+    add(exports,origin){
+      // Build first: invalid/incompatible additions leave the entire session intact.
+      const originals=state.products.flatMap(d=>d.source_exports),previous=state.id;
+      const products=H.catalog.build([...originals,...exports]);
+      state.products=products;state.version++;state.id=products.some(d=>key(d)===previous)?previous:key(products[0]);
+      state.notice=`Added ${exports.length} export(s) from ${origin}; ${products.length} loaded series. Selection and dates retained. Identical overlap bins count once; conflicting bins are withheld.`;
+    },
+    clear(){state.products=[];state.id='';state.from='';state.to='';state.version++;state.notice='Cleared the shared historical catalog.';},
     failed(message){state.notice='Load failed: '+message+'. Previous validated shared catalog retained.';},
     select(id){if(!state.products.some(d=>key(d)===id))throw Error('Historical product is not loaded.');state.version++;state.id=id;state.notice='Selected '+id+'; global date scope retained.';},
     scope(from,to){for(const day of [from,to])if(day)H.timestamp(day+'T00:00:00Z');state.version++;state.from=from;state.to=to;},

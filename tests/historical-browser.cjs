@@ -65,7 +65,7 @@ const payload = fs.readFileSync(fixture, 'utf8'), base = process.env.DASHBOARD_U
     await page.reload(); await page.waitForSelector('#history-unconfigured'); // File is never persisted.
     assert.equal(await page.locator('html').getAttribute('data-theme'), 'light');
     const invalid = JSON.parse(payload); invalid.schema_version = '9.0';
-    const upload = async value => page.locator('#history-file').setInputFiles({ name: 'synthetic-export.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(value)) });
+    const upload = async value => { await page.locator('#history-clear').click(); await page.locator('#history-file').setInputFiles({ name: 'synthetic-export.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(value)) }); };
     await upload(invalid); await page.waitForSelector('#history-error');
     assert.match(await page.locator('#history-error').innerText(), /unsupported schema/);
     await page.locator('#history-file').setInputFiles({ name: 'malformed.json', mimeType: 'application/json', buffer: Buffer.from('not JSON') });

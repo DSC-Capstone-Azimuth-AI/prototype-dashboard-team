@@ -4,7 +4,7 @@
   const DC = window.DC, H = DC.history, el = DC.el;
   const key = d => d.meter_id + '/' + d.channel;
   function validate(products) {
-    if (!Array.isArray(products) || !products.length || products.length > 15) throw Error('Choose between 1 and 15 historical series.');
+    if (!Array.isArray(products) || !products.length || products.length > 120) throw Error('Choose between 1 and 120 historical series.');
     products.forEach(d => H.catalog ? H.catalog.validateProduct(d) : H.validate(d));
     const first = products[0], seen = new Set();
     for (const d of products) {
@@ -77,7 +77,7 @@
     host.append(el('details',{class:'disclosure',id:'comparison-help'},el('summary',{text:'Need Help?'}),el('p',{text:'Compare phases to inspect A/B/C within one meter. Compare meters to inspect the same phase across devices. Units, resolution and UTC bin alignment must match so readings describe the same interval. Select compatible JSON exports together; only the overlapping time range is shown by default. Dates use America/Los_Angeles, including DST.'}),el('p',{text:'Charts share the same kW scale and time axis. Move over any chart or use the timestamp slider with arrow keys, Home and End to compare the exact same UTC bin across panels. Solid lines show observed bin means; readouts distinguish raw-sample min/max. Shaded gaps remain unavailable: values are never filled, interpolated or changed to zero.'}),el('p',{text:'Similar timing does not establish a shared cause or electrical relationship. We do not know verified parent/child or building relationships, so we do not calculate a combined total. These are observed channels, not detector outputs or confirmed faults. Each product retains its own quality and provenance. Schema validation does not independently reconcile the export against raw data.'})));
     host.append(el('label',{},el('span',{text:'Choose comparison JSON exports (1–120, maximum 60 MB combined)'}),el('input',{type:'file',id:'comparison-files',multiple:true,accept:'.json,application/json',onchange:async evt=>{
       const files=Array.from(evt.target.files);if(!files.length)return;const mine=++token;loading=true;error='';products=[];render(host);
-      try{const next=await H.catalog.readFiles(files);if(mine!==token)return;H.session.replace(next,"comparison loader");products=H.session.products;meter=products[0].meter_id;channel=products[0].channel;meters=[...new Set(products.filter(d=>d.channel===channel).map(d=>d.meter_id))].slice(0,3);from='';to='';cursor=0;}catch(e){if(mine===token){error=e instanceof SyntaxError?'Comparison file is not valid JSON.':e.message;H.session.failed(error);}}finally{if(mine===token){loading=false;if(DC.state.section==='historical')DC.setState({});else if(activeHost?.isConnected)render(activeHost);}}
+      try{const next=await H.catalog.readFiles(files);if(mine!==token)return;H.session.add(next,"comparison loader");products=H.session.products;meter=H.session.selected.meter_id;channel=H.session.selected.channel;meters=[...new Set(products.filter(d=>d.channel===channel).map(d=>d.meter_id))].slice(0,3);from='';to='';cursor=0;}catch(e){if(mine===token){error=e instanceof SyntaxError?'Comparison file is not valid JSON.':e.message;H.session.failed(error);}}finally{if(mine===token){loading=false;if(DC.state.section==='historical')DC.setState({});else if(activeHost?.isConnected)render(activeHost);}}
     }})));
     if(loading)host.append(el('p',{role:'status',text:'Loading comparison exports…'}));
     if(error)host.append(el('p',{role:'alert',id:'comparison-error',text:error}));
@@ -99,7 +99,7 @@
     controls.append(el('button',{class:'btn',type:'button',text:'Common export range',onclick:()=>{from='';to='';cursor=0;render(host);}}));
     for(const s of result.series){
       if(!s.data){host.append(el('p',{class:'empty','data-comparison-missing-phase':s.channel,text:`${s.meter} / ${s.channel}: Unavailable — no export loaded.`}));continue;}
-      host.append(el('details',{class:'disclosure'},el('summary',{text:`${key(s.data)} — coverage and provenance`}),el('p',{text:`${s.data.facility_type} (classification only, not building identity). Product coverage [${s.data.start_utc}, ${s.data.end_utc}); ${s.data.aggregation_minutes}-minute bins; ${s.data.minimum_coverage*100}% minimum coverage.`}),el('pre',{class:'technical-json',text:JSON.stringify(s.data.provenance,null,2)})));
+      host.append(el('details',{class:'disclosure'},el('summary',{text:`${key(s.data)} — coverage and provenance`}),el('p',{text:`${s.data.facility_type || 'Unavailable'} (classification only, not building identity). Product coverage [${s.data.start_utc}, ${s.data.end_utc}); ${s.data.aggregation_minutes}-minute bins; ${s.data.minimum_coverage*100}% minimum coverage.`}),el('pre',{class:'technical-json',text:JSON.stringify(s.data.provenance,null,2)})));
     }
     if(!result.times.length){host.append(el('p',{class:'empty',id:'comparison-empty',text:'No common time range or intervals in these campus dates. Choose overlapping products or reset to Common export range. No values are fabricated.'}));return;}
     host.append(el('p',{id:'comparison-range',text:`Common product window [${new Date(result.start).toISOString()}, ${new Date(result.end).toISOString()}); selected bins ${H.stamp(result.times[0])} through ${H.stamp(result.times.at(-1))}. Shared kW scale; solid observed means; shaded unavailable bins. No totals.`}));
@@ -108,12 +108,12 @@
     host.append(el('label',{},el('span',{text:'Synchronized timestamp — arrow keys, Home / End'}),slider),stamp);
     function update(i){cursor=i;slider.value=i;const time=result.times[i];slider.setAttribute('aria-valuetext',H.stamp(time)+'; '+new Date(time).toISOString());stamp.textContent=H.stamp(time)+' / '+new Date(time).toISOString();updates.forEach(fn=>fn(time));readouts.forEach(([node,s])=>{node.textContent=reading(s,time);});}
     for(const s of result.series.filter(s=>s.data)){
-      const selected=s.records.filter(Boolean),summary=H.summarize(selected),card=DC.ui.card(`${s.meter} / ${s.channel}`,`${s.data.facility_type} · kW · ${s.data.aggregation_minutes}-minute observed bins`,{span:12});host.append(card.card);
+      const selected=s.records.filter(Boolean),summary=H.summarize(selected),card=DC.ui.card(`${s.meter} / ${s.channel}`,`${s.data.facility_type || 'Unavailable'} · kW · ${s.data.aggregation_minutes}-minute observed bins`,{span:12});host.append(card.card);
       const node=el('div',{class:'chart history-chart','data-comparison-chart':key(s.data)}),readout=el('p',{'data-comparison-readout':key(s.data)});card.body.append(node,readout,el('p',{text:`This product: ${summary.usable} usable / ${summary.unavailable} unavailable bins; ${summary.valid}/${summary.expected} valid slots (${DC.fmt.pct(summary.coverage,3)}). Rounded slot coverage and whole-bin eligibility differ; no imputation or fault inference.`}));readouts.push([readout,s]);
       requestAnimationFrame(()=>{if(node.isConnected){updates.push(chart(node,s,result,update));update(Math.min(cursor,result.times.length-1));}});
     }
     update(Math.min(cursor,result.times.length-1));
   }
-  function useSharedSelection(){token++;loading=false;error='';const S=H.session;products=S.products;meter=S.selected.meter_id;channel=S.selected.channel;mode='phases';meters=[meter];from=S.from;to=S.to;cursor=0;}
+  function useSharedSelection(comparisonMode='phases'){token++;loading=false;error='';const S=H.session;products=S.products;meter=S.selected.meter_id;channel=S.selected.channel;mode=comparisonMode;meters=comparisonMode==='meters'?[meter,...new Set(products.filter(d=>d.channel===channel&&d.meter_id!==meter).map(d=>d.meter_id))].slice(0,3):[meter];from=S.from;to=S.to;cursor=0;}
   DC.historyComparison={validate,compare,reading,render,useSharedSelection};
 })();

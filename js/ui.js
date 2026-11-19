@@ -25,6 +25,17 @@
     return box;
   }
 
+  // Original Buildings directory markup, shared by demo buildings and imported meters.
+  function buildingCard(o) {
+    return el("article", { class: "card building-card" }, el("div", { class: "eyebrow", text: o.eyebrow }),
+      el("h3", {}, el("a", { href: o.href, text: o.name })),
+      el("div", { class: "building-pending" }, el("strong", { text: o.value }), el("span", { text: o.label })),
+      o.status,
+      el("p", { class: "building-energy", text: o.measurement }),
+      el("p", { class: "muted", text: o.completeness }),
+      el("a", { class: "action-link", href: o.href, text: o.action }));
+  }
+
   function segmented(options, value, onChange, label) {
     const box = el("div", { class: "seg", role: "group", "aria-label": label || "" });
     for (const [v, text] of options) {
@@ -119,5 +130,5 @@
     };
   }
 
-  DC.ui = { card, legend, segmented, eventTooltip, overlays, scopeSeries, refresh };
+  DC.ui = { card, buildingCard, legend, segmented, eventTooltip, overlays, scopeSeries, refresh };
 })();

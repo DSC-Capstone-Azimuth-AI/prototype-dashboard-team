@@ -4937,3 +4937,531 @@ Validation: 32 Python tests; history-catalog/session/comparison/monitoring, regr
 
 
 PR creation outcome (same task): documentation commit 02d4b1be3bb6b375887e905721519e6a6ebdee4b pushed successfully to codex/historical-multimonth. Created https://github.com/DSC-Capstone-Azimuth-AI/prototype-dashboard-team/pull/16, titled Expand Historical Monitoring to Multiple Meters and Months, targeting main. GitHub raw PR metadata confirms state=open, merged=false, mergeable=true, mergeable_state=clean against main 195a8b1574fee08cdcd648055f56e69daf7545c4. At that head, hosted check runs=0, status contexts empty, Actions workflow runs empty and submitted PR reviews empty; no hosted CI pass or approval is claimed. PR remains open because of unresolved overlap with open #15, as the user instructed. No merge attempt, review bypass, PR #15 edit/closure, main modification, dataset upload or deployment. Local working tree was clean after push. This append-only outcome record is an additional documentation-only commit; no application changes or additional test reruns are required. Recheck current head/check/review state before any later merge.
+
+
+## 2026-11-18 — Batch DERCONNECT export and real Buildings integration
+
+Human: requesting team member (identity not supplied). AI: OpenAI Codex. Branch `feature/derconnect-buildings-integration`, base `e42bc946e28e5a20f96e938772989da5ef2aec7a`. No commit, push, merge or deployment made; human review pending.
+
+Prompt handling: the complete substantive task attachment is reproduced verbatim below. The user also supplied the repository instructions reproduced verbatim next. Account-specific absolute paths in the attachment wrapper and environment/IDE transport context are flagged for secure handling and omitted under the instruction not to record personal data. The IDE context identified `data/derconnect-data.js` as active/open; it did not request edits to generated data. The wrapper said “Pasted text contains the user's request.” and its request body was empty. No historical prompts are reconstructed. No private measurements, credentials, dataset hashes or local report contents are copied into this record.
+
+User task attachment (verbatim):
+
+`````text
+# Task: Integrate Real DERCONNECT Data into Buildings & Sub-grids and Add Batch Export Support
+
+## Project context
+
+We are developing a unified DERCONNECT electricity monitoring dashboard for building managers and electrical engineers.
+
+Our dashboard currently includes:
+- Overview
+- Buildings & Sub-grids
+- Anomaly Investigation
+- Detection Quality / Model Evaluation
+- Historical Monitoring
+
+Historical Monitoring already supports real DERCONNECT measurements through preprocessed JSON exports, but other dashboard sections still use synthetic/demo data.
+
+We want to extend real-data support into **Buildings & Sub-grids**, while also creating a new script that can export multiple DERCONNECT meters for a selected date range.
+
+We will integrate the anomaly detection team's model separately, so do not modify anomaly detection functionality at this stage.
+
+**Important: Work only on my current feature branch. Do not modify the main branch, merge branches, or push changes unless explicitly requested.**
+
+## Part 1: Inspect the existing repository
+
+Before implementing anything, inspect:
+
+- `tools/export_derconnect_history.py`
+- Existing DERCONNECT raw CSV schema and available sample data
+- Existing JSON export structure
+- `local-data/` files, if available
+- Historical Monitoring loader
+- Buildings & Sub-grids implementation
+- Existing data utilities and visualization components
+
+Determine:
+1. How the current export script processes DERCONNECT measurements.
+2. How the Historical Monitoring section loads JSON exports.
+3. Which existing Buildings & Sub-grids features can use real measurements without anomaly detection.
+4. How meters and facilities are currently represented.
+5. Whether existing loaders support multiple exports or replace previously loaded data.
+
+Do not assume field names, file formats, or metadata relationships without inspecting the implementation.
+
+## Part 2: Create a new batch export script
+
+Create:
+
+`tools/export_derconnect_batch.py`
+
+This script should allow us to export multiple DERCONNECT meters for a selected date range using a single command.
+
+Reuse the existing preprocessing logic in `export_derconnect_history.py` rather than duplicating its aggregation and validation logic.
+
+### Desired command
+
+```bash
+python3 tools/export_derconnect_batch.py \
+  --meters E2451 E3020 E3510 E7080 E7085 \
+  --channel Active_Power_A \
+  --start 2026-01-01T00:00:00-08:00 \
+  --end 2026-01-08T00:00:00-08:00 \
+  --minutes 15 \
+  --minimum-coverage 0.8 \
+  --output-dir local-data/
+```
+
+This should export January 1–7, 2026, for all five meters.
+
+### Expected output
+
+```text
+local-data/
+  E2451-jan1-7.json
+  E3020-jan1-7.json
+  E3510-jan1-7.json
+  E7080-jan1-7.json
+  E7085-jan1-7.json
+```
+
+Use a consistent filename convention based on meter ID and selected date range.
+
+### Requirements
+
+- Support any valid meter IDs, not only the five examples.
+- Support user-defined start and end dates.
+- Support configurable measurement channels and aggregation intervals.
+- Preserve existing data-quality checks.
+- Handle missing meters, missing channels, or unavailable date ranges gracefully.
+- Report which exports succeeded and failed.
+- Do not overwrite existing files silently.
+- Avoid loading all raw measurements into memory unnecessarily.
+- Keep the existing single-meter export script working.
+- Validate that generated exports match the schema expected by Historical Monitoring.
+
+Do not invent measurements or metadata.
+
+## Part 3: Integrate exports into Buildings & Sub-grids
+
+Extend the existing dashboard so real DERCONNECT measurements can populate the Buildings & Sub-grids section.
+
+### Desired behavior
+
+When a user loads one or more DERCONNECT JSON exports:
+
+1. The dashboard reads the files.
+2. It automatically identifies available meter IDs.
+3. It extracts verified facility/building information when available.
+4. The meters/buildings appear in the Buildings & Sub-grids selection interface.
+5. Selecting a meter displays its real measurements.
+6. Users can switch between meters and compare compatible measurements.
+7. Users can select available date ranges and measurement channels.
+
+The dashboard should not require manually editing code to add each meter.
+
+### Visualizations to populate with real data
+
+Reuse existing visualizations wherever possible:
+
+- Active-power time-series charts
+- Daily demand profiles
+- Average power
+- Peak demand
+- Building/meter comparisons
+- Measurement-channel information
+- Data coverage and missing intervals
+- Available date ranges
+
+Only calculate metrics supported by the available measurements.
+
+Ensure consistent units, timestamps, aggregation intervals, and time zones.
+
+Do not sum instantaneous power readings and label the result as energy consumption.
+
+## Part 4: Shared export loading
+
+Historical Monitoring already has a JSON loader.
+
+Instead of creating a completely separate data-loading system, investigate how to reuse or extend the existing loader.
+
+Ideally, loaded DERCONNECT exports should become available to both:
+
+- Historical Monitoring
+- Buildings & Sub-grids
+
+Support loading multiple files without unintentionally replacing previously loaded meters.
+
+Handle duplicate meter/channel/date combinations and overlapping exports safely.
+
+If the existing loader cannot support this directly, implement the smallest compatible extension.
+
+Preserve existing Historical Monitoring behavior.
+
+## Part 5: Data-source selection
+
+Add or reuse a clear data-source selector:
+
+- Demo / Synthetic
+- Real DERCONNECT
+
+When Real DERCONNECT is selected:
+- Show only measurements from loaded real exports.
+- Automatically populate available meters.
+- Display verified facility names when available.
+- Display meter IDs when building metadata is unavailable.
+- Show appropriate empty states when no exports have been loaded.
+
+When Demo is selected:
+- Preserve the existing synthetic dashboard functionality.
+
+Never silently mix synthetic and real measurements.
+
+## Part 6: Preserve anomaly-related functionality
+
+The anomaly detection model will be integrated separately.
+
+Do not modify:
+- Anomaly detection logic
+- Synthetic anomaly event generation
+- Anomaly severity calculations
+- Existing anomaly investigation workflows
+- Detection Quality / Model Evaluation logic
+
+Do not present synthetic anomaly counts as real DERCONNECT detections.
+
+Design the real-data structure so future anomaly outputs can be matched using meter ID, channel, and timestamps.
+
+## Part 7: Performance and scalability
+
+DERCONNECT raw measurements can be sampled approximately every two seconds.
+
+We want to avoid loading unnecessarily large datasets into the browser.
+
+Requirements:
+- Continue using preprocessed JSON exports.
+- Support 5-minute, 15-minute, or other valid aggregation intervals.
+- Avoid loading every building's raw measurements at once.
+- Keep visualizations responsive when multiple meters are loaded.
+- Prefer loading data for selected meters and date ranges.
+- Avoid unnecessary duplication of measurements in memory.
+- Do not introduce a database or backend.
+
+The implementation should be suitable for loading one week or one month of aggregated measurements across multiple meters.
+
+## Part 8: Testing and validation
+
+Test the batch export script and dashboard integration.
+
+Verify:
+1. Existing single-meter exports still work.
+2. Multiple meters can be exported in one command.
+3. The exported JSON files match the expected schema.
+4. Multiple exports can be loaded into the dashboard.
+5. Buildings & Sub-grids automatically recognizes imported meters.
+6. Real measurements appear in the correct charts.
+7. Meter switching and date filtering work.
+8. Missing or incomplete data is handled correctly.
+9. Demo mode remains functional.
+10. Existing anomaly-related sections are unaffected.
+
+If raw DERCONNECT data is unavailable in the working environment, use existing fixtures or small synthetic test fixtures to validate the code, but clearly report which tests could not be performed against real measurements.
+
+## Part 9: Documentation
+
+Update the relevant README or documentation to explain:
+
+- How to run the batch export script.
+- How to specify meters and date ranges.
+- Where exported JSON files are saved.
+- How to load multiple exports into the dashboard.
+- How to switch between Demo and Real DERCONNECT data.
+- Known limitations and performance considerations.
+
+## Implementation constraints
+
+- Preserve the current dashboard layout and styling.
+- Reuse existing components and utilities.
+- Avoid unnecessary refactoring.
+- Do not add a database.
+- Do not commit large raw DERCONNECT files or generated exports to Git.
+- Respect existing `.gitignore` rules and add appropriate exclusions if necessary.
+- Do not modify unrelated functionality.
+- Work only on the current feature branch.
+
+## Before coding
+
+First provide a short implementation plan identifying:
+1. Existing files that will be modified.
+2. New files that will be created.
+3. How batch exports will work.
+4. How the shared DERCONNECT data catalog will work.
+5. Which Buildings & Sub-grids features will use real data.
+6. Any potential compatibility issues.
+
+Then proceed with implementation.
+
+## Expected final result
+
+We should be able to:
+
+1. Run one Python command to export multiple DERCONNECT meters for January 1–7, 2026.
+2. Generate separate, validated JSON files for each meter.
+3. Open the unified dashboard.
+4. Load the generated exports.
+5. Navigate to Buildings & Sub-grids.
+6. See the imported meters automatically appear.
+7. Select a meter and view its real power measurements, daily demand patterns, summary statistics, and data-quality information.
+8. Compare multiple meters where supported.
+9. Preserve all existing demo and anomaly-related functionality.
+
+After implementation, summarize the files changed, tests performed, limitations, and recommended next steps for integrating the anomaly detection model.
+`````
+
+User-supplied repository instructions (verbatim content of AGENTS.md):
+
+`````text
+# Instructions for AI coding agents
+
+## Research purpose and scope
+
+This UC San Diego DSC 180A capstone with Azimuth AI develops a unified, anomaly-focused DERCONNECT electricity dashboard for building managers and electrical engineers. Support Detect → Classify → Visualize → Investigate → Interpret. Integrate evidence from the SarSim synthetic-data group, the Chronos-2 anomaly group, and eventually real DERCONNECT measurements. The Quarter 1 checkpoint is Friday, November 6, 2026. Synthetic performance is not evidence of real-world fault detection.
+
+Preserve the existing plain HTML/CSS/JavaScript and custom SVG architecture. Do not migrate to Streamlit, React, another framework, or a backend without a justified, explicitly scoped task. Audit the actual code rather than treating README claims as verified requirements. Do not assume access to unpublished code, datasets, trained weights, external generated runs, or the requirements document referenced by README.
+
+## Architecture and execution
+
+- `index.html` defines the shell, filters, section containers, and ordered classic scripts. There is no package manifest, bundler, application server, or existing test runner.
+- `css/styles.css` owns theme tokens, responsive layout, components, and chart styling. Preserve type symbols/colours, severity labels/icons, and readable light/dark themes.
+- `data/derconnect-data.js` assigns `window.DERCONNECT_DATA`; `data/synthetic-labels.js` assigns `window.DERCONNECT_LABELS`. Both are generated artifacts, not manually maintained application logic.
+- `js/util.js` initializes `window.DC`, taxonomy, time/format/DOM helpers and local status storage; `js/charts.js` supplies SVG primitives; `js/store.js` owns indexes, shared state and derived selectors; `js/ui.js` supplies shared view components. Preserve script dependency order.
+- `js/sections/{overview,investigate,buildings,models}.js` render the four sections. `js/app.js` wires filters, routing, theme and startup. Read shared data through the store; avoid independent copies of events, filters, time arithmetic or severity policy.
+- Run from the repository root: `python3 -m http.server 8000 --bind 127.0.0.1`. Browser code needs only the committed static assets. Live processes must be restarted in a new environment. Use the existing isolated checkout; do not create a Git worktree unless the user requests one.
+
+## Current data contract and boundaries
+
+The current fixture is synthetic: 8 real UCSD demonstration building names with synthetic profiles and relationships, 11 meters, 2,016 hourly samples from August 10, 2026, four baseline detectors, 26 labels and 161 detected events. Chronos-2 is an optional builder model, not a detector in this fixture. Counts are audit observations, not validation constants for future datasets.
+
+- `meta`: start, n, detector_start, calibration_start, clean_prefix, sampling_interval, levels, generator version, seeds and build time. Current indices are zero-based; event and label intervals are half-open `[start, end)`.
+- `tools/building_metadata.json` owns replaceable demonstration names and official name sources; names do not establish DERCONNECT coverage or real meter relationships.
+- Buildings reference synthetic subgrids and have occupancy arrays. Meters reference buildings and carry kind (`main`/`pv`), unit (`kW`), `actual[n]`, `dq[n]` (0 OK, 1 missing/zero, 2 stuck). Weather has aligned temperature °C, cloud fraction and irradiance W/m² arrays.
+- Each detector has settings, a raw threshold, and series keyed by meter ID. q01/q10/q50/q90/q99 and normalized `score` arrays begin at `meta.detector_start`, not at index zero of actual readings. q10–q90 and q01–q99 are nominal 80% and 98% intervals. Scores are rounded and capped at 99 in exports; they cannot reconstruct exact alert decisions.
+- Events reference detector, meter, building and subgrid; contain interval, peak_t (legacy score peak), score_peak_t, deviation_peak_t, duration_h, novelty (normalized peak score), operational priority (0–100), severity, behaviour, category, primary type, impact, explanations, detection settings and initial status. Novelty, operational priority, injected severity and review status are different concepts.
+- Ground-truth labels and one-to-one overlap matches are evaluation evidence. Development labels are used to select settings; test labels must not feed test detection, calibration, classification or priority. Never present missing labels as proof of a false positive. Explanations are hypotheses; a local dropdown is not evidence of engineer confirmation.
+- Current time helpers treat campus wall time as UTC solely to avoid DST shifts. Hourly kW sums stand in for kWh. ID suffixes, Monday-start weekly arithmetic and clean history are hardcoded assumptions. Do not extend these silently to real data.
+
+`tools/build_data.py` simulates campuses, injects anomalies and imports scoring/calibration/events/metrics/forecasters from `DSC-Capstone-Azimuth-AI/chronos2-sarsim0-anomaly-team/src/sarsim_fm`. It does not ingest that repository's completed Parquet/JSON runs. Current imports need NumPy **and pandas**; the README's NumPy-only claim is incomplete. Torch/Chronos and checkpoint access are needed only for optional Chronos inference. Do not broadly install or run model training for a dashboard change.
+
+Regenerate only when authorized, against a recorded upstream commit and dependency versions, with fixed seeds. Use a temporary output directory for verification:
+
+```bash
+python3 tools/build_data.py --repo /path/to/chronos2-sarsim0-anomaly-team --out /tmp/derconnect-validation-data
+```
+
+Do not overwrite committed data during an audit. Compare semantic JSON, ignoring build timestamps and object-key order. The upstream checkout is not included in this repository or guaranteed present in future tasks.
+
+Before implementing an adapter, agree on schema version, UTC timestamps and campus display timezone, sample cadence and resampling, missing/duplicate/out-of-order observations, stable meter/building mapping, units and sign conventions, forecast origins/horizons/quantiles, raw scores and horizon-specific thresholds/alert flags, half-open event bounds, label availability and provenance, classification/severity ownership, run/model/checkpoint/source hashes and compatibility rules. Preserve a stable internal chart interface; validate and translate external data at the boundary. Optional weather, occupancy, PV, evaluation and forecasts must have explicit unavailable states, not fabricated values. See DEVELOPMENT_LOG.md for the initial audit and proposed contract details.
+
+## Five-contributor collaboration
+
+Use small feature branches and reviewable PRs; never commit or push directly to main. Agree on file ownership before concurrent work. Prefer one owner each for ingestion/builder, shared state/routing, investigation, building views, and evaluation/validation; coordinate changes to `index.html`, shared charts, CSS tokens and generated assets. These are suggested work boundaries, not assigned people.
+
+Inspect `git status`, the active branch and applicable instructions before edits. Preserve existing changes, untracked files and other contributors' commits. Do not reset, clean, force-push, rewrite history, replace whole files blindly, or regenerate artifacts over local edits. Re-read shared documentation before appending; retain existing entries and resolve concurrent changes carefully. Keep source fixes separate from documentation-only tasks. Never invent contributor names, approvals, results, prompts or commit hashes.
+
+## Quality, reproducibility and validation
+
+Use small functions and existing DC helpers; favour textContent over HTML insertion for external content. Validate IDs, ranges, lengths, finite/null values, quantile ordering and references at ingestion. Report data quality separately from consumption anomalies. Keep evaluation splits and provenance explicit; never tune on held-out test labels or turn forecast benchmarking into a claim of anomaly-detection accuracy. Document any diagnostic use of future observations; centered decomposition is retrospective, not causal inference.
+
+For each relevant change:
+
+1. Run `git diff --check` and inspect the complete diff/status. Parse Python without leaving tracked caches and run `node --check` on changed JavaScript (all JS for shared changes).
+2. For data changes, validate schemas, referential integrity, series offsets, quantile ordering, bounds and matching metrics. Rebuild into `/tmp` where prerequisites exist and compare semantic output. Preserve underlying command exit status.
+3. For UI/state changes, serve the repository and check the affected flow in a real browser, including console/page errors, empty scope, all relevant detectors, filters, event selection, deep links, reload, status/theme persistence, and narrow viewport. For shared changes exercise all four sections. Check actual chart output and interactions; a running process or syntax check alone is insufficient.
+4. For integrations, use supplied fixtures covering missing context/labels, irregular times, nulls, ID mappings and thresholds/horizons. Add meaningful automated regression tests when implementing fixes. There is currently no committed automated suite; do not claim otherwise.
+5. Record exact commands, outcomes, versions, skipped/unrun checks and blockers. Do not disable assertions, integrity checks or TLS verification to obtain a pass. Stop after relevant checks; GPU/model experiments are optional unless required by the task.
+
+## Required records
+
+Append a dated entry to `DEVELOPMENT_LOG.md` for each substantive task: human/AI contributors, base revision/branch, changed files, rationale, checks, results, limitations and next steps. Use America/Los_Angeles for user-facing dates.
+
+For every AI-assisted task, append to `AI_USE.md`: the complete verbatim user prompt(s), AI contributions, human contributions/review, validation, limitations, changed files, and associated commit(s) when they actually exist. Preserve earlier entries; do not reconstruct historical prompts. If no commit has been made, say so. Never record credentials, personal data or private measurements; flag a prompt containing such material for secure handling rather than copying secrets. Documentation is part of the task, not a substitute for human review.
+`````
+
+AI contributions: inspected raw/export schema and catalog/session/building/chart code; provided the requested plan before edits; implemented sequential reuse-based batch exporting with per-meter failure/no-overwrite/grid checks; allowed safe undocumented meter IDs with null classifications; made all loaders add transactionally to a shared catalog; added explicit clearing, real Buildings source/meter/phase/date/profile/quality/comparison views, selected-meter comparison seeding and unavailable-state copy; reused existing charts/statistics/overlap policy without changing detection/severity/model code; updated README/contract documentation and tests; executed local raw-archive export and independent E2451 reconciliation, synthetic regression suites, real browser QA and required records. Five resulting real exports are exclusively copied to ignored `local-data/`; existing local export retained. Source export objects are reused by reference, with no raw data placed in the browser or generated data committed.
+
+Human contributions/review: supplied scope, current-branch constraints and repository instructions; authorized existing local-data workflow through the task. No contributor names, approvals, domain confirmation or human validation result inferred. Review/acceptance remains pending.
+
+Validation: details and exact commands are in the same-date DEVELOPMENT_LOG.md entry. Python exporter/batch/quality/reconciliation/EDA/inspection checks PASS, including four final batch CLI tests with production JS schema interoperability; catalog/session/comparison/regression/monitoring unit checks PASS. All four existing historical browser suites, new incremental/real Buildings suite, broad demo suite (8 profiles/4 detectors/207 charts) and navigation suite PASS, with no page/console errors. Tested 390px dark/light/reload/deep links, persistence, empty/missing/null/conflict states and model/demo isolation; visually inspected local synthetic screenshots. Five real January 1–7 batch exports generated and schema/browser tested; E2451 independently reconciled for 672 bins, other meters not independently reconciled. Existing and new E2451 products match excluding provenance. Initial sandbox server/Chrome launch failures resolved through approved escalation; initial new rAF chart-count test timing corrected without weakening its expected value. Syntax/diff/ignore/append-only/source-boundary checks PASS. No dependency installations or training/inference.
+
+Limitations: phase power only, current supported 5/15/60-minute/2-second assumptions and 32-day exports; no verified names/topology/calibration, real detector outputs or energy totals. Session-only bounded catalog; strict cross-export provenance compatibility. Full raw reconciliation is only claimed for E2451. Reports/CSV-specific/exhaustive event-route suites not rerun; relevant historical and demo regressions passed. Future anomaly adapter requires explicit schema/UTC/meter/channel/event/threshold/horizon/model provenance agreement and test-label isolation. No published/pushed/merged artifact or real fault-detection accuracy claim.
+
+Changed files: `AI_USE.md`, `DEVELOPMENT_LOG.md`, `README.md`, `docs/HISTORICAL_DATA.md`, `index.html`, `js/app.js`, `js/history-comparison.js`, `js/history-session.js`, `js/real-data.js`, `js/sections/buildings.js`, `js/sections/historical-overview.js`, `js/sections/historical.js`, `js/sections/real-buildings.js`, `tests/historical-browser.cjs`, `tests/historical-overview-browser.cjs`, `tests/historical-session.cjs`, `tests/history-catalog-browser.cjs`, `tests/history-comparison-browser.cjs`, `tests/real-buildings-browser.cjs`, `tests/test_derconnect_batch.py`, `tests/test_derconnect_export.py`, `tools/export_derconnect_batch.py`, `tools/export_derconnect_history.py`. Associated commits: none for this task.
+
+
+## 2026-11-18 — Correct Buildings presentation while retaining real integration
+
+Human: requesting team member (name not supplied). AI: OpenAI Codex. Base `e42bc946e28e5a20f96e938772989da5ef2aec7a`, branch `feature/derconnect-buildings-integration`; prior uncommitted work preserved. No commit/push/merge. The companion-page context contained null page/document values and no document content.
+
+Complete verbatim task prompt:
+
+`````text
+I want to correct the recent Buildings & Sub-grids integration. The functionality is heading in the right direction, but the layout was changed from the original demo design.
+
+**Important: Preserve the original Buildings & Sub-grids UI exactly as it appeared before the recent real-data integration. Do not redesign or simplify it.**
+
+### Main goal
+
+The original demo displayed individual building cards/boxes with their associated metrics, visualizations, and information.
+
+I want to keep that exact same card-based layout for both Demo and Real DERCONNECT modes.
+
+The only difference should be where the data comes from.
+
+### Expected behavior
+
+**1. Demo mode**
+
+- Preserve the original building cards and their layout exactly.
+- Continue displaying the existing synthetic building data, metrics, visualizations, and interactions.
+- Do not modify how Demo mode looks or behaves.
+
+**2. DERCONNECT mode — no exports loaded**
+
+- Preserve the same building card layout and visual structure.
+- Do not display fake buildings or synthetic measurements.
+- Show a clear empty state indicating that no DERCONNECT exports have been loaded.
+- Do not introduce a new page layout or replace the original building cards with a table or dropdown.
+
+**3. DERCONNECT mode — exports loaded**
+
+- Automatically discover the meters/buildings from the imported JSON exports.
+- Dynamically generate one building card per verified building, or one meter card when building information is unavailable.
+- Populate each card using the same components and layout as the original demo.
+- Display the actual meter/building name, metrics, power trends, daily demand profiles, and other supported visualizations.
+- Preserve the existing card interactions and navigation.
+- Support multiple imported meters, with each meter appearing in the existing card layout.
+- If multiple meters belong to the same verified building, group them appropriately without double-counting.
+
+### UI requirements
+
+- Do not redesign the Buildings & Sub-grids page.
+- Do not change the original card dimensions, grid arrangement, spacing, typography, styling, or visualization components.
+- Do not replace the original building cards with a dropdown, table, or different layout.
+- Do not remove existing visualizations.
+- Reuse the original demo components and populate them with real DERCONNECT data.
+- Use the original demo implementation from Git history as the visual reference if necessary.
+- Preserve all existing responsive behavior.
+
+### Data requirements
+
+- Continue using the existing DERCONNECT JSON export pipeline.
+- When a user loads exports, the existing building cards should populate automatically.
+- Show only actual available measurements and correctly calculated metrics.
+- Do not invent missing values, building mappings, anomaly counts, or visualizations.
+- If a metric requires anomaly detection, show an appropriate unavailable state rather than synthetic values.
+- Preserve multiple-export support and the shared data catalog.
+- Keep Demo and DERCONNECT data separate.
+
+### Implementation approach
+
+1. Inspect the original Buildings & Sub-grids implementation before the recent changes.
+2. Compare it with the current implementation.
+3. Identify which changes modified the original visual layout.
+4. Restore the original building card components and page structure.
+5. Connect the real DERCONNECT data to those existing components rather than building new UI components.
+6. Keep the new batch export script and data-loading functionality.
+7. Run available tests and build checks.
+
+### Important
+
+Do not revert the entire feature branch or discard the recent data integration work.
+
+Only restore the original Buildings & Sub-grids presentation while preserving the new real-data functionality.
+
+**Expected result:** The Buildings & Sub-grids section should look identical to the original demo, but when I switch to DERCONNECT mode and load exports, the same building boxes automatically populate with real meter information, metrics, and visualizations.
+
+Before editing, briefly explain which UI changes need to be reverted and how you will reuse the original components. Then implement the correction and verify the result.
+`````
+
+AI contributions: inspected the pre-integration Git UI and identified the replacement layout; explained the correction before edits; extracted the exact original directory-card component and reused original grid/profile/KPI/chart/disclosure classes in both sources; kept Demo markup/values/visualization behavior, real loading and batch pipeline; restored real card search/profile navigation, one meter card for phases/months, shared selection/dates and unavailable anomaly/context panels; added opt-in real timestamp/sample/tick support to the existing SVG chart with unchanged defaults; updated focused regression tests and documentation/records. No inferred building mapping, phase sums, energy or model output.
+
+Human contribution/review: requested exact original presentation and scope limits; provided no new mapping or measurement schema. No approval, domain confirmation or acceptance is invented; human review remains pending.
+
+Validation: exact commands/results in the same-date DEVELOPMENT_LOG.md correction entry. Git-reference Demo directory DOM and PNG bytes match at 1440/900/390px; Demo profile/SVG DOM matches. Focused card/import/profile/date/phase/gap/conflict/search/route/empty/advanced-panel/comparison/theme/mobile/reload and synthetic-isolation browser checks PASS, including five existing real exports as five cards. Broad demo (8 profiles/4 detectors/222 charts), navigation and all four historical browser suites PASS with no page/console errors. Regression/catalog/session/comparison unit checks and four batch exporter tests PASS. Python AST/JS syntax/whitespace/CSS-and-anomaly-boundary/privacy/append-only checks PASS. Test harness timing/status-slot/reference-count/selector/screenshot refinements are recorded; no assertions disabled. No new raw reconciliation, model experiment or dependency installation.
+
+Limitations: current schema has facility types only, so real cards identify meters and phases/months are grouped only by meter. Verified building grouping requires a reviewed mapping contract; extra unvalidated names are ignored. Missing forecasts/context/anomaly metrics remain unavailable in original slots. Session-only data and existing provenance/cadence/channel/capacity rules persist. Report/CSV-specific and exhaustive event-route suites were not separately rerun; relevant shared-component regressions passed.
+
+Changed this correction: `js/sections/buildings.js`, `js/sections/real-buildings.js`, `js/ui.js`, `js/charts.js`, `js/app.js`, `tests/real-buildings-browser.cjs`, `README.md`, `docs/HISTORICAL_DATA.md`, `DEVELOPMENT_LOG.md`, `AI_USE.md`. Associated commits: none.
+
+
+## 2026-11-18 — Buildings top control panel
+
+Human: requesting team member (identity not supplied). AI: OpenAI Codex. Base `e42bc946e28e5a20f96e938772989da5ef2aec7a`, branch `feature/derconnect-buildings-integration`. Previous uncommitted work preserved. No commit/push/merge.
+
+Complete verbatim user prompt:
+
+`````text
+Update the **Buildings & Sub-grids** page to match the top control-panel layout described below.
+
+The existing building cards, metrics, charts, and visualizations have already been fixed. **Do not modify or redesign anything below the new control panel.**
+
+### Layout
+
+At the top of the Buildings & Sub-grids page, directly below the page title and above the building cards, add one compact, visually grouped control panel using the dashboard's existing styling.
+
+The panel should contain:
+
+**1. Data Source Selector**
+
+- A segmented toggle with two options: **Prototype Data** and **Real DERCONNECT**.
+- The selected option should be visually highlighted.
+- Switching modes updates the data displayed in the existing building cards.
+
+**2. DERCONNECT Export Upload**
+
+- Display this directly below the data-source selector when Real DERCONNECT is selected.
+- Allow users to select one or multiple JSON exports.
+- Reuse the existing DERCONNECT export loader.
+- Show which files or meters have been loaded.
+- Automatically populate the existing building cards from those exports.
+
+**3. Date Range**
+
+- Below the export upload, display two date inputs side by side:
+  - **From**
+  - **To**
+- In Real DERCONNECT mode, initialize the date range using the available dates from the loaded exports.
+- Changing the dates should update the existing building metrics and charts.
+- In Prototype mode, retain the existing date-filtering behavior.
+
+### Visual design
+
+- Use one rounded container with a subtle background, matching the dashboard's existing design.
+- Place the data-source toggle across the top of the container.
+- Place the export upload directly underneath when applicable.
+- Place the From and To date inputs in a two-column row underneath.
+- Keep spacing compact and responsive.
+- Do not add separate control panels scattered throughout the page.
+
+### Important
+
+- Do not change the existing building card layout.
+- Do not recreate or replace any charts.
+- Do not modify anomaly detection functionality.
+- Do not remove the existing export integration.
+- Do not add a database or backend.
+- Only implement the top control panel and connect it to the existing functionality.
+
+**Expected result:** The page has one compact control panel at the top for switching between Prototype and Real DERCONNECT data, uploading exports, and selecting a date range. All existing building cards and visualizations remain exactly as they currently are.
+`````
+
+AI contributions: inspected existing controls and saved the current renderer baseline; consolidated source toggle/upload/date controls into one theme-styled top panel; reused existing segmented buttons, multi-export loader/shared catalog and original prototype date handler; initialized real dates from nonempty exports before metrics render; displayed loaded meters/counts and retained clear/full-range actions; hid duplicate legacy Buildings filters; updated focused/navigation tests, documentation and records. Demo, real card/research/profile renderers and chart/card implementations remain unchanged. No backend, model, data-generation or detection changes.
+
+Human contribution/review: supplied the exact requested panel layout and scope constraint; acceptance/review remains pending. No invented reviewer names, approvals or measurement claims.
+
+Validation: regression/session/catalog/comparison unit suites PASS. Focused browser checks PASS including top order, toggle highlight, conditional multiple upload, loaded-meter summary, real initial dates/empty dates, two-column responsiveness, original prototype date-state parity, date-driven metrics/charts, existing real cards/phase/search/conflict/comparison/navigation and five existing local real exports. Broad demo browser suite (8 profiles/4 detectors/242 charts) and updated navigation suite PASS, no page/console errors. Original card pixels and card/profile/SVG DOM remain tested against the fixed Git reference, with new panel space aligned before PNG comparison. A saved source-baseline comparison confirms unchanged below-panel renderer functions. All JS/CJS syntax, Python AST, diff/ignore/source-boundary/append checks PASS. Local synthetic panel screenshots inspected; no private measurements copied into records or Git. Exact commands and skipped checks are in DEVELOPMENT_LOG.md.
+
+Limitations: existing session-only catalog/schema/provenance assumptions persist; source selection still shares state with Overview. No raw reconciliation, Python behavioral suite, reporting/CSV suites or model runs repeated because corresponding source is unchanged. No new accuracy/real-fault inference.
+
+Changed this task: `js/sections/buildings.js`, `js/sections/real-buildings.js`, `js/app.js`, `css/styles.css`, `tests/real-buildings-browser.cjs`, `tests/section-navigation.cjs`, `README.md`, `docs/HISTORICAL_DATA.md`, `DEVELOPMENT_LOG.md`, `AI_USE.md`. Associated commits: none.

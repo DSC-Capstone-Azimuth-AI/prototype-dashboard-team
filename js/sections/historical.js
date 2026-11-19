@@ -13,7 +13,7 @@
   async function read(task) {
     const mine = ++token;
     loading = true; data = null; error = ""; from = ""; to = ""; redraw();
-    try { const next = await task(); if (mine === token) { H.session.replace(Array.isArray(next) ? next : [next], "historical loader"); data = H.session.selected; } }
+    try { const next = await task(); if (mine === token) { H.session.add(Array.isArray(next) ? next : [next], "historical loader"); data = H.session.selected; } }
     catch (err) { if (mine === token) { error = err instanceof SyntaxError ? "Historical export is not valid JSON." : err.message || "Could not read the historical export."; H.session.failed(error); } }
     finally { if (mine === token) { loading = false; redraw(); } }
   }
@@ -117,7 +117,7 @@
       ? "Synthetic test fixture — these are not actual DERConnect measurements."
       : "DERConnect historical measurements — single phase; no detector has run on this export." }));
     const controls = el("div", { class: "history-controls" }, H.session.productControl("history-product", () => { error = ""; redraw(); }));
-    for (const [label, value] of [["Meter / facility", `${data.meter_id} · ${data.facility_type}`], ["Channel", `${data.channel} (kW)`], ["Resolution", `${data.aggregation_minutes} minutes`]]) {
+    for (const [label, value] of [["Meter / facility", `${data.meter_id} · ${data.facility_type || 'Unavailable'}`], ["Channel", `${data.channel} (kW)`], ["Resolution", `${data.aggregation_minutes} minutes`]]) {
       controls.append(el("label", { class: "filter" }, el("span", { text: label }), el("select", { disabled: true, "aria-label": label }, el("option", { text: value }))));
     }
     const first = data.records[0], last = data.records[data.records.length - 1];
@@ -159,7 +159,7 @@
     grid.append(daily.card);
     periodPatterns(grid, records);
     const quality = DC.ui.card("Data quality and provenance", "Quality diagnostics describe measurements; they do not establish physical faults", { span: 12 });
-    quality.body.append(el("p", { text: `${data.source} · ${data.meter_id} (${data.facility_type}) · ${data.channel} · source W ÷ 1,000 = displayed kW. No phase or meter sums; facility type does not establish a building identity.` }),
+    quality.body.append(el("p", { text: `${data.source} · ${data.meter_id} (${data.facility_type || 'Unavailable'}) · ${data.channel} · source W ÷ 1,000 = displayed kW. No phase or meter sums; facility type does not establish a building identity.` }),
       el("p", { text: `Export [${data.start_utc}, ${data.end_utc}) · ${data.aggregation_minutes}-minute UTC bins · ${data.cadence_seconds}-second assumed cadence · minimum coverage ${DC.fmt.pct(data.minimum_coverage)}.` }),
       el("p", { id: "history-quality", text: `Selected scope: ${Object.entries(summary.reasons).map(([key, count]) => `${key}: ${count}`).join(" · ")}. Valid-slot coverage includes noncolliding finite observations in rejected bins; power summaries use usable bins only (${summary.support.toLocaleString()} samples).` }),
       el("p", { text: "Any repeated observation in a two-second slot withholds the entire bin, even if values agree. Missing readings remain gaps. Signs, calibration and electrical hierarchy remain unverified. Flatline screening is not included." }),
@@ -177,12 +177,13 @@
     root.append(el("div", { class: "section-head" }, el("div", { class: "section-eyebrow", text: "Observed-channel history" }),
       el("h2", { id: "h-historical", text: "Historical Monitoring" }), el("p", { text: "Explore a validated DERConnect meter/channel export independently of the synthetic anomaly demonstration. Local files are read in your browser and are not uploaded." })));
     const configured = document.querySelector('meta[name="derconnect-history"]')?.content.trim() || "";
-    const picker = DC.ui.card("Historical exports", "Choose monthly meter/phase JSON exports together (up to 120 files; 10 MB each, 60 MB combined). Successful loads replace the catalog; select all files you want to explore.");
+    const picker = DC.ui.card("Historical exports", "Add meter/phase JSON exports to the shared catalog (up to 120 files; 10 MB each, 60 MB per selection). Previous meters and dates are retained; conflicting overlap bins are withheld.");
     picker.body.append(el("input", { type: "file", id: "history-file", multiple: true, accept: ".json,application/json", "aria-label": "Choose historical JSON export", onchange: evt => {
       const files = Array.from(evt.target.files);
       if (files.length) read(() => H.catalog.readFiles(files));
     } }));
     if (configured) picker.body.append(el("button", { class: "btn", type: "button", text: "Reload configured export", onclick: () => read(() => H.load(configured)) }));
+    picker.body.append(el("button", { class: "btn", type: "button", id: "history-clear", text: "Clear loaded exports", onclick: () => { token++; loading = false; error = ""; H.session.clear(); redraw(); } }));
     root.append(picker.card, el("p", { id: "history-session-notice", role: "status", text: H.session.notice }));
     const comparisons = el("details", { class: "disclosure", open: comparisonOpen, ontoggle: evt => { comparisonOpen = evt.target.open; } }, el("summary", { text: "Compare historical exports" }));
     const comparisonHost = el("div"); comparisons.append(comparisonHost); root.append(comparisons);

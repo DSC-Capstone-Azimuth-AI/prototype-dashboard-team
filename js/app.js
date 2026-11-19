@@ -37,8 +37,8 @@
     const s = DC.state, detail = !!s.routeId;
     const primary = s.section === "overview" ? ["range", "building"] : s.section === "investigate" ? ["range", "building", "severity", "status"] : s.section === "models" ? ["detector", "range"] : (s.profile ? ["range", "detector"] : ["range"]);
     const filters = $("#filters");
-    const historicalOverview = s.section === "overview" && DC.history.session.source === "historical";
-    filters.hidden = historicalOverview || ["upload", "export", "historical"].includes(s.section) || (detail && s.section === "investigate");
+    const historicalOverview = ["overview", "buildings"].includes(s.section) && DC.history.session.source === "historical";
+    filters.hidden = historicalOverview || ["buildings", "upload", "export", "historical"].includes(s.section) || (detail && s.section === "investigate");
     $("#data-banner").hidden = historicalOverview || ["upload", "historical"].includes(s.section);
     for (const id of ["range", "subgrid", "building", "meter", "type", "severity", "status", "detector"]) {
       const node = $("#f-" + id).closest(".filter");
@@ -161,7 +161,7 @@
     buildFilters();
     const sec = DC.state.section;
     show(sec);
-    if (DC.state.routeId && ((sec === "investigate" && !DC.eventById(DC.state.routeId)) || (sec === "buildings" && !DC.buildingById[DC.state.routeId]))) {
+    if (DC.state.routeId && ((sec === "investigate" && !DC.eventById(DC.state.routeId)) || (sec === "buildings" && !DC.buildingById[DC.state.routeId] && !DC.realBuildings.isRoute(DC.state.routeId)))) {
       DC.clear($("#sec-" + sec)).append(DC.el("h2", { id: "h-" + sec, text: "Record unavailable" }), DC.el("p", { text: "This ID is not in the loaded dataset." }), DC.el("a", { href: "#" + sec, text: "Back to " + (sec === "buildings" ? "buildings" : "anomaly list") }));
       lastRenderRoute = sec + "/" + DC.state.routeId;
       finishRouteNavigation(); return;
@@ -249,6 +249,7 @@
       Object.assign(patch, DC.eventScope(DC.eventById(id)), { selected: id });
     }
     if (section === "buildings" && id && DC.buildingById[id]) patch.profile = id;
+    if (section === "buildings" && DC.realBuildings.isRoute(id)) DC.history.session.setSource('historical');
     routeFocusPending = true;
     DC.setState(patch);
   }
