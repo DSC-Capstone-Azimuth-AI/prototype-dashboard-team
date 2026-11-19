@@ -31,6 +31,10 @@ CADENCE = 2
 MAX_DAYS = 32
 
 
+def valid_meter(meter):
+    return isinstance(meter, str) and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,63}", meter) is not None
+
+
 def utc(value):
     stamp = pd.Timestamp(value)
     if pd.isna(stamp) or stamp.tzinfo is None:
@@ -111,8 +115,8 @@ def inputs(path, meter):
 def export_history(path, *, meter="E2451", channel="Active_Power_A", month=None,
                    start=None, end=None, minutes=15, minimum_coverage=0.8,
                    chunksize=25000, synthetic_fixture=False):
-    if meter not in METERS or channel not in ("Active_Power_A", "Active_Power_B", "Active_Power_C"):
-        raise ValueError("Select a documented meter and an individual active-power phase.")
+    if not valid_meter(meter) or channel not in ("Active_Power_A", "Active_Power_B", "Active_Power_C"):
+        raise ValueError("Select a safe meter ID and an individual active-power phase.")
     module_dir = Path(__file__).resolve().parent
     mapping_bytes = (module_dir.parent / "data/Meter Reading Mapping.csv").read_bytes()
     documented = dict((r.get("Register Name"), r.get("Units")) for r in csv.DictReader(io.StringIO(mapping_bytes.decode("utf-8-sig"))))
@@ -202,7 +206,7 @@ def export_history(path, *, meter="E2451", channel="Active_Power_A", month=None,
     diagnostics["cadence_collision_slots"] = int(collision.sum())
     return dict(schema_version=VERSION, dataset_type="historical_measurements", source="DERConnect",
                 measurement_kind="synthetic_fixture" if synthetic_fixture else "actual_measurements",
-                meter_id=meter, facility_type=METERS[meter], channel=channel, source_unit="W", display_unit="kW",
+                meter_id=meter, facility_type=METERS.get(meter), channel=channel, source_unit="W", display_unit="kW",
                 timezone=TIMEZONE, aggregation_minutes=minutes, cadence_seconds=CADENCE,
                 minimum_coverage=minimum_coverage, start_utc=iso(a), end_utc=iso(b), records=records,
                 provenance=dict(exporter="export_derconnect_history/1.0", input_kind=kind,
@@ -218,7 +222,7 @@ def export_history(path, *, meter="E2451", channel="Active_Power_A", month=None,
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--input", default=os.environ.get("DERCONNECT_DATA_PATH"))
-    p.add_argument("--meter", default="E2451", choices=METERS)
+    p.add_argument("--meter", default="E2451")
     p.add_argument("--channel", default="Active_Power_A", choices=["Active_Power_" + x for x in "ABC"])
     p.add_argument("--month")
     p.add_argument("--start")

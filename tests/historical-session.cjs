@@ -8,5 +8,15 @@ for(const invalid of [[{...a,schema_version:'invalid'}],[a,fixture({phase:'B',mi
 S.failed('invalid export');assert.match(S.notice,/Previous validated/);assert.equal(S.selected.source_exports[0],b);
 S.replace([a],'single');assert.equal(S.products.length,1);assert.equal(S.selected.source_exports[0],a);assert(!S.canCompare());S.requestComparison();assert(S.takeComparisonRequest());assert(!S.takeComparisonRequest());
 assert.equal(JSON.stringify(ctx.DC.state),JSON.stringify({building:'ENG'}));assert.throws(()=>S.select('missing'));assert.throws(()=>S.setSource('live'));
+// Incremental loads retain product/date selection and original record references.
+S.replace([a],'initial');S.scope('2026-01-02','2026-01-02');S.add([b],'additional');
+assert.equal(S.products.length,2);assert.equal(S.selected.meter_id,'E2451');assert.equal(S.selected.channel,'Active_Power_A');assert.equal(S.from,'2026-01-02');
+S.add([a],'identical');assert.equal(S.selected.catalog.identical_overlap_bins,a.records.length);assert.equal(S.selected.records[0],a.records[0]);
+const conflict=structuredClone(a);conflict.records[0].mean_kw+=.5;S.add([conflict],'conflict');assert.equal(S.selected.records[0].quality,'export_conflict');
+const before=S.products;assert.throws(()=>S.add([fixture({minutes:5})],'incompatible'));assert.equal(S.products,before);assert.equal(S.from,'2026-01-02');
+const unknown=fixture({meter:'E9000'});unknown.facility_type=null;S.add([unknown],'undocumented');assert(S.products.some(d=>d.meter_id==='E9000'&&d.facility_type===null));
+for(const meter of ['../x','__proto__','', 'x'.repeat(65)]){assert.throws(()=>H.validate({...unknown,meter_id:meter}));}
+assert.throws(()=>H.validate({...unknown,facility_type:'Office'}));
+S.clear();assert.equal(S.products.length,0);assert.equal(S.selected,null);assert.equal(S.from,'');
 for(const [start,date,n] of [['2026-03-08T08:00:00Z','2026-03-08',92],['2026-11-01T07:00:00Z','2026-11-01',100]]){S.replace([fixture({start,bins:n})],'DST');S.scope(date,date);assert.equal(H.select(S.selected,S.from,S.to).length,n);}
 console.log('PASS historical session identity/reference, replacement/date retention, failed-load retention, validation, shared dates/DST, source isolation and comparison request.');

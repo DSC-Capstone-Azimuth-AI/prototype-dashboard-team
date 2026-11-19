@@ -30,7 +30,7 @@ const base = process.env.DASHBOARD_URL || 'http://127.0.0.1:8000';
   const clickSection = async (page, section) => {
     await page.locator(`.tabs a[data-section="${section}"]`).click(); await settled(page, section);
     await alignedNavigation(page); await sectionInView(page);
-    const filtersVisible = await page.locator('#f-range').evaluate(n => {
+    const filtersVisible = await page.locator(section === 'buildings' ? '#buildings-prototype-from' : '#f-range').evaluate(n => {
       const rect = n.getBoundingClientRect(), header = document.querySelector('.app-header');
       const inset = getComputedStyle(header).position === 'sticky' ? header.getBoundingClientRect().height : 0;
       return rect.top >= inset && rect.bottom <= innerHeight;
@@ -129,7 +129,9 @@ const base = process.env.DASHBOARD_URL || 'http://127.0.0.1:8000';
     assert.equal(await page.evaluate(ids => {
       const flags = ids.map(id => DC.isOpen(DC.eventById(id))); return flags.every((open, i) => open || !flags.slice(i + 1).some(Boolean));
     }, preview), true, 'pending events precede reviewed events');
-    await page.selectOption('#f-range', '14');
+    const dates = await page.evaluate(() => [DC.time.isoDate(DC.META.n - 14 * 24), DC.time.isoDate(DC.META.n - 1)]);
+    await page.locator('#buildings-prototype-from').fill(dates[0]);
+    await page.locator('#buildings-prototype-to').fill(dates[1]);
     const sourceScope = await page.evaluate(() => ({ t0: DC.state.t0, t1: DC.state.t1, detector: DC.state.detector }));
     await screenshot(page, 'building-profile');
     await page.getByRole('link', { name: 'Review all building events' }).click(); await settled(page, 'investigate');

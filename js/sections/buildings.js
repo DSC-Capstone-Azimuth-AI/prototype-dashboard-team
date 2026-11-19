@@ -265,7 +265,7 @@
     ]) grid.append(el("details", { class: "disclosure span-12 analysis-group", open }, el("summary", { text: title }), el("div", { class: "grid cols-12" }, cards)));
   }
 
-  function render(root) {
+  function renderDemo(root) {
     DC.clear(root);
     const id = DC.state.profile, b = DC.buildingById[id], [t0, t1] = DC.range();
     const heading = el("div", { class: "section-head" }, el("div", { class: "section-eyebrow", text: b ? "Building profile" : "Location analysis" }), el("h2", { id: "h-buildings", text: b ? b.name : "Buildings" }), el("p", { text: b ? `${b.subgrid} · ${b.profile} simulated profile · ${b.id}` : "Find a building, check its electricity profile and review associated events." }));
@@ -279,13 +279,12 @@
         DC.clear(list);
         for (const building of DC.D.buildings.filter(x => x.name.toLowerCase().includes(search.value.toLowerCase()))) {
           const meters = DC.D.meters.filter(m => m.building === building.id), main = DC.mainMeter(building.id), events = eventsFor(building.id), pending = DC.sortEvents(events.filter(DC.isOpen), "priority");
-          list.append(el("article", { class: "card building-card" }, el("div", { class: "eyebrow", text: building.subgrid + " · " + building.id }),
-            el("h3", {}, el("a", { href: "#buildings/" + building.id, text: building.name })),
-            el("div", { class: "building-pending" }, el("strong", { text: pending.length }), el("span", { text: "events requiring review" })),
-            pending.length ? DC.sevBadge(pending[0].severity) : el("span", { class: "muted", text: meters.length ? "No pending events in this period" : "Status unavailable" }),
-            el("p", { class: "building-energy", text: main && main.actual.slice(t0, t1).some(Number.isFinite) ? `${DC.fmt.kwh(DC.energy(main, t0, t1))} · ${events.length} detected events` : "No simulated measurements" }),
-            el("p", { class: "muted", text: `${meters.length} simulated meters · ${meters.length ? DC.fmt.pct(DC.completeness(meters, t0, t1), 1) + " data completeness" : "Completeness unavailable"}` }),
-            el("a", { class: "action-link", href: "#buildings/" + building.id, text: "Open building profile →" })));
+          list.append(ui().buildingCard({ eyebrow: building.subgrid + " · " + building.id, name: building.name,
+            href: "#buildings/" + building.id, value: pending.length, label: "events requiring review",
+            status: pending.length ? DC.sevBadge(pending[0].severity) : el("span", { class: "muted", text: meters.length ? "No pending events in this period" : "Status unavailable" }),
+            measurement: main && main.actual.slice(t0, t1).some(Number.isFinite) ? `${DC.fmt.kwh(DC.energy(main, t0, t1))} · ${events.length} detected events` : "No simulated measurements",
+            completeness: `${meters.length} simulated meters · ${meters.length ? DC.fmt.pct(DC.completeness(meters, t0, t1), 1) + " data completeness" : "Completeness unavailable"}`,
+            action: "Open building profile →" }));
         }
         if (!list.children.length) list.append(el("p", { class: "empty", text: "No buildings match your search." }));
       };
@@ -326,5 +325,32 @@
     for (const m of meters) meterCard.body.append(el("p", { text: `${m.id} · ${m.kind === "main" ? "Main electricity meter" : "PV generation"} · ${m.unit}` })); root.append(meterCard.card);
   }
 
+  function render(root) {
+    const controls = el('div', { class: 'buildings-controls', id: 'buildings-controls', role: 'region', 'aria-label': 'Buildings controls' });
+    const source = ui().segmented([['synthetic', 'Prototype Data'], ['historical', 'Real DERCONNECT']], DC.history.session.source, value => {
+      DC.history.session.setSource(value);
+      if (DC.realBuildings.isRoute(DC.state.routeId)) DC.navigate('buildings'); else DC.setState({});
+    }, 'Buildings data source');
+    source.id = 'buildings-source'; controls.append(source);
+    if (DC.history.session.source === 'historical') DC.realBuildings.controls(controls);
+    else {
+      const dates = el('div', { class: 'buildings-date-range' });
+      for (const [label, key, value] of [['From', 'from', DC.time.isoDate(DC.state.t0)], ['To', 'to', DC.time.isoDate(DC.state.t1 - 1)]]) {
+        dates.append(el('label', { class: 'filter' }, el('span', { text: label }), el('input', {
+          type: 'date', id: 'buildings-prototype-' + key, value, min: DC.time.isoDate(0), max: DC.time.isoDate(DC.META.n - 1),
+          onchange: () => {
+            // Delegate to the existing date filter, including its bounds/clamping policy.
+            DC.$('#f-from').value = DC.$('#buildings-prototype-from').value;
+            DC.$('#f-to').value = DC.$('#buildings-prototype-to').value;
+            DC.$('#f-from').dispatchEvent(new Event('change', { bubbles: true }));
+          },
+        })));
+      }
+      controls.append(dates);
+    }
+    if (DC.history.session.source === 'historical') { DC.clear(root); DC.realBuildings.render(root); }
+    else renderDemo(root);
+    root.querySelector('.section-head').after(controls);
+  }
   DC.sections.buildings = { render };
 })();

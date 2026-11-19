@@ -30,7 +30,8 @@
   function validate(data) {
     if (!data || data.schema_version !== "1.0") fail("unsupported schema version (expected 1.0).");
     if (data.dataset_type !== "historical_measurements" || data.source !== "DERConnect") fail("unknown dataset type or source.");
-    if (!Object.hasOwn(METERS, data.meter_id) || METERS[data.meter_id] !== data.facility_type) fail("unknown meter or facility classification.");
+    if (typeof data.meter_id !== "string" || !/^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$/.test(data.meter_id) ||
+        (Object.hasOwn(METERS, data.meter_id) ? METERS[data.meter_id] !== data.facility_type : data.facility_type !== null)) fail("invalid meter or undocumented facility classification (use null when unknown).");
     if (!["Active_Power_A", "Active_Power_B", "Active_Power_C"].includes(data.channel)) fail("channel must be an individual active-power phase.");
     if (data.source_unit !== "W" || data.display_unit !== "kW" || data.timezone !== TZ) fail("units or campus timezone are unsupported.");
     if (!["actual_measurements", "synthetic_fixture"].includes(data.measurement_kind)) fail("measurement kind must be explicit.");

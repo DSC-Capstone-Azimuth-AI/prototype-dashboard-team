@@ -168,7 +168,7 @@ class ExportTests(unittest.TestCase):
 
     def test_invalid_configuration_and_input(self):
         self.path.write_text(csv_text([]))
-        for kwargs in [dict(meter="unknown"), dict(channel="P_total_mean"), dict(minutes=7),
+        for kwargs in [dict(meter="../unknown"), dict(channel="P_total_mean"), dict(minutes=7),
                        dict(minimum_coverage=-1), dict(minimum_coverage=float("nan")), dict(chunksize=0),
                        dict(start="2026-01-01", end="2026-01-02"),
                        dict(start="2026-01-01T00:01:00Z", end="2026-01-02T00:00:00Z"),
