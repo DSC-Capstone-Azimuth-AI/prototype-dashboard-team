@@ -5465,3 +5465,476 @@ Validation: regression/session/catalog/comparison unit suites PASS. Focused brow
 Limitations: existing session-only catalog/schema/provenance assumptions persist; source selection still shares state with Overview. No raw reconciliation, Python behavioral suite, reporting/CSV suites or model runs repeated because corresponding source is unchanged. No new accuracy/real-fault inference.
 
 Changed this task: `js/sections/buildings.js`, `js/sections/real-buildings.js`, `js/app.js`, `css/styles.css`, `tests/real-buildings-browser.cjs`, `tests/section-navigation.cjs`, `README.md`, `docs/HISTORICAL_DATA.md`, `DEVELOPMENT_LOG.md`, `AI_USE.md`. Associated commits: none.
+
+
+
+## 2026-11-19 - Hourly Chronos-2 evidence in Real DERCONNECT meter profiles
+
+The request was supplied as pasted text. Its opening update authorizes the committed CSV bundle and supersedes the earlier location and file-handling text in the prompt.
+
+`````text
+IMPORTANT UPDATE — GitHub setup is complete.
+
+The three Chronos-2 CSV files and their README have been committed and pushed to the dashboard repository.
+
+Repository: [https://github.com/DSC-Capstone-Azimuth-AI/prototype-dashboard-team](https://github.com/DSC-Capstone-Azimuth-AI/prototype-dashboard-team)
+
+Working branch: `feature/chronos2-hourly-exports`
+
+Commit: `533dcec`
+
+Actual model data location: `data/anomaly/chronos2-ft-5k/`
+
+We have authorization to include these DERCONNECT-derived exports in our repository. Use these committed files as the source for this implementation. Ignore earlier instructions suggesting the files are unavailable or must remain in `local-data/`.
+
+Continue working on the existing `feature/chronos2-hourly-exports` branch rather than starting another branch.
+
+CRITICAL: Implement the functionality in Buildings & Sub-grids → Real DERCONNECT → meter profile, NOT Historical Monitoring.
+
+First inspect the current implementation and both teams' GitHub repositories, then implement the hourly Chronos-2 integration described below.
+
+
+
+# Implement Chronos-2 anomaly detection in Buildings & Sub-grids — Real DERCONNECT
+
+## Objective
+
+We are the dashboard team for UC San Diego's DSC 180A/B capstone with Azimuth AI. We are building a DERCONNECT electricity monitoring and anomaly investigation dashboard.
+
+Our anomaly detection team has provided real DERCONNECT hourly forecasts, anomaly scores, detection flags, and detected events for five meters.
+
+**Your task is to integrate these outputs directly into the existing Buildings & Sub-grids → Real DERCONNECT experience, beginning with meter E2451.**
+
+This should produce a working, interactive, end-to-end demonstration without disrupting any existing functionality.
+
+## Repositories — inspect both before coding
+
+Primary dashboard repository:
+[https://github.com/DSC-Capstone-Azimuth-AI/prototype-dashboard-team](https://github.com/DSC-Capstone-Azimuth-AI/prototype-dashboard-team)
+
+Anomaly detection team repository:
+[https://github.com/DSC-Capstone-Azimuth-AI/chronos2-sarsim0-anomaly-team](https://github.com/DSC-Capstone-Azimuth-AI/chronos2-sarsim0-anomaly-team)
+
+Reinspect their current main branches, recent commits, READMEs, relevant documentation, and implementation.
+
+Read our `AGENTS.md` first and follow its collaboration, testing, and documentation requirements.
+
+Review Matthew's recent dashboard integration, PR #17:
+[https://github.com/DSC-Capstone-Azimuth-AI/prototype-dashboard-team/pull/17](https://github.com/DSC-Capstone-Azimuth-AI/prototype-dashboard-team/pull/17)
+
+Examine the actual code and runtime behavior rather than relying solely on this prompt.
+
+## CRITICAL: Where this feature belongs
+
+**Implement the feature in:**
+
+Buildings & Sub-grids → Real DERCONNECT → individual meter profile.
+
+For example, selecting E2451 should open its real-meter profile, which will now include the anomaly team's forecasts and detections.
+
+The primary files to inspect are:
+
+- `js/sections/buildings.js`
+- `js/sections/real-buildings.js`
+- `js/charts.js`
+- `js/real-data.js`
+- `js/history-session.js`
+- `js/store.js`
+- `js/app.js`
+- `index.html`
+- `css/styles.css`
+
+### DO NOT implement this feature in Historical Monitoring
+
+Historical Monitoring was an earlier exploratory workflow and is not the intended destination for this integration.
+
+Do not add the model outputs to the Historical Monitoring page, replace its controls, or reorganize that section.
+
+You may reuse shared charting or data-loading utilities, but the new model-backed functionality should appear within the **real DERCONNECT meter profiles in Buildings & Sub-grids**.
+
+Also preserve the existing synthetic Prototype Data experience and its separate anomaly investigation/evaluation logic.
+
+## Current dashboard state
+
+Our dashboard is a static HTML/CSS/JavaScript application with custom SVG charts, deployed using GitHub Pages.
+
+Do not introduce React, Streamlit, another frontend framework, or a backend.
+
+Matthew recently added:
+
+- Prototype Data / Real DERCONNECT source toggle
+- Real historical meter profiles
+- Multi-meter measurement loading
+- Individual-phase power trends
+- Daily load profiles
+- Measurement quality and completeness indicators
+- Date controls and comparison capabilities
+
+In the current real E2451 meter profile, the dashboard has a chart titled "Actual vs. expected electricity demand."
+
+However, only observed Phase A electricity demand is available.
+
+It also contains a "Building anomalies" section that currently says anomaly detection is not connected.
+
+**Those are the existing components we want to extend.**
+
+Avoid rebuilding the entire interface. Reuse its visual style, layout, navigation, controls, and charting primitives.
+
+## Current anomaly detection team progress
+
+The anomaly team's repository implements forecast-based anomaly detection with Chronos-2, PatchTST-FM, and statistical baselines.
+
+They have delivered model-generated results from a fine-tuned Chronos-2 model, `chronos2-ft-5k`.
+
+Their detector provides:
+
+- Actual measured power
+- Expected power as forecast quantiles
+- Anomaly scores
+- Detection thresholds and binary flags
+- Grouped candidate anomaly events
+- Event start/end times and durations
+- Direction relative to the expected demand
+
+Their model does NOT yet reliably classify anomaly types or diagnose underlying electrical faults.
+
+All detected events must be described as **candidate anomalies**, not confirmed faults.
+
+Their scores are not probabilities or standardized severity values.
+
+Review these anomaly-team files:
+
+- `scripts/export_dashboard.py`
+- `configs/anomaly/derconnect-hourly.yaml`
+- `docs/derconnect.md`
+- `docs/derconnect-output-contract.md`
+- `schemas/derconnect/v1/contract.json`
+
+Importantly, the supplied CSVs use the flat schema defined by `scripts/export_dashboard.py`, which differs from the newer DERCONNECT v1 Parquet contract.
+
+Implement against the actual supplied CSV schemas, not an assumed Parquet schema.
+
+## Supplied model data
+
+The files are available locally under:
+
+`local-data/anomaly/chronos2-ft-5k/`
+
+Containing:
+
+- `chronos2-ft-5k-events.csv`
+- `chronos2-ft-5k-forecasts.csv`
+- `chronos2-ft-5k-predictions.csv`
+- `README.md`
+
+These are real DERCONNECT-derived exports.
+
+**Do not commit, push, or publicly deploy these files.** The dashboard repository explicitly prohibits committing private measurements and derived tables.
+
+The `local-data/` directory is already Git-ignored. Retain that protection.
+
+If the local files are not present in your execution environment, clearly report this and implement a local file-selection workflow or test with explicitly synthetic fixtures. Do not fabricate real model results.
+
+### Export contents
+
+The files cover five meters:
+
+E2451, E3020, E3510, E7080, E7085.
+
+They contain 16,350 hourly predictions/forecasts and 106 candidate events overall.
+
+The initial integration should focus on E2451, which has 21 recorded candidate events.
+
+The data spans January–May 2026. January–February is used for assumed-normal threshold calibration; March–May is the detection period.
+
+Only `period = detection` should contribute to displayed anomaly counts.
+
+### forecasts.csv
+
+Columns:
+
+`meter, time_local, time_utc, model, actual_kw, q01, q05, q10, q20, q30, q40, q50, q60, q70, q80, q90, q95, q99`
+
+- `actual_kw`: observed hourly total active power
+- `q50`: expected demand (median forecast)
+- `q10`–`q90`: nominal 80% predictive interval
+- `q01`–`q99`: nominal 98% predictive interval
+
+### predictions.csv
+
+Columns:
+
+`meter, time_local, time_utc, model, actual_kw, score, threshold, flag, period, filled`
+
+- `score`: raw anomaly score
+- `threshold`: threshold for the associated detector
+- `flag`: model anomaly indicator
+- `period`: calibration or detection
+- `filled`: interpolated observation indicator
+
+### events.csv
+
+Columns:
+
+`event_id, meter, model, start, end, start_utc, end_utc, duration_h, peak_time, peak_score, peak_actual_kw, peak_expected_kw, direction`
+
+Events contain:
+
+- Stable IDs
+- UTC start/end times
+- Duration in hours
+- Peak score
+- Actual and expected power at peak
+- Direction: above, below, or mixed
+
+Event intervals are half-open: start inclusive, end exclusive.
+
+## Important signal and timestamp considerations
+
+Matthew's current historical real-data viewer handles individual phases:
+
+`Active_Power_A`, `Active_Power_B`, `Active_Power_C`.
+
+The anomaly team's supplied predictions use **hourly total active power (A+B+C)**.
+
+Do not overlay total-power predictions on Phase A measurements.
+
+Instead, add a separate, clearly labeled **Model Analysis — Total Active Power** visualization within the existing real-meter profile.
+
+Use `actual_kw` from the supplied forecasts file as the matching observed total-power series, and `q50` as the expected value.
+
+Preserve the existing phase-specific chart and quality display.
+
+The model README states the values are in kW. Preserve their stated provenance and note that source measurement calibration has not been independently verified by our team.
+
+Use `time_utc` as the authoritative alignment key for forecasts and predictions.
+
+Display dates in America/Los_Angeles time.
+
+Account for the March 8, 2026 daylight-saving transition: interpolated local timestamps may lack valid UTC instants. Exclude invalid timestamps from UTC joins rather than inventing timestamp values.
+
+Never silently substitute synthetic data when real model output is unavailable.
+
+## Implementation requirements
+
+### 1. Build a standalone, reusable hourly anomaly-output adapter
+
+Create a small JavaScript module that loads and validates the supplied CSV outputs.
+
+Use the existing CSV parsing infrastructure when practical.
+
+Requirements:
+
+- Validate column schemas.
+- Parse numeric fields safely.
+- Validate meter/model identity.
+- Handle missing/invalid timestamps.
+- Join forecasts and predictions by meter, model, and UTC timestamp.
+- Associate grouped events with matching meter/model and their half-open time intervals.
+- Preserve the calibration/detection distinction.
+- Track interpolated observations.
+- Support selection by meter and date range.
+- Expose a clean interface to the Buildings & Sub-grids real-data view.
+- Avoid unnecessary repeated loading and parsing.
+
+Prefer loading local files through an explicit browser file picker, enabling the same static GitHub Pages application to work without committing private data.
+
+If supporting local HTTP paths too, require an explicit configuration and warn that private data must not be placed on publicly accessible hosting.
+
+Keep the adapter separate from the synthetic data model and from the existing phase-level historical data contract.
+
+### 2. Integrate into the real DERCONNECT meter profile
+
+When a user opens Buildings & Sub-grids and switches to Real DERCONNECT, the existing meter profile should remain intact.
+
+Enhance it with a dedicated model analysis area.
+
+Suggested heading:
+
+**Chronos-2 Anomaly Detection — Total Active Power**
+
+Show the model name, meter ID, hourly resolution, and selected time range.
+
+Add:
+
+- Actual total power
+- Expected total power
+- Optional 80% forecast interval
+- Clearly marked candidate anomaly intervals
+- Hover details and an accessible legend
+
+Use our existing chart utilities wherever practical.
+
+Ensure a good visual experience in light/dark themes and on narrow screens.
+
+### 3. Connect the existing Building anomalies area
+
+The real-meter profile currently states that anomaly detection is unavailable.
+
+When compatible outputs are loaded, replace that placeholder with an event summary based on the supplied data.
+
+Display:
+
+- Candidate event count in the selected detection window
+- Event timestamps
+- Duration
+- Peak anomaly score
+- Direction above/below/mixed
+
+Do not manufacture high/critical severity counts.
+
+Do not treat missing detector outputs as zero anomalies.
+
+If the user selects an unsupported meter or date range, display an appropriate empty or unavailable state.
+
+### 4. Enable an interactive event investigation
+
+When users select a candidate event, provide an investigation panel within the **Buildings & Sub-grids real-meter profile**.
+
+Show:
+
+- Event ID
+- Meter and model
+- Start/end timestamps
+- Duration
+- Peak score
+- Actual vs. expected at peak
+- Direction
+- Surrounding time-series context
+
+Highlight the selected event on the chart.
+
+Provide a clear "Unclassified candidate anomaly" description and note that detection does not establish root cause.
+
+Do not modify the existing synthetic Anomaly Investigation page unless a narrowly scoped shared utility requires adjustment.
+
+### 5. Support all five meters
+
+E2451 is the initial demonstration target, but the supplied model export contains five meters.
+
+Avoid hardcoded E2451-only application logic.
+
+Allow the model results to follow the selected real DERCONNECT meter, provided that meter exists in the supplied model data.
+
+Do not infer building ownership, subgrid topology, or additional meter metadata that is not verified.
+
+### 6. Keep the first iteration focused
+
+Out of scope:
+
+- Running or retraining Chronos-2
+- Using 2-second model outputs
+- Integrating a real-time API
+- Anomaly type classification
+- Automatic fault diagnosis
+- Unsupported severity levels
+- Energy-cost estimation
+- Full multi-model comparisons
+- Major redesign of Historical Monitoring
+- Refactoring the entire dashboard architecture
+
+The first milestone is simply a working, coherent integration of one model's hourly outputs.
+
+## Expected user workflow
+
+A user should be able to:
+
+1. Open the dashboard.
+2. Navigate to Buildings & Sub-grids.
+3. Select Real DERCONNECT.
+4. Load/select the DERCONNECT meter E2451.
+5. Load the model's hourly CSVs if necessary.
+6. View actual vs. expected total power from Chronos-2.
+7. See candidate anomalous intervals highlighted.
+8. Select a candidate event.
+9. Inspect its score, duration, actual/expected power, and surrounding measurements.
+
+This must happen within the **Buildings & Sub-grids real-data workflow**, not Historical Monitoring.
+
+The prototype data interface and existing phase-power chart must still work.
+
+## Testing and validation
+
+Inspect existing test infrastructure before creating tests.
+
+Add tests for:
+
+- Correct parsing of the three CSVs
+- Expected row/event counts
+- Correct E2451 filtering
+- Calibration versus detection periods
+- UTC timestamp alignment
+- Daylight-saving exceptions
+- Missing/interpolated measurements
+- Half-open event boundaries
+- Unsupported meter and no-data states
+- The model-backed visualization
+- Existing data source toggle and meter navigation
+- Preservation of the synthetic prototype and Historical Monitoring workflows
+
+Use synthetic fixtures for committed automated tests rather than publishing sensitive measurements.
+
+Run appropriate JS syntax, Node, browser, responsive, and regression checks. Review the complete diff and document any skipped tests.
+
+## Git and documentation requirements
+
+Work on a dedicated feature branch.
+
+Do not push or merge without my approval.
+
+Do not modify or remove teammates' unrelated changes.
+
+Follow `AGENTS.md`, including its required `DEVELOPMENT_LOG.md` and `AI_USE.md` records.
+
+Keep private measurement values out of documentation and logs committed to the repository.
+
+## Deliverables
+
+At the end, report:
+
+1. What you found in the current architecture of both repositories.
+2. How the new model-output adapter works.
+3. Files modified and created.
+4. How to access the integration in Buildings & Sub-grids.
+5. A walkthrough of the E2451 model visualization and event investigation.
+6. Automated tests run and their results.
+7. Unresolved issues or assumptions.
+8. Recommended next steps for Quarter 2.
+
+## Definition of done
+
+Within **Buildings & Sub-grids → Real DERCONNECT**, selecting meter E2451 provides a working hourly Chronos-2 visualization with:
+
+**Observed total power → Expected power → Highlighted candidate anomalies → Event investigation with score and duration.**
+
+The original phase-specific measurements and synthetic prototype remain available and functioning.
+
+Implement this carefully, validate the results, and keep the pull request small and reviewable.
+`````
+
+
+OpenAI Codex reviewed the two repository heads and PR #17, implemented the hourly CSV adapter and real-meter chart/investigation, tested synthetic fixtures and the authorized exports, and updated the usage and development records. The requesting team member supplied the branch, source authorization, model handoff and acceptance criteria. Human review remains pending.
+
+Validation covered the aggregate output counts, UTC/DST joins, period filtering, interpolation, date availability, event navigation and responsive real-meter charts, alongside phase and historical/synthetic regressions. DEVELOPMENT_LOG.md records exact commands, versions, results and skipped work. Real individual-phase exports were unavailable in this workspace, and source measurement calibration and event classification remain unverified.
+
+Changed files include index.html, css/styles.css, js/csv.js, js/charts.js, js/chronos2.js, js/sections/real-buildings.js, js/sections/chronos-buildings.js, tests/chronos2.cjs, tests/chronos-buildings-browser.cjs, tests/fixtures/chronos2.cjs, tests/real-buildings-browser.cjs, README.md, DEVELOPMENT_LOG.md and AI_USE.md.
+
+Base commit is 533dcecc26b2f78ce4e85e5a2197d582c5bfd514 on feature/chronos2-hourly-exports. No associated implementation commit was made.
+
+### 2026-11-19 — Chronos-2 branch handoff
+
+`````text
+The implementation looks complete, but I need it available on GitHub so I can test it on my Mac.
+
+Please commit and push all completed Chronos-2 dashboard integration changes to the existing `feature/chronos2-hourly-exports` branch.
+
+Before committing, inspect the current Git status and diff, ensure all new JavaScript modules, tests, CSS, HTML changes, and documentation are included, and run the relevant tests.
+
+Do not include `.DS_Store` files, overwrite teammates' work, or merge into `main`.
+
+After pushing, give me the new commit SHA and confirm that the remote branch contains the implementation.
+`````
+
+The requesting team member reviewed the prior handoff and authorized a push to the existing feature branch. Codex reviewed the complete diff, applied one indentation correction in `js/sections/chronos-buildings.js`, appended both records, and reran JavaScript, adapter and Chromium regressions. The preceding implementation entry lists the files included in the integration. The development log records the commands and passing results. Mac browser testing remains with the requesting team member.
+
+The commit containing this record is the implementation commit, based on `533dcec`.

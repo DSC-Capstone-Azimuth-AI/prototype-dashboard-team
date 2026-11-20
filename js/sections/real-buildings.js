@@ -1,7 +1,7 @@
 /* Real measurements in the original Buildings directory/profile components. */
 (function () {
   'use strict';
-  const DC = window.DC, H = DC.history, S = H.session, el = DC.el;
+  const DC = window.DC, H = DC.history, S = H.session, el = DC.el, model = DC.chronosBuildings;
   const fmt = v => v === null ? 'Unavailable' : DC.fmt.kw(v);
   const redraw = () => DC.setState({});
   const prefix = 'derconnect:';
@@ -16,6 +16,7 @@
       if (!groups.has(d.meter_id)) groups.set(d.meter_id, []);
       groups.get(d.meter_id).push(d);
     }
+    for (const meter of model.bundle?.meters || []) if (!groups.has(meter)) groups.set(meter, []);
     return Array.from(groups, ([id, products]) => ({ id, name: id, products }));
   }
   function product(entry) {
@@ -62,6 +63,7 @@
     const first = sources.length ? sources.reduce((a, d) => a < d.start_utc ? a : d.start_utc, sources[0].start_utc) : '';
     const last = sources.length ? sources.reduce((a, d) => a > d.records.at(-1).timestamp_utc ? a : d.records.at(-1).timestamp_utc, sources[0].records.at(-1).timestamp_utc) : '';
     if (first && !S.from && !S.to) S.scope(H.localDay(first), H.localDay(last));
+    const modelRange = model.bundle, hasDates = first || modelRange;
     const upload = el('div', { class: 'buildings-export-upload' });
     upload.append(el('label', { for: 'buildings-history-files', text: 'DERCONNECT exports' }),
       el('div', { class: 'buildings-control-actions' },
@@ -72,18 +74,25 @@
         catch (err) { if (mine === token) { error = err.message; S.failed(error); } }
         finally { if (mine === token) { loading = false; redraw(); } }
       } }), el('button', { type: 'button', class: 'btn', id: 'buildings-history-clear', text: 'Clear loaded exports', disabled: !S.products.length && !loading, onclick: () => { token++; loading = false; error = ''; S.clear(); redraw(); } })),
-      el('p', { class: 'muted', id: 'buildings-loaded-meters', text: S.products.length ? 'Loaded meters: ' + entries().map(e => e.id).join(', ') + ` · ${S.products.reduce((n, d) => n + d.source_exports.length, 0)} export(s)` : 'No DERCONNECT exports loaded.' }));
+      el('p', { class: 'muted', id: 'buildings-loaded-meters', text: S.products.length ? 'Loaded meters: ' + entries().filter(e => e.products.length).map(e => e.id).join(', ') + ` · ${S.products.reduce((n, d) => n + d.source_exports.length, 0)} export(s)` : 'No phase measurement exports loaded.' }));
     root.append(upload);
+    model.controls(root);
     const dates = el('div', { class: 'buildings-date-range' });
-    for (const [label, key, value] of [['From', 'from', S.from], ['To', 'to', S.to]]) dates.append(el('label', { class: 'filter' }, el('span', { text: label }), el('input', { type: 'date', id: 'buildings-history-' + key, value, disabled: !first,
+    for (const [label, key, value] of [['From', 'from', S.from], ['To', 'to', S.to]]) dates.append(el('label', { class: 'filter' }, el('span', { text: label }), el('input', { type: 'date', id: 'buildings-history-' + key, value, disabled: !hasDates,
       onchange: evt => { S.scope(key === 'from' ? evt.target.value : S.from, key === 'to' ? evt.target.value : S.to); redraw(); } })));
-    root.append(dates, el('div', { class: 'buildings-control-actions' }, el('button', { type: 'button', class: 'btn', text: 'Full available range', disabled: !first, onclick: () => { S.scope('', ''); redraw(); } })),
+    root.append(dates, el('div', { class: 'buildings-control-actions' }, el('button', { type: 'button', class: 'btn', text: 'Full available range', disabled: !hasDates, onclick: () => {
+      const from = first ? H.localDay(first) : modelRange?.from;
+      const to = last ? H.localDay(last) : modelRange?.to;
+      if (modelRange) S.scope(from < modelRange.from ? from : modelRange.from, to > modelRange.to ? to : modelRange.to);
+      else S.scope('', '');
+      redraw();
+    } })),
       el('p', { role: 'status', class: 'muted', id: 'buildings-history-notice', text: loading ? 'Loading DERCONNECT exports…' : S.notice }));
     if (error) root.append(el('p', { role: 'alert', class: 'csv-status rejected', id: 'buildings-history-error', text: error }));
   }
   function research(root, list) {
     const grid = el('div', { class: 'grid cols-12' }); root.append(grid);
-    const all = list.map(entry => ({ entry, d: product(entry) }));
+    const all = list.filter(entry => entry.products.length).map(entry => ({ entry, d: product(entry) }));
     const d = S.selected || all[0]?.d;
     const mean = panel('Electricity consumption', 'Energy unavailable; compare observed mean phase power in kW', null, 4);
     const chart = el('div', { class: 'chart', id: 'buildings-history-comparison' }); mean.body.append(chart);
@@ -114,11 +123,13 @@
     function draw() {
       DC.clear(grid);
       for (const entry of list.filter(e => e.name.toLowerCase().includes(search.value.toLowerCase()))) {
-        const d = product(entry), summary = H.summarize(rowsFor(d));
-        const card = DC.ui.buildingCard({ eyebrow: (d.measurement_kind === 'synthetic_fixture' ? 'Synthetic fixture · ' : 'Meter · ') + entry.id, name: entry.name, href: href(entry.id),
-          value: fmt(summary.mean), label: 'average observed power', status: el('span', { class: 'muted', text: 'Anomaly detection unavailable' }),
-          measurement: `Peak sample: ${fmt(summary.peak)} · ${d.channel}`,
-          completeness: `${entry.products.length} loaded phase${entry.products.length === 1 ? '' : 's'} · ${DC.fmt.pct(summary.coverage, 1)} data coverage`, action: 'Open meter profile →' });
+        const d = product(entry), summary = d && H.summarize(rowsFor(d));
+        const supported = model.bundle?.meters.includes(entry.id);
+        const card = DC.ui.buildingCard({ eyebrow: (d?.measurement_kind === 'synthetic_fixture' ? 'Synthetic fixture · ' : 'Meter · ') + entry.id, name: entry.name, href: href(entry.id),
+          value: fmt(summary?.mean ?? null), label: 'average observed phase power',
+          status: el('span', { class: 'muted', text: supported ? 'Chronos-2 hourly analysis available' : 'Anomaly detection unavailable' }),
+          measurement: d ? `Peak sample: ${fmt(summary.peak)} · ${d.channel}` : 'No phase measurement exports loaded.',
+          completeness: d ? `${entry.products.length} loaded phase${entry.products.length === 1 ? '' : 's'} · ${DC.fmt.pct(summary.coverage, 1)} data coverage` : '', action: 'Open meter profile →' });
         card.dataset.realMeter = entry.id; grid.append(card);
       }
       if (!grid.children.length) grid.append(el('p', { class: 'empty', id: list.length ? 'buildings-history-search-empty' : 'buildings-history-empty', text: list.length ? 'No meters match your search.' : 'No DERCONNECT exports have been loaded. Add JSON exports below; available meter cards will appear automatically.' }));
@@ -129,21 +140,28 @@
     root.append(details); if (researchOpen) research(details.lastChild, list);
   }
   function profile(root, entry) {
-    const d = product(entry); if (S.selected !== d) S.select(d.meter_id + '/' + d.channel);
-    const rows = rowsFor(d), summary = H.summarize(rows);
     root.prepend(el('nav', { class: 'breadcrumbs', 'aria-label': 'Breadcrumbs' }, el('a', { href: '#buildings', text: '← All buildings' })));
+    const d = product(entry);
+    if (!d) {
+      root.append(el('p', { class: 'muted', id: 'buildings-history-kind', text: 'Add an individual-phase JSON export for this meter to view phase power and measurement quality.' }));
+      model.append(root, entry.id);
+      return;
+    }
+    if (S.selected !== d) S.select(d.meter_id + '/' + d.channel);
+    const rows = rowsFor(d), summary = H.summarize(rows);
     root.append(el('p', { class: 'muted', id: 'buildings-history-kind', text: d.measurement_kind === 'synthetic_fixture' ? 'Synthetic test fixtures — not actual DERCONNECT measurements.' : 'Real DERCONNECT historical measurements — signs and calibration remain unverified.' }),
       el('p', { class: 'muted', id: 'buildings-history-available', text: `${d.meter_id} · ${d.channel} · kW · ${d.aggregation_minutes}-minute bins · America/Los_Angeles (PST/PDT). Facility classification: ${d.facility_type || 'unavailable'}. Building and sub-grid identity unavailable.` }));
     const stats = el('div', { class: 'kpis' });
-    for (const [label, value] of [['Events requiring review', 'Unavailable'], ['High / critical events', 'Unavailable'], ['Data completeness', DC.fmt.pct(summary.coverage, 4)], ['Electricity use', 'Unavailable']]) stats.append(el('div', { class: 'card kpi' }, el('div', { class: 'label', text: label }), el('div', { class: 'value', text: value })));
+    const facts = [['Data completeness', DC.fmt.pct(summary.coverage, 4)], ['Electricity use', 'Unavailable']];
+    if (!model.bundle?.meters.includes(entry.id)) facts.unshift(['Events requiring review', 'Unavailable'], ['High / critical events', 'Unavailable']);
+    for (const [label, value] of facts) stats.append(el('div', { class: 'card kpi' }, el('div', { class: 'label', text: label }), el('div', { class: 'value', text: value })));
     root.append(stats);
-    const anomalies = unavailable(panel('Building anomalies', 'Detector outputs unavailable', 'building-anomalies'), 'Anomaly detection is not connected for these measurements. Counts, severity and event review are unavailable.');
-    anomalies.body.firstChild.id = 'buildings-detector-unavailable'; root.append(anomalies.card);
     const demand = panel('Actual vs. expected electricity demand', `${d.meter_id} · ${d.channel} · observed kW; expected demand unavailable`, 'building-demand');
     demand.body.append(el('p', { class: 'demand-summary' }, 'Average observed power: ', el('span', { 'data-buildings-history-fact': 'Average observed power', text: fmt(summary.mean) }), ` · Peak observed sample: ${fmt(summary.peak)}.`));
     const node = el('div', { class: 'chart', id: 'buildings-history-chart' }); demand.body.append(node, DC.ui.legend([{ kind: 'line', color: DC.css('--actual'), label: 'Actual' }])); root.append(demand.card);
     if (!rows.length) node.append(el('p', { class: 'empty', id: 'buildings-history-empty-range', text: 'No intervals match these campus dates. Check date order or select Full available range.' }));
     else requestAnimationFrame(() => { if (node.isConnected) powerChart(node, rows, d); });
+    model.append(root, entry.id);
     const history = panel('Historical comparison', 'Daily demand profile from observed power; clean-history comparison unavailable');
     dailyChart(history, d, rows); history.body.append(el('p', { class: 'card-foot', text: 'Sample-weighted mean by campus hour; repeated DST hours retain their support. Missing/rejected bins remain gaps. No clean-history baseline is inferred.' })); root.append(history.card);
     const meters = panel('Available meters', 'Loaded phases for this meter; no phase totals or building mapping inferred');
@@ -157,7 +175,7 @@
   }
   function render(root) {
     const list = entries(), id = isRoute(DC.state.routeId) ? DC.state.routeId.slice(prefix.length) : null, entry = list.find(e => e.id === id);
-    root.append(el('div', { class: 'section-head' }, el('div', { class: 'section-eyebrow', text: entry ? 'Meter profile' : 'Location analysis' }), el('h2', { id: 'h-buildings', text: entry ? entry.name : 'Buildings' }), el('p', { text: entry ? `DERCONNECT · ${entry.id} · historical measured power` : 'Find a meter, check its electricity profile and review available measurements.' })));
+    root.append(el('div', { class: 'section-head' }, el('div', { class: 'section-eyebrow', text: entry ? 'Meter profile' : 'Location analysis' }), el('h2', { id: 'h-buildings', text: entry ? entry.name : 'Buildings' }), el('p', { text: entry ? `DERCONNECT · ${entry.id} · historical power profile` : 'Find a meter, check its electricity profile and review available measurements.' })));
     if (entry) profile(root, entry); else directory(root, list);
   }
   DC.realBuildings = { render, controls, entries, isRoute };

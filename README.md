@@ -532,13 +532,12 @@ meter IDs/export counts, and initializes dates from loaded campus-date bounds.
 Later additions retain an explicitly selected date scope; **Full available range**
 restores all loaded dates. **Clear loaded exports** starts a new catalog. Prototype
 dates reuse the existing filter handler and its range limits. The legacy filter
-bar is hidden on Buildings to avoid duplicate controls. With no exports, the
-same directory/search structure displays an empty state and no placeholder buildings.
-Anomaly/forecast/energy panels retain their original slots with unavailable states.
+bar is hidden on Buildings to avoid duplicate controls. The directory shows an empty
+state when neither phase exports nor the Chronos-2 bundle are available.
+Phase-level forecasts and energy remain unavailable. See the hourly Chronos-2 analysis below.
 Original advanced analysis groups remain available; supported profiles, sample peaks
 and same-phase comparisons use measured data. The synchronized comparison action opens
-Historical Monitoring with the current dates. No energy, inferred sub-grid totals,
-forecasts or real anomaly counts are calculated. Exports supply facility **types**,
+Historical Monitoring with the current dates. The phase measurement exports supply facility **types**,
 not verified names or topology, so meter IDs identify selections. Unknown meter IDs
 are accepted with `facility_type: null`; no building relationship is guessed.
 
@@ -559,3 +558,32 @@ Checks: `python3 -B -m unittest discover -s tests -p 'test_derconnect_batch.py'`
 `node tests/historical-session.cjs`, and (with Playwright, browser and local server)
 `node tests/real-buildings-browser.cjs`. See DEVELOPMENT_LOG.md for actual outcomes
 and the distinction between synthetic tests and local real-export checks.
+
+### Chronos-2 hourly candidate anomalies in real meter profiles
+
+Serve the dashboard over local HTTP and open **Buildings & Sub-grids → Real DERCONNECT**.
+Open **E2451** or any of the four other Chronos-2 meters. All five can open a model
+profile before you add phase JSONs. Add the matching phase exports to see the existing
+phase chart, daily profile and data quality in the same meter profile. Use **Full
+available range** to include both the model and phase export dates if the phase catalog
+has already initialized a shorter range.
+
+The **Chronos-2 Anomaly Detection — Total Active Power** card compares the export's
+observed total (A+B+C) with its median forecast in source-reported kW. Its optional
+nominal 80% band uses q10–q90. Dates and hover timestamps use America/Los_Angeles,
+and rows without a valid UTC hour are excluded. **Building anomalies** counts grouped
+candidate events in the selected detection dates. Select a row or highlighted hour to
+inspect its interval, duration, raw score, observed and expected peak values, direction,
+and available hourly context. January and February include assumed-normal calibration
+data. A candidate event is unclassified and requires facilities evidence to establish a cause.
+
+The `derconnect-chronos2` metadata in `index.html` explicitly configures the authorized
+same-origin CSV bundle under `data/anomaly/chronos2-ft-5k/`. The bundle loads once per page
+session when Real DERCONNECT opens. If the URL is unavailable or the metadata is omitted,
+choose the three CSVs together in Buildings controls. Keep other private exports in local
+storage and off publicly served paths.
+
+Run `node --test tests/chronos2.cjs` and, with the local server running and Playwright
+installed, `node tests/chronos-buildings-browser.cjs`. Set
+`CHRONOS_EXPORT_DIR=data/anomaly/chronos2-ft-5k` for the Node aggregate checks and
+`CHRONOS_REAL=1` for the browser walkthrough with the configured export.

@@ -152,5 +152,5 @@
     return r;
   }
 
-  DC.csv = { validate, MAX_BYTES, REQUIRED };
+  DC.csv = { validate, records, parseTimestamp, MAX_BYTES, REQUIRED };
 })();

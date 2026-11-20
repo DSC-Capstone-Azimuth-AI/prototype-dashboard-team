@@ -10,6 +10,11 @@ const originalRevision='e42bc946e28e5a20f96e938772989da5ef2aec7a';
   try{
     const context=await browser.newContext({viewport:{width:1440,height:1000}}),page=await context.newPage(),reference=await context.newPage(),errors=[];
     for(const p of [page,reference]){p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error')errors.push(m.text());});await p.emulateMedia({reducedMotion:'reduce'});}
+    // Exercise the existing phase-only workflow with the model bundle unconfigured.
+    await page.route(url=>url.pathname===new URL(base).pathname,async route=>{
+      const response=await route.fetch();
+      await route.fulfill({response,body:(await response.text()).replace(/<meta name="derconnect-chronos2"[^>]+>/,'')});
+    });
     // Compare with actual pre-integration components, not a newly invented reference.
     for(const file of ['js/sections/buildings.js','js/charts.js','js/ui.js'])await reference.route('**/'+file,route=>route.fulfill({contentType:'application/javascript',body:execFileSync('git',['show',originalRevision+':'+file],{encoding:'utf8'})}));
     const go=async(section,p=page)=>{await p.locator(`.tabs a[data-section="${section}"]`).click();await p.waitForFunction(s=>DC.state.section===s&&!document.querySelector('#main-content').hasAttribute('aria-busy'),section);};
