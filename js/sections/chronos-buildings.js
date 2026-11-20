@@ -240,7 +240,7 @@
 
   function eventTable(events, selected, view, options = {}) {
     const compact = options.compact === true;
-    const headings = ['Start', 'Duration', 'Usage difference (kW)', 'Action'];
+    const headings = ['Start', 'Duration', 'Usage difference (kW)', 'Status', 'Action'];
     const head = el('thead', {}, el('tr', {}, headings.map(text => el('th', { scope: 'col', text,
       title: text === 'Usage difference (kW)' ? usageHelp : null }))));
     const body = el('tbody', {}, events.map(event => {
@@ -250,6 +250,8 @@
       const cells = [el('td', {}, DC.realAnomalies.eventLink(event, time),
         compact ? el('div', { class: 'muted', text: event.meter }) : null),
         el('td', { text: event.duration + ' h' }), el('td', { text: usageText(difference), title: difference === null ? 'Unavailable' : difference + ' kW · actual minus expected' }),
+        el('td', {}, el('span', { class: 'status', title: 'Saved operator review status in this browser only',
+          text: DC.realReview.statusLabel(options.statuses ? options.statuses.get(event.id) : DC.realReview.savedStatus(S.bundle.reviewIdentity, event)) })),
         el('td', {}, el('button', { type: 'button', class: 'btn', 'aria-pressed': String(active), 'aria-label': 'Inspect event on ' + H.stamp(event.start),
           'data-focus-key': event.id, text: compact ? 'Inspect' : active ? 'Selected' : 'Inspect', onclick: () => setEvent(view, event) }))];
       return DC.ui.eventRow(event.id, active, () => S.open(event), ...cells);
@@ -276,7 +278,9 @@
         if (right === null) return -1;
         return Math.abs(right) - Math.abs(left);
       } };
-    const events = scope.events.slice().sort(order[view.order]);
+    const review = DC.realReview.tableView(S.bundle.reviewIdentity, scope.events, 'chronos-review-filter', () => { view.logTop = 0; redraw(); });
+    const events = review.events.slice().sort(order[view.order]);
+    c.tools.append(review.control);
     c.tools.append(el('select', { class: 'mini-select', id: 'chronos-event-sort', 'aria-label': 'Sort candidate events',
       onchange: event => { view.order = event.target.value; view.logTop = 0; redraw(); } },
     [['date', 'Oldest first'], ['newest', 'Newest first'], ['duration', 'Longest duration'], ['score', 'Largest usage difference']].map(([value, text]) =>
@@ -288,11 +292,12 @@
         view.list = list; view.logTop = 0; redraw();
       }, 'Event list dates'),
       el('p', { class: 'ink2', id: 'chronos-event-count', text: scope.scoredHours ?
-        scope.events.length + (scope.events.length === 1 ? ' candidate event' : ' candidate events') +
+        events.length + ' of ' + scope.events.length + ' candidate events match review status' +
           (scope.skipped.events ? ' matched · total unavailable' : ' · ' + DC.fmt.int(scope.scoredHours) + ' scored detection hours') :
         'No scored detection hours in this range.' })));
-    c.body.append(el('p', { class: 'muted', text: usageHelp }));
-    if (events.length) c.body.append(eventTable(events, selected, view));
+    c.body.append(review.note, el('p', { class: 'muted', text: usageHelp }));
+    if (events.length) c.body.append(eventTable(events, selected, view, { statuses: review.statuses }));
+    else c.body.append(el('p', { class: 'empty', text: 'No candidate events match the selected dates and review status.' }));
     return c.card;
   }
 

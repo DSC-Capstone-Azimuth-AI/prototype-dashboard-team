@@ -7218,3 +7218,26 @@ needs to change it to usage difference too
 `````
 
 User supplied the follow-up; Codex updated Overview's recent-events score column to Usage difference (kW), removed its separate Direction column, and reused the existing exported actual-minus-expected calculation/formatter via a shared wrapper. Preserved recent order/limit, filters, styling and navigation; added the same help text. Changed `js/sections/real-anomalies.js`, `js/sections/chronos-buildings.js` (formatter export), `index.html` (cache versions), `README.md`, `DEVELOPMENT_LOG.md`, `AI_USE.md`. Existing uncommitted work retained. Source/diff review and `git diff --check` only; no tests written, modified or run, following the preceding request. No browser/syntax execution; runtime appearance and human acceptance remain unverified. No model/data/threshold/grouping changes. No associated commit, push or deployment.
+
+## 2026-11-19 — Saved operator-review status in real event tables
+
+Verbatim user prompt:
+
+`````
+Add review status to real DERCONNECT event tables in both Anomaly Investigation and Buildings & Sub-grids.
+
+- Reuse the existing operator-review storage and status values: Not reviewed, In review, Follow-up needed, Reviewed.
+- Default events without a saved review to Not reviewed.
+- Add a Status column and status filter to both tables.
+- Edit status through the existing event-investigation review section.
+- After saving, update the corresponding table status and filtered results consistently.
+- Keep reviews separate from measurements and model outputs.
+- Clearly state that statuses are saved in this browser only.
+- Preserve existing filters, navigation, styling, and synthetic behavior.
+
+Preserve uncommitted work and follow applicable repository instructions. Make only the necessary edits; do not write or run tests. Briefly report changes. Do not commit, push, or deploy.
+`````
+
+User supplied requirements; Codex inspected instructions/status and reused validated real review records plus the shared table. Added saved-status reads, the existing four statuses, Not reviewed for absent records, a shared session status filter, neutral status pills, browser-only guidance, filtered counts/empty state, and refresh after a successful detail-form save. Unsaved draft edits do not alter table statuses; unavailable/corrupt storage is explicitly unavailable. Preserved the staged/uncommitted work and index, measurements/model results, synthetic review paths, existing date/meter filters, sorting and navigation.
+
+Changed `js/real-review.js`, `js/sections/chronos-buildings.js`, `js/sections/real-anomalies.js`, `index.html`, `README.md`, `DEVELOPMENT_LOG.md`, `AI_USE.md`. Validation was source/incremental-diff review and `git diff --check` only. No tests written/modified/run and no browser/syntax execution as requested; runtime themes/mobile and human acceptance remain unverified. Saved statuses are browser/site-local, review filters session-only; no shared multi-user storage or model/ground-truth updates. No new staging, commit, push or deployment. Base and detailed review are recorded in DEVELOPMENT_LOG.md.

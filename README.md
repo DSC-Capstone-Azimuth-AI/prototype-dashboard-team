@@ -698,6 +698,11 @@ are unavailable. The Buildings largest-difference sort uses absolute kW differen
 with unavailable values last. Start links, row click/Enter/Space and Inspect resolve
 the same event ID. Technical detector scores remain in Detection details.
 Meter/date scope and event-detail context remain separate.
+Both tables also show saved operator-review Status with a shared status filter.
+Events without a saved review are Not reviewed. Save changes through the event's
+Building Manager / Operator Review section; unsaved drafts do not affect the lists.
+Statuses are saved in this browser only, independently of model outputs. Unreadable
+saved statuses show Unavailable and are excluded from specific status filters.
 Overview's Recent candidate event activity uses the same exported usage difference
 and help text, with direction included in the value instead of a separate column.
 

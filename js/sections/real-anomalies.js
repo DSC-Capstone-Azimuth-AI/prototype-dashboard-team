@@ -71,10 +71,16 @@
     const c = DC.ui.card(limited ? 'Recent candidate event activity' : 'Candidate event log',
       'Grouped historical detections · unverified potential anomalies', { span: 12 });
     c.card.id = id;
+    const review = limited ? null : DC.realReview.tableView(S.bundle.reviewIdentity, scope.events, 'real-investigate-review-filter', () => { eventLogView.logTop = 0; redraw(); });
+    const events = review ? review.events : scope.events;
+    if (review) {
+      c.tools.append(review.control);
+      c.body.append(review.note, el('p', { class: 'muted', text: events.length + ' of ' + scope.events.length + ' candidate events match review status.' }));
+    }
     c.body.append(el('p', { class: 'muted', id: limited ? 'real-overview-usage-help' : 'real-event-usage-help', text: DC.chronosBuildings.usageHelp }));
-    if (scope.events.length) c.body.append(limited ? table(scope.events.slice(0, 5), id + '-table') :
-      DC.chronosBuildings.eventTable(scope.events, S.event(S.state.selected), eventLogView, { compact: true, id: id + '-table' }));
-    else c.body.append(el('p', { class: 'empty', text: 'No grouped candidate events match these meter and campus dates.' }));
+    if (events.length) c.body.append(limited ? table(events.slice(0, 5), id + '-table') :
+      DC.chronosBuildings.eventTable(events, S.event(S.state.selected), eventLogView, { compact: true, id: id + '-table', statuses: review.statuses }));
+    else c.body.append(el('p', { class: 'empty', text: limited ? 'No grouped candidate events match these meter and campus dates.' : 'No grouped candidate events match these meters, campus dates and review status.' }));
     if (scope.skippedEvents) c.body.append(el('p', { class: 'note-box', text: scope.skippedEvents + ' exported intervals lack usable UTC bounds or matching detection hours; only matched events are shown.' }));
     if (scope.unscoredHours && !limited) c.body.append(el('p', { class: 'muted', text: scope.unscoredHours + ' detection hours have incomplete scores, thresholds or flags.' }));
     if (limited) c.tools.append(el('a', { class: 'btn', href: '#investigate', text: 'Review all candidate events →' }));

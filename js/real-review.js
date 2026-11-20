@@ -22,6 +22,30 @@
         typeof record.savedAt !== 'string' || !Number.isFinite(Date.parse(record.savedAt))) throw Error('Stored review is invalid; it has not been overwritten.');
     return record;
   }
+  function savedStatus(identity, event) {
+    const scoped = identityFor(identity, event);
+    if (!scoped) return null;
+    try {
+      return parseRecord(window.localStorage.getItem(keyFor(scoped)), scoped)?.review.status ?? 'not_reviewed';
+    } catch (_) { return null; }
+  }
+  const statusLabel = value => statuses.find(([id]) => id === value)?.[1] ?? 'Unavailable';
+  let listStatus = 'all';
+  function tableView(identity, events, id, onChange) {
+    // Read persisted reviews, never the editable per-event drafts or model records.
+    const saved = new Map(events.map(event => [event.id, savedStatus(identity, event)]));
+    const select = el('select', { id, class: 'mini-select', onchange: event => {
+      listStatus = event.target.value; onChange();
+    } }, [['all', 'All statuses'], ...statuses].map(([value, text]) => el('option', { value, text, selected: value === listStatus })));
+    const unavailable = [...saved.values()].some(value => value === null);
+    return {
+      statuses: saved,
+      events: listStatus === 'all' ? events : events.filter(event => saved.get(event.id) === listStatus),
+      control: el('label', { class: 'filter', for: id }, el('span', { text: 'Status' }), select),
+      note: el('p', { class: 'muted', text: 'Review statuses are saved in this browser only. Edit status in the event’s Building Manager / Operator Review section and save the review.' +
+        (unavailable ? ' Some saved statuses could not be read; they are shown as Unavailable and excluded from specific status filters.' : '') }),
+    };
+  }
   function open(identity, event) {
     const scoped = identityFor(identity, event);
     if (!scoped) return null;
@@ -101,10 +125,13 @@
     const name = el('input', { id: fieldId('reviewer'), type: 'text', maxlength: limits.reviewer, autocomplete: 'off', value: state.fields.reviewer, oninput: evt => set('reviewer', evt.target.value) });
     form.append(el('label', { for: name.id, text: 'Reviewer name (optional)' }), name, indicator,
       el('button', { type: 'submit', class: 'btn primary', text: 'Save review' }), feedback, lastSaved);
-    form.addEventListener('submit', evt => { evt.preventDefault(); save(state); refreshFeedback(); });
+    form.addEventListener('submit', evt => {
+      evt.preventDefault(); const saved = save(state); refreshFeedback();
+      if (saved) DC.setState({});
+    });
     section.append(form,
       el('p', { class: 'muted', text: 'Saved reviews stay in this browser’s localStorage for this site only; they are not shared multi-user records. Unsaved drafts stay with their event during dashboard navigation. Save before reloading or closing. This tab requests a browser warning while drafts are unsaved. A run fingerprint of the three loaded CSV files separates re-exported or changed data from earlier reviews.' }));
     refreshFeedback(); return section;
   }
-  DC.realReview = { open, update, save, dirty, hasUnsaved, render, keyFor, identityFor };
+  DC.realReview = { open, update, save, dirty, hasUnsaved, render, keyFor, identityFor, savedStatus, statusLabel, tableView };
 })();
