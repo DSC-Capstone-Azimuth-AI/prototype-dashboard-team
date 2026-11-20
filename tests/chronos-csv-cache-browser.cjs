@@ -75,7 +75,7 @@ const server = createServer(async (request, response) => {
     assert.match(await page.locator('#chronos-event-count').textContent(), /^21 candidate events/);
     await page.locator('#chronos-event-list button').first().click();
     await page.locator('#chronos-context-chart svg').waitFor();
-    assert.match(await page.locator('#chronos-event').textContent(), /Peak raw score.*Observed at peak.*Expected at peak/);
+    assert.match(await page.locator('#chronos-event').textContent(), /Observed at peak.*Expected at peak.*Peak raw score/);
     assert.deepEqual(errors, []);
     console.log('PASS cached CSV upgrade, automatic loading of three committed CSVs, five meters, and E2451 chart and event investigation.');
   } finally {

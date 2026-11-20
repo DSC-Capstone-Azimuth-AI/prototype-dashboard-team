@@ -5962,3 +5962,671 @@ Commit and push the fix to `feature/chronos2-hourly-exports`. Do not merge into 
 `````
 
 The requesting team member supplied the failing Mac scenario, acceptance criteria, and authorization to push to the existing feature branch. Codex traced the CSV API, reproduced the failure using Chromium with a cached previous Git asset, updated the script URL, and added the real-browser cache upgrade regression. The development log records the validation results. The affected files are `index.html`, `tests/chronos-csv-cache-browser.cjs`, `README.md`, `DEVELOPMENT_LOG.md` and `AI_USE.md`. The commit containing this entry records the fix, based on `3ababb5`. Mac verification remains pending.
+
+
+### 2026-11-19 — Real DERCONNECT dashboard refinement
+
+`````text
+# DSC 180 Capstone — Final Real DERCONNECT Dashboard UX/UI Refinement
+
+## Mission
+
+We have successfully integrated the anomaly detection team's hourly Chronos-2 outputs into our UC San Diego DSC 180A/B capstone dashboard for Azimuth AI.
+
+The first implementation is functional. All five DERCONNECT meters are accessible, the forecast and actual power measurements render, candidate anomaly intervals are highlighted, and users can select an event to investigate it.
+
+**Now I want a polished, professional, cohesive dashboard experience that is consistent with our existing synthetic Prototype Data interface.**
+
+This task should emphasize usability, information hierarchy, readability, navigation, and interaction—not changes to the underlying anomaly detection algorithms.
+
+We are approaching the transition into Quarter 2, so the result should be impressive enough to demonstrate to our project mentor, professor, and industry partner, while remaining technically accurate and maintainable.
+
+## 1. Start by inspecting the current repositories
+
+Primary repository:
+
+https://github.com/DSC-Capstone-Azimuth-AI/prototype-dashboard-team
+
+Current working branch:
+
+`feature/chronos2-hourly-exports`
+
+Reference anomaly detection repository:
+
+https://github.com/DSC-Capstone-Azimuth-AI/chronos2-sarsim0-anomaly-team
+
+Before editing:
+
+- Read `AGENTS.md` and the latest development documentation.
+- Inspect the current branch, working tree, and relevant commits.
+- Review the current synthetic Buildings & Sub-grids interface, including its building cards, typography, colors, date controls, summary metrics, and profile layouts.
+- Review the Real DERCONNECT meter directory and meter profiles.
+- Inspect the Chronos-2 data adapter and model visualization components.
+- Review our existing charting, table, and investigation components.
+- Identify reusable UI patterns from the synthetic experience.
+- Examine the relevant tests and existing regression coverage.
+
+Important implementation files include:
+
+`js/sections/real-buildings.js`
+
+`js/sections/chronos-buildings.js`
+
+`js/chronos2.js`
+
+`js/sections/buildings.js`
+
+`js/sections/investigate.js`
+
+`js/charts.js`
+
+`js/ui.js`
+
+`js/history-session.js`
+
+`css/styles.css`
+
+`index.html`
+
+Do not make assumptions about the architecture without inspecting the code.
+
+Preserve our dependency-free HTML/CSS/JavaScript and custom SVG architecture. Do not migrate to React, Streamlit, a dashboard framework, or a backend.
+
+## 2. The current state of our project
+
+Our dashboard has two distinct Buildings & Sub-grids data experiences.
+
+### Prototype Data
+
+This is our existing synthetic demonstration.
+
+It includes:
+
+- Eight demonstration buildings
+- Eleven simulated meters
+- Searchable building cards
+- Prominent actionable metrics
+- Detection event counts
+- Severity and priority indicators
+- Electrical consumption summaries
+- Historical patterns and charts
+- Event investigation
+- Advanced building/subgrid analysis
+
+The UI is visually attractive and organized.
+
+Use it as our **primary internal design reference**.
+
+In particular, pay attention to the building cards: each building has a clear name, a prominent metric, secondary details, and an obvious action to open the profile.
+
+### Real DERCONNECT
+
+This is our actual-data workflow.
+
+It now supports five DERCONNECT meters:
+
+E2451, E3020, E3510, E7080, E7085.
+
+Model output files are already committed at:
+
+`data/anomaly/chronos2-ft-5k/`
+
+The three model CSVs load automatically.
+
+The model currently provides:
+
+- Hourly actual total active power in kW
+- Median forecast (`q50`)
+- Forecast quantiles, including `q10` and `q90`
+- Anomaly scores and thresholds
+- Detection flags
+- Grouped candidate anomaly events
+- Event duration, timestamps, and direction
+
+There are 106 candidate events across the five meters, including 21 for E2451.
+
+The model uses an assumed-normal calibration period before March 2026 and a detection period from March through May.
+
+We have no confirmed anomaly labels or verified fault diagnoses.
+
+**Do not invent anomaly types, severity classifications, probability scores, root causes, precision, recall, or F1 for real DERCONNECT data.**
+
+The existing real-data interface works, but it is less polished than the synthetic interface.
+
+The following design and interaction improvements are the focus of this task.
+
+## 3. Redesign the Real DERCONNECT meter directory
+
+### Current problem
+
+Each meter card prominently displays:
+
+"Unavailable"
+
+This refers to phase measurement exports not being loaded.
+
+However, we already have hourly Chronos-2 model output available for every meter.
+
+To an operator, "Unavailable" makes it look like the meter or model isn't functioning.
+
+### Required improvement
+
+Redesign the real meter cards using the same design language as the synthetic building cards.
+
+For each meter, prioritize:
+
+- Meter identifier, such as E2451
+- Number of candidate anomaly events during the applicable detection period
+- A clear indication that Chronos-2 hourly analysis is available
+- Optional secondary facts derived from available model data
+- An obvious "Open meter profile" action
+
+Use concise language and strong visual hierarchy.
+
+Suggested structure:
+
+**E2451**
+
+21 candidate events
+
+Chronos-2 · Hourly total power
+
+Model outputs available
+
+Phase measurements: Not loaded
+
+Open meter profile
+
+The exact presentation is up to you, provided it remains consistent with the synthetic cards.
+
+### Important rules
+
+- Do not treat candidate events as confirmed problems.
+- Do not copy synthetic severity indicators into real cards.
+- Distinguish model data availability from phase measurement availability.
+- Do not display "Unavailable" as the primary metric when valid model outputs exist.
+- Preserve the ability to list meters introduced by validated phase exports, even if those meters lack model results.
+- The search field should filter meters correctly.
+- Maintain responsive card layouts.
+
+## 4. Remove the prominent Choose Files workflow from the primary UI
+
+This is a significant usability problem.
+
+Currently, switching to Real DERCONNECT places a large panel containing:
+
+- DERCONNECT exports
+- Choose Files
+- Clear loaded exports
+- From and To dates
+- Full available range
+
+at the top of the screen.
+
+This makes the dashboard appear unfinished, even though the committed Chronos-2 model data is already available.
+
+### Desired behavior
+
+When a user clicks **Real DERCONNECT**, they should immediately see the meter directory, not an import workflow.
+
+The Chronos-2 CSVs should continue loading automatically.
+
+We still want to support importing additional phase measurements, but this should be a secondary action.
+
+### Proposed solution
+
+Move phase measurement loading and management into a collapsible section such as:
+
+**Advanced data management**
+
+or
+
+**Load additional phase measurements**
+
+Within that section, retain:
+
+- Validated historical phase JSON upload
+- Loaded export status
+- Clear loaded exports
+- Relevant data provenance and error messages
+- Any existing necessary measurement controls
+
+Keep the ability to manually load replacement Chronos-2 CSVs as a secondary fallback if automatic loading fails.
+
+Do not remove the underlying data import functionality.
+
+Do not break Historical Monitoring or its separate file-loading workflow.
+
+### Date filters
+
+Keep useful date controls accessible, but don't force users to interact with them before viewing data.
+
+Separate everyday date exploration from advanced data import.
+
+## 5. Improve the Real DERCONNECT meter profile
+
+The current profile starts with a large controls panel and an instruction about importing phase JSON files.
+
+I would rather have the user immediately see useful meter information and analysis.
+
+### Proposed layout
+
+**Header**
+
+Meter E2451
+
+DERCONNECT · Chronos-2 hourly total active power
+
+Clear indication of the model and measurement period.
+
+**Summary metrics**
+
+A compact row of useful, defensible values.
+
+Candidates include:
+
+- Candidate events in selected detection period
+- Scored detection hours
+- Mean observed total power for selected valid readings
+- Peak observed total power for selected valid readings
+
+Use only values directly supported by the supplied CSVs, with accurate scope and units.
+
+Avoid implied confirmed fault counts or inaccurate consumption totals.
+
+**Primary analysis**
+
+Actual vs. expected total active power chart.
+
+**Event investigation**
+
+Anomaly events and selected-event context.
+
+**Additional measurements**
+
+Optional phase-specific historical information, when phase JSON exports are loaded.
+
+**Advanced information**
+
+Model provenance, calibration assumptions, data quality, and methodology.
+
+This is a suggested structure, not a mandatory rigid layout. Use your judgment to produce the cleanest design using our existing components.
+
+## 6. Improve the actual-versus-expected chart
+
+### Current problem
+
+The chart initially displays approximately four and a half months of hourly values.
+
+This produces a dense, difficult-to-read visualization in which actual and expected power overlap.
+
+The underlying chart is useful, but the default presentation is too broad.
+
+### Desired improvements
+
+Add clear date-range presets:
+
+- 7 days
+- 30 days
+- Full range
+- Custom dates, where appropriate
+
+I recommend 7 days as the default for exploratory viewing, preferably beginning at the first meaningful detection-period window or another deterministic, documented starting point.
+
+Avoid implicitly calling historical May 2026 data "live" or "current."
+
+Allow switching to the full dataset easily.
+
+Use the existing campus-date infrastructure where appropriate, but don't let stale synthetic date filters accidentally hide the real model data.
+
+### Better chart interaction
+
+- Actual and expected lines must be visually distinct.
+- Keep the optional 80% predictive band.
+- Highlight candidate anomaly intervals clearly but subtly.
+- Provide readable hover tooltips with time, actual, expected, score, threshold, and applicable data quality information.
+- Allow clicking a detected interval to open that event.
+- Avoid connecting lines across missing UTC hours.
+- Preserve appropriate daylight-saving handling.
+- Support different viewport sizes.
+- Reuse existing SVG chart utilities instead of introducing a new library.
+
+The full-range view should remain available for broad trend inspection, but focused time windows should provide the primary readable experience.
+
+## 7. Make event selection automatically focus the relevant chart
+
+This is one of the most important improvements.
+
+Currently, clicking a candidate event opens a contextual chart, which works well.
+
+For example, the March 26 E2451 event showed:
+
+- Start: March 26, 2026, 10:00 PM PDT
+- Duration: 1 hour
+- Peak score: approximately 9.33
+- Observed power: approximately 58.6 kW
+- Expected power: approximately 101.7 kW
+- Direction: below expected
+
+The contextual chart is excellent because it clearly shows the observed power dropping below the forecast.
+
+### Improve the interaction
+
+When the user selects a candidate event:
+
+1. The event becomes visibly selected.
+2. Its details appear in a well-organized panel.
+3. The contextual chart highlights the selected interval.
+4. The main chart, when practical, focuses on the event and its surrounding time window.
+5. Users can easily return to their previous chart range.
+6. Users can select the next or previous event without repeatedly scrolling through a large list.
+
+Preserve the existing event detail chart and its valid time-series logic.
+
+Do not alter the event detection results or recalculate the detector's event boundaries.
+
+Prefer a coherent interaction between the main chart, event list, and detail view.
+
+## 8. Redesign the event list
+
+### Current problem
+
+E2451 displays 21 candidate events in a dense grid of small cards with long, repetitive timestamps.
+
+The data is correct, but the presentation is difficult to scan.
+
+### Desired design
+
+Use the existing synthetic anomaly event log as inspiration.
+
+A clean sortable table would likely work better.
+
+Suggested fields:
+
+| Date / Start | Duration | Peak score | Direction | Action |
+|---|---|---|---|---|
+| Mar 26, 2026 · 10 PM | 1 h | 9.33 | Below expected | Inspect |
+| Mar 27, 2026 · 5 AM | 1 h | 7.46 | Above expected | Inspect |
+
+The full event list must remain accessible.
+
+Consider allowing sorting by:
+
+- Start date
+- Duration
+- Raw score
+
+If supporting raw-score sorting, clearly state that this is ranking by detector score within the same model, not validated operational severity.
+
+Avoid excessive badges, repeated labels, or unsupported critical/high severity indicators.
+
+### Selected-event presentation
+
+Display the selected event's:
+
+- Event ID
+- Date and start/end times
+- Duration
+- Peak score
+- Observed vs. expected at peak
+- Direction
+- Context chart
+
+Give observed and expected power particularly prominent visual treatment.
+
+Provide concise interpretation such as:
+
+"Observed power was below the model's expected median during this interval."
+
+Do not imply a confirmed outage, equipment fault, fraud, or operational cause.
+
+### Contextual information
+
+Keep the existing message explaining that model-generated candidates require facilities verification.
+
+Present methodology explanations in an expandable disclosure or a small informational note rather than overwhelming the investigation interface.
+
+## 9. Improve consistency with the synthetic dashboard
+
+I want Real DERCONNECT to feel like a natural continuation of our existing product.
+
+Review and reuse the synthetic design language:
+
+- Typography and heading hierarchy
+- Card styling
+- Grid spacing
+- Primary metrics
+- Date and filter controls
+- Table design
+- Chart legends and tooltips
+- Interactive hover and selection states
+- Navigation patterns
+- Responsive layout
+- Existing light/dark theme support
+
+Don't duplicate the synthetic code unnecessarily if shared UI components can be reused safely.
+
+Also, avoid a large global CSS redesign. Make targeted additions and preserve existing themes and components.
+
+The goal is consistency, not making both data sources scientifically identical.
+
+## 10. Preserve the distinction between synthetic and real data
+
+This is essential.
+
+### Synthetic prototype
+
+The synthetic workflow includes:
+
+- Simulated buildings and meter relationships
+- Injected ground-truth labels
+- Scenario categories
+- Model evaluation results
+- Demonstration severity/priority policies
+- Synthetic event explanations
+
+These are appropriate within the synthetic demonstration.
+
+### Real DERCONNECT
+
+The real workflow includes:
+
+- Five real DERCONNECT meter IDs
+- Hourly modeled total active power
+- Forecast quantiles
+- Detection flags and thresholds
+- Candidate event records
+- No verified anomaly classifications
+- No externally confirmed root causes
+- No reliable building/subgrid topology mapping from the model exports
+
+Don't mix data or evaluations across the two modes.
+
+No synthetic event labels, severity, model metrics, occupancy, or weather assumptions should appear as established facts for the real meters.
+
+Similarly, don't route real events into synthetic-only evaluation logic without an explicitly validated adapter.
+
+## 11. Improve information hierarchy and terminology
+
+Review the wording throughout the real-data workflow.
+
+Use terminology a building manager could understand while remaining scientifically precise.
+
+Prefer:
+
+- Candidate events
+- Actual power
+- Expected power
+- Forecast interval
+- Duration
+- Detector score
+- Total active power
+- Hourly measurements
+- Data unavailable
+- Phase measurements not loaded
+
+Avoid overusing:
+
+- Raw technical schema names in prominent headings
+- "Unavailable" without specifying what is unavailable
+- "Building fault"
+- "Critical anomaly"
+- "Confirmed anomaly"
+- "Model confidence" as a probability
+- Unsupported energy savings, cost impact, or fault diagnoses
+
+Retain technical details in tooltips, disclosures, and provenance sections for users who need them.
+
+## 12. Data handling and provenance
+
+The three committed model CSVs are the source of truth for this integration.
+
+Do not alter their contents, recalculate the anomaly detection pipeline, or train models.
+
+Preserve:
+
+- Five-meter support
+- One-hour cadence
+- UTC alignment
+- America/Los_Angeles display
+- Calibration versus detection distinction
+- DST handling
+- Interpolated reading indicators
+- Event boundaries and IDs
+- Raw anomaly scores and associated thresholds
+
+Model measurements are hourly averages of total active power in kW.
+
+Do not confuse kW with kWh, or total active power with any individual phase.
+
+Where summary values depend on interpolated samples or data availability, document the calculation and its limitations.
+
+Do not present DERCONNECT measurements as a live data stream.
+
+## 13. Performance and accessibility
+
+Our complete model export contains over 16,000 hourly forecast rows.
+
+Make sure the UI remains responsive.
+
+Prefer:
+
+- Parsing CSVs once, not on every render
+- Reusing indexed meter/model lookups
+- Updating chart scope efficiently
+- Avoiding excessive DOM elements for full-range plots
+- Keeping visual interactions responsive
+- Avoiding unnecessary global rerenders
+
+Maintain accessible controls and labels.
+
+Support keyboard access to event selections and date controls.
+
+Ensure readable contrast, visible selection states, and responsive layouts.
+
+## 14. Regression testing
+
+Before completing, test the following workflows in a real browser.
+
+**Real meter directory**
+
+- All five meters appear automatically.
+- No phase JSON upload is required.
+- Candidate counts match the relevant data scope.
+- Search and navigation work.
+- Missing phase measurements are appropriately labeled.
+- Advanced import controls remain usable.
+
+**E2451 meter profile**
+
+- Actual and expected power appear.
+- Prediction bands toggle.
+- Date presets work.
+- Detection event counts are correct.
+- Selected events show contextual details.
+- Clicking a chart interval opens the corresponding event.
+- Selecting another event updates the context.
+- Returning to the meter directory works.
+- Browser reload and direct meter routes work.
+
+**Data correctness**
+
+- No calibration flags are counted as detection events.
+- Event boundaries remain correct.
+- Missing UTC timestamps are not invented.
+- Interpolated observations remain identifiable.
+- No unsupported anomaly severity or type is introduced.
+
+**Existing functionality**
+
+- Synthetic Prototype Data remains unchanged and functional.
+- Synthetic building profiles and investigation still work.
+- Historical Monitoring remains functional.
+- CSV upload and reporting workflows remain intact.
+- Existing theme and responsive layouts are preserved.
+
+Use the existing browser and Node testing infrastructure.
+
+Add regression tests for significant new behavior, especially chart range controls, event selection, meter cards, and the separation of optional phase imports.
+
+## 15. Collaboration and Git
+
+Work on:
+
+`feature/chronos2-hourly-exports`
+
+Before making changes, inspect the branch status, existing commits, and any uncommitted work.
+
+Preserve teammates' contributions.
+
+Follow `AGENTS.md`.
+
+Update `DEVELOPMENT_LOG.md` and `AI_USE.md` according to repository rules.
+
+Do not regenerate or alter the CSV exports.
+
+Do not merge into `main`.
+
+Review the complete diff and report all changed files and test results.
+
+Once implementation and tests pass, provide a clear summary and leave the changes ready for human review. Do not push unless explicitly authorized in the Codex environment.
+
+## 16. Definition of done
+
+I should be able to open the dashboard and:
+
+1. Navigate to Buildings & Sub-grids.
+2. Switch between Prototype Data and Real DERCONNECT.
+3. See a visually consistent set of real DERCONNECT meter cards.
+4. Immediately understand which meters have model outputs and how many candidate events were detected.
+5. Open E2451 without uploading any additional files.
+6. View a readable actual-vs-expected power chart with useful date controls.
+7. Identify highlighted candidate anomalies.
+8. Select the March 26 event or any other candidate event.
+9. Inspect a clean, informative event-detail chart and relevant measurements.
+10. Navigate between events without losing my place.
+11. Access optional phase measurement uploads through an unobtrusive advanced data panel.
+12. Return to the synthetic demonstration and find its existing functionality preserved.
+
+**The result should feel like one coherent, professionally designed dashboard—not a synthetic prototype with a separate experimental model interface attached.**
+
+Prioritize a polished, reliable user experience over adding additional features. Implement and test the refinements rather than stopping at recommendations.
+
+At completion, summarize the improvements, files changed, tests performed, remaining limitations, and how I can verify the result locally.
+`````
+
+The requesting team member supplied the design brief, dashboard examples and acceptance criteria. OpenAI Codex reviewed both repositories and implemented the meter directory, phase management disclosure, model chart ranges and event investigation refinements. Human acceptance is pending.
+
+The development log records exact suites, versions, results and limitations. Browser validation used Chromium on Linux with the committed model exports and synthetic phase fixtures. Files changed are js/sections/real-buildings.js, js/sections/chronos-buildings.js, css/styles.css, index.html, tests/chronos-buildings-browser.cjs, tests/chronos-csv-cache-browser.cjs, tests/real-buildings-browser.cjs, README.md, DEVELOPMENT_LOG.md and AI_USE.md. The work is based on 4f396fb on feature/chronos2-hourly-exports. No implementation commit was made.
+
+### 2026-11-19 — Refinement branch handoff
+
+`````text
+The refinements look aligned with what we wanted. Please perform one final review of the complete diff, confirm the changes are limited to the intended UI/UX improvements, and rerun the relevant tests.
+
+Then commit and push the implementation to the existing `feature/chronos2-hourly-exports` branch. Do not merge into main.
+
+Please provide the commit SHA and confirm the remote branch was updated so I can pull and visually test the refined dashboard on my Mac.
+`````
+
+The requesting team member reviewed the refinement and authorized publication. Codex reviewed the diff from `4f396fb` and reran the checks listed in DEVELOPMENT_LOG.md. This entry accompanies the refinement commit. Mac visual verification remains pending.

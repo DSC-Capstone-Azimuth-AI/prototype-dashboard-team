@@ -525,13 +525,12 @@ layout. Existing cards, charts, spacing, typography and responsive columns are
 unchanged below the new control panel.
 Real mode creates one meter card per imported ID; phases/months share that card and
 are never summed. Open a card to view power, daily profiles, phase buttons and quality.
-One compact panel directly below the page title contains the highlighted
-**Prototype Data / Real DERCONNECT** toggle and side-by-side **From / To** dates.
-Real mode adds the multi-file JSON loader directly below the toggle, lists loaded
-meter IDs/export counts, and initializes dates from loaded campus-date bounds.
-Later additions retain an explicitly selected date scope; **Full available range**
-restores all loaded dates. **Clear loaded exports** starts a new catalog. Prototype
-dates reuse the existing filter handler and its range limits. The legacy filter
+The **Prototype Data / Real DERCONNECT** toggle appears below the page title.
+In Real DERCONNECT, **Advanced data management** below the directory or profile
+holds the multi-file JSON loader, loaded-export status, and phase dates. Later
+additions retain an explicitly selected phase date scope. **Full phase range**
+restores all loaded phase dates. **Clear loaded exports** starts a new phase catalog.
+Prototype dates reuse the existing filter handler and its range limits. The legacy filter
 bar is hidden on Buildings to avoid duplicate controls. The directory shows an empty
 state when neither phase exports nor the Chronos-2 bundle are available.
 Phase-level forecasts and energy remain unavailable. See the hourly Chronos-2 analysis below.
@@ -562,25 +561,32 @@ and the distinction between synthetic tests and local real-export checks.
 ### Chronos-2 hourly candidate anomalies in real meter profiles
 
 Serve the dashboard over local HTTP and open **Buildings & Sub-grids → Real DERCONNECT**.
-Open **E2451** or any of the four other Chronos-2 meters. All five can open a model
-profile before you add phase JSONs. Add the matching phase exports to see the existing
-phase chart, daily profile and data quality in the same meter profile. Use **Full
-available range** to include both the model and phase export dates if the phase catalog
-has already initialized a shorter range.
+The five Chronos-2 meter cards show candidate counts across their full detection
+period. Open **E2451** or another model meter. All five profiles are available
+before you add phase JSONs. Upload matching phase exports under **Advanced data
+management** to see phase charts, daily profiles and measurement quality. Model
+chart dates are independent of the shared phase dates.
 
-The **Chronos-2 Anomaly Detection — Total Active Power** card compares the export's
-observed total (A+B+C) with its median forecast in source-reported kW. Its optional
-nominal 80% band uses q10–q90. Dates and hover timestamps use America/Los_Angeles,
-and rows without a valid UTC hour are excluded. **Building anomalies** counts grouped
-candidate events in the selected detection dates. Select a row or highlighted hour to
-inspect its interval, duration, raw score, observed and expected peak values, direction,
-and available hourly context. January and February include assumed-normal calibration
-data. A candidate event is unclassified and requires facilities evidence to establish a cause.
+**Observed vs. expected total active power** compares the export’s observed total
+(A+B+C) with its median forecast in source-reported kW. The **7 days** and **30 days**
+presets start on the first campus date in the detection period (March 1 for this
+export). Choose **Full range** or **Custom dates** for other windows. The optional
+nominal 80% band uses q10–q90. Dates and hover timestamps use America/Los_Angeles.
+The window summary’s mean and peak use readings explicitly marked as measured.
+
+The sortable **Candidate events** table opens to **All detection dates**. Choose
+**Selected dates** to limit the table to the current analysis window. Inspect a row
+or click a highlighted chart interval for the event context, duration, raw score,
+observed and expected peak values, and direction. **Previous** and **Next** follow
+the table’s order. **Return to chart range** restores the original chart window while
+keeping the event details open. Calibration assumptions, UTC exclusions and
+interpolation counts are under **Model provenance and data quality**. Candidate
+events require facilities verification.
 
 The `derconnect-chronos2` metadata in `index.html` explicitly configures the authorized
 same-origin CSV bundle under `data/anomaly/chronos2-ft-5k/`. The bundle loads once per page
 session when Real DERCONNECT opens. If the URL is unavailable or the metadata is omitted,
-choose the three CSVs together in Buildings controls. Keep other private exports in local
+choose the three CSVs together in **Advanced data management**. Keep other private exports in local
 storage and off publicly served paths.
 
 Run `node --test tests/chronos2.cjs` and, with the local server running and Playwright

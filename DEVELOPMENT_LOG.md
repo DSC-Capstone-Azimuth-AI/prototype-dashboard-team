@@ -1013,3 +1013,27 @@ The HTML now requests the CSV API at a versioned URL so Chromium fetches the com
 - `CHRONOS_EXPORT_DIR=data/anomaly/chronos2-ft-5k node --test tests/chronos2.cjs` passed all five checks. `node tests/csv-upload.cjs`, syntax and diff checks passed.
 
 Verification used Node 24.22.1 and Chromium on Linux. The reporter’s Mac cache was unavailable for inspection.
+
+### 2026-11-19 — Real DERCONNECT directory, chart ranges and event review
+
+The requesting dashboard team member supplied the design brief. OpenAI Codex implemented and verified the refinements on `feature/chronos2-hourly-exports` at `4f396fb`. Reviewed the existing Prototype Data cards and event log, real meter and phase workflows, and anomaly-team main at `7f4c4a6`. Its recent forecast-quality work leaves the flat exporter contract used by these committed CSVs intact.
+
+The real directory reuses the existing building card component and leads with each meter’s full detection-period candidate count. Phase imports, shared phase dates, clear and validation controls, and fallback model import are in Advanced data management. The chart uses a separate model date scope per meter and opens on seven campus days beginning with the first detection date. The 30-day preset uses the same anchor. Model window mean and peak use finite observations explicitly marked as measured. The full event table is available from the first render and can be scoped to selected dates. Selection focuses the chart to the existing event context, and Previous and Next follow the filtered/sorted table. Returning to chart range keeps the investigation open. Model provenance and data-quality notes are disclosed separately.
+
+Changed `js/sections/real-buildings.js`, `js/sections/chronos-buildings.js`, `css/styles.css`, `index.html`, `tests/chronos-buildings-browser.cjs`, `tests/chronos-csv-cache-browser.cjs`, `tests/real-buildings-browser.cjs`, `README.md`, `DEVELOPMENT_LOG.md`, and `AI_USE.md`. The new URLs load the two real-view modules and stylesheet together after browser updates. The exports and model adapter match the base revision.
+
+Validation used Node 24.22.1, Playwright 1.62.1, Linux Chromium 155.0.8059.79, and Python 3.12.14. Browser suites used `DASHBOARD_URL=http://127.0.0.1:8022` and `CHROMIUM_PATH=/usr/bin/chromium` with `python3 -m http.server 8022 --bind 127.0.0.1`.
+
+- `node tests/chronos-buildings-browser.cjs` passed with synthetic fixtures and with `CHRONOS_REAL=1`. Checks cover automatic loading and card counts, search, date presets and empty scopes, the March 26 E2451 investigation, interval clicks and keyboard selection, sorting, next/previous and range restoration, DST/interpolation and measured-only metrics, upload isolation and clear, deep links, light/dark and responsive rendering. `node tests/chronos-csv-cache-browser.cjs` passed the cached upgrade.
+- `CHRONOS_EXPORT_DIR=data/anomaly/chronos2-ft-5k node --test tests/chronos2.cjs` passed five checks. `node tests/historical-session.cjs`, `node tests/regression.cjs` and `node tests/reports.cjs` passed.
+- `node tests/real-buildings-browser.cjs`, `node tests/browser.cjs`, `node tests/section-navigation.cjs`, `node tests/historical-browser.cjs`, `node tests/historical-overview-browser.cjs`, `node tests/history-comparison-browser.cjs`, and `node tests/csv-upload-browser.cjs` passed. The phase-only regression matched original Prototype Data markup, SVG and card pixels. The broad synthetic suite checked 242 charts.
+- `node tests/reports-browser.cjs`, `node tests/report-notes-browser.cjs` and `node tests/reports-usability.cjs` passed using a local Playwright preload in `/workspace/work/chronos-reports/chromium-launch.cjs` to substitute installed Chromium for Edge, with the local server on port 8001. The repository’s reporting test files were left intact.
+- Inspected light and dark chart screenshots and the March 26 detail chart. A direct-link smoke check opened the March 26 event at 320, 390 and 768 pixels without document overflow. All application and test JavaScript passed `node --check`, 14 Python files passed AST parsing, and `git diff --check` passed.
+
+Mac and Edge were outside this validation run. Phase imports used synthetic fixtures because real individual-phase exports were absent. Model training, evaluation and source-data reconciliation were outside scope. The changes are uncommitted for human review on the feature branch.
+
+### 2026-11-19 — Refinement branch handoff
+
+Codex reviewed the diff from `4f396fb` on `feature/chronos2-hourly-exports` after the requesting team member approved publication. The product diff covers the two real-view modules, styles, and asset URLs. The CSV exports, adapter, shared charts and Prototype Data logic match the base.
+
+Reran `node tests/chronos-buildings-browser.cjs` with synthetic fixtures and `CHRONOS_REAL=1`, plus `node tests/chronos-csv-cache-browser.cjs`, `node tests/real-buildings-browser.cjs`, `node tests/historical-browser.cjs`, `node tests/csv-upload-browser.cjs` and `node tests/reports.cjs`. All passed with the local server on port 8034 and Linux Chromium for browser runs. All five adapter checks passed with `CHRONOS_EXPORT_DIR=data/anomaly/chronos2-ft-5k node --test tests/chronos2.cjs`. JavaScript syntax checks and `git diff --check` passed. No additional product edits were made during handoff. The requesting team member plans to review the published dashboard on Mac.
