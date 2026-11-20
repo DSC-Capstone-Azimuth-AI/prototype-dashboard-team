@@ -16,3 +16,5 @@ __pycache__/
 # Optional local historical exports must never be committed by default.
 *derconnect-history*.json
 
+
+.impeccable/config.local.json
