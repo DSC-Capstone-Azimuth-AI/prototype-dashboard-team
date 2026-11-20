@@ -61,7 +61,7 @@
         title: text === 'Usage difference (kW)' ? DC.chronosBuildings.usageHelp : null })))),
       el('tbody', {}, events.map(event => DC.ui.eventRow(event.id, event.id === S.state.selected, () => S.open(event),
         el('td', {}, eventLink(event), el('div', { class: 'muted', text: event.meter })),
-        el('td', {}, el('time', { datetime: new Date(event.start).toISOString(), text: H.stamp(event.start) })),
+        el('td', {}, el('time', { datetime: new Date(event.start).toISOString(), text: H.stamp(event.start) }), DC.calendar.tag(event)),
         el('td', { text: event.duration + ' h' }), el('td', { text: DC.chronosBuildings.usageLabel(event) }),
         el('td', {}, el('button', { type: 'button', class: 'btn', text: 'Inspect', 'data-event-id': event.id,
           'aria-label': 'Inspect ' + event.id, onclick: () => S.open(event) })))))));
@@ -72,15 +72,16 @@
       'Grouped historical detections · unverified potential anomalies', { span: 12 });
     c.card.id = id;
     const review = limited ? null : DC.realReview.tableView(S.bundle.reviewIdentity, scope.events, 'real-investigate-review-filter', () => { eventLogView.logTop = 0; redraw(); });
-    const events = review ? review.events : scope.events;
+    const events = review ? DC.calendar.filterEvents(review.events) : scope.events;
     if (review) {
-      c.tools.append(review.control);
-      c.body.append(review.note, el('p', { class: 'muted', text: events.length + ' of ' + scope.events.length + ' candidate events match review status.' }));
+      c.tools.append(review.control, DC.calendar.filterControl('real-investigate-calendar-filter', () => { eventLogView.logTop = 0; redraw(); }));
+      c.body.append(review.note, el('p', { class: 'muted', id: 'real-investigate-count', text: events.length + ' of ' + scope.events.length + ' candidate events match review status' +
+        (DC.calendar.state.filter !== 'all' ? ' and calendar filter (' + DC.calendar.state.filter.replace('calendar', 'holidays & breaks').replace('regular', 'excluding holidays & breaks') + ').' : '.') }));
     }
     c.body.append(el('p', { class: 'muted', id: limited ? 'real-overview-usage-help' : 'real-event-usage-help', text: DC.chronosBuildings.usageHelp }));
     if (events.length) c.body.append(limited ? table(events.slice(0, 5), id + '-table') :
       DC.chronosBuildings.eventTable(events, S.event(S.state.selected), eventLogView, { compact: true, id: id + '-table', statuses: review.statuses }));
-    else c.body.append(el('p', { class: 'empty', text: limited ? 'No grouped candidate events match these meter and campus dates.' : 'No grouped candidate events match these meters, campus dates and review status.' }));
+    else c.body.append(el('p', { class: 'empty', text: limited ? 'No grouped candidate events match these meter and campus dates.' : 'No grouped candidate events match these meters, campus dates, review status and calendar filter.' }));
     if (scope.skippedEvents) c.body.append(el('p', { class: 'note-box', text: scope.skippedEvents + ' exported intervals lack usable UTC bounds or matching detection hours; only matched events are shown.' }));
     if (scope.unscoredHours && !limited) c.body.append(el('p', { class: 'muted', text: scope.unscoredHours + ' detection hours have incomplete scores, thresholds or flags.' }));
     if (limited) c.tools.append(el('a', { class: 'btn', href: '#investigate', text: 'Review all candidate events →' }));
@@ -117,6 +118,7 @@
       card.dataset.realMetric = key; kpis.append(card);
     }
     root.append(kpis);
+    root.append(DC.calendar.overviewNote(scope.events, () => { DC.calendar.setFilter('calendar'); DC.navigate('investigate'); }));
     const quality = el('details', { class: 'disclosure', id: 'real-overview-quality' }, el('summary', { text: 'Analyzed coverage & data quality' }),
       el('p', { id: 'real-analysis-coverage', text: scope.coverageStart === null ? 'Analyzed coverage: no detection records match the list filters.' :
         'Analyzed coverage: ' + H.stamp(scope.coverageStart) + ' → ' + H.stamp(scope.coverageEnd) + ' (end exclusive).' }),
@@ -142,7 +144,9 @@
     c.body.append(DC.ui.legend([{ kind: 'line', color: DC.css('--actual'), label: 'Observed power' },
       { kind: 'dash', color: DC.css('--seq-5'), label: 'Expected median' },
       ...(DC.chronosBuildings.showBand ? [{ kind: 'box', color: DC.css('--band-inner'), label: 'Nominal 80% forecast interval' }] : []),
-      { kind: 'box', color: DC.css('--accent'), label: 'Candidate interval' }]));
+      { kind: 'box', color: DC.css('--accent'), label: 'Candidate interval' },
+      ...DC.calendar.legend(scope.series.flatMap(series => series.rows))]));
+    c.tools.append(DC.calendar.toggle(redraw));
     grid.append(c.card);
     const cards = el('div', { class: 'building-directory span-12' }); grid.append(cards);
     for (const id of scope.meters) {
@@ -196,12 +200,13 @@
       deviation),
       ...(facts.reason ? [el('p', { class: 'note-box', text: facts.reason })] : []),
       el('p', { class: 'muted', text: 'Direction (exported): ' + event.direction + '. Score peak and largest power deviation can occur at different hours. The chart includes up to 24 hours on either side, limited by available records; missing hours remain gaps. Interpolated observations are identified in hover and the hourly table. Classification, severity and diagnosis are unavailable; facilities verification is needed.' }));
-    detail.body.append(detectionDetails(event));
+    detail.body.append(DC.calendar.context(event), detectionDetails(event));
     if (rows.length) DC.chronosBuildings.appendChart(detail.body, 'real-event-chart', rows, [event], event, null, true);
     detail.body.append(DC.ui.legend([{ kind: 'line', color: DC.css('--actual'), label: 'Observed power' },
       { kind: 'dash', color: DC.css('--seq-5'), label: 'Expected median' },
       ...(DC.chronosBuildings.showBand ? [{ kind: 'box', color: DC.css('--band-inner'), label: 'Nominal 80% forecast interval' }] : []),
-      { kind: 'box', color: DC.css('--accent'), label: 'Selected event interval' }]));
+      { kind: 'box', color: DC.css('--accent'), label: 'Selected event interval' },
+      ...DC.calendar.legend(rows)]));
     const ordered = S.scope().events, index = ordered.findIndex(e => e.id === id);
     const actions = el('div', { class: 'chronos-event-actions' });
     for (const [delta, label] of [[-1, 'Previous'], [1, 'Next']]) actions.append(el('button', { type: 'button', class: 'btn', text: label,

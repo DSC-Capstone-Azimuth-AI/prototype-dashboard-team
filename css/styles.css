@@ -717,3 +717,22 @@ footer { font-size: 10px; }
 .real-review select { max-width: 100%; }
 .real-fact-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; }
 .real-fact-heading .metric-icon { flex: none; color: var(--accent); }
+
+/* Academic calendar context (real DERCONNECT views) */
+.calendar-tag {
+  display: inline-flex; align-items: center; margin-top: 3px; padding: 1px 7px; border-radius: 999px;
+  font-size: 11px; line-height: 1.5; color: var(--ink-2); background: var(--surface-3); border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.calendar-tag.calendar-holiday { color: var(--ink); border-color: var(--border-strong); }
+td > .calendar-tag { display: flex; width: max-content; }
+.calendar-context {
+  margin: 12px 0; padding: 10px 12px; border-radius: 8px; background: var(--surface-2);
+  border-left: 3px solid var(--axis); font-size: 13px;
+}
+.calendar-context h4 { margin: 0 0 4px; font-size: 13px; font-weight: 600; }
+.calendar-context p { margin: 4px 0 0; }
+.calendar-context.calendar-possible { border-left-color: var(--ink-2); }
+.calendar-context.calendar-contrary { border-left-color: var(--sev-high); }
+.calendar-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; }
+.calendar-toggle { margin-left: 12px; }
