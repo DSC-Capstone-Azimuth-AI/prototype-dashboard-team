@@ -1037,3 +1037,30 @@ Mac and Edge were outside this validation run. Phase imports used synthetic fixt
 Codex reviewed the diff from `4f396fb` on `feature/chronos2-hourly-exports` after the requesting team member approved publication. The product diff covers the two real-view modules, styles, and asset URLs. The CSV exports, adapter, shared charts and Prototype Data logic match the base.
 
 Reran `node tests/chronos-buildings-browser.cjs` with synthetic fixtures and `CHRONOS_REAL=1`, plus `node tests/chronos-csv-cache-browser.cjs`, `node tests/real-buildings-browser.cjs`, `node tests/historical-browser.cjs`, `node tests/csv-upload-browser.cjs` and `node tests/reports.cjs`. All passed with the local server on port 8034 and Linux Chromium for browser runs. All five adapter checks passed with `CHRONOS_EXPORT_DIR=data/anomaly/chronos2-ft-5k node --test tests/chronos2.cjs`. JavaScript syntax checks and `git diff --check` passed. No additional product edits were made during handoff. The requesting team member plans to review the published dashboard on Mac.
+
+## 2026-11-19 — Needs attention panel with Chronos-2 candidates, and users/decisions draft
+
+America/Los_Angeles. Human: Lillian Tran, who raised the team feedback that the dashboard gives no direction when opened, relayed that this quarter focuses on historical data with CSV Upload kept for future live data, and took the Overview sync of the Chronos-2 outputs. AI: Claude (configured model `claude-opus-5-5`). Branch `lillian`, fast-forwarded to `main` at `9b545e7e1b602b217a1f2282e5506dee568d181a`. No commit, push, data regeneration or dependency installation. Human review pending.
+
+Changes:
+- `js/sections/historical-overview.js`: added a **Needs attention** panel at the top of the historical Overview, shown with or without loaded phase exports.
+  - **Model-flagged candidates:** for each meter in the Chronos-2 bundle, candidate events in the shared date scope (detection period only, via the existing `bundle.select`). Statuses: Review candidates, No candidates, Not scored. Ranked by status, then candidate count. The next step opens the meter profile focused on the latest candidate. The panel states that candidates are unverified and unclassified.
+  - **Data checks:** for each loaded phase export, No usable data, Check data (coverage below the export's own `minimum_coverage`, or conflicting exports) or Usable, with a next step that opens the series in Historical Monitoring.
+  - Loading and unavailable states for the model outputs; data checks still work when the model CSVs are unavailable.
+- `js/sections/chronos-buildings.js` (shared with the Chronos-2 Buildings work): `redraw` now also refreshes the historical Overview once the CSVs load; added `openEvent(meter, id)` and a read-only `status` getter. Existing Buildings behaviour is unchanged.
+- `css/styles.css`: scoped panel styles; status uses a text label plus a colour bar from existing tokens; rows stack below 640px.
+- `docs/USERS_AND_DECISIONS.md` (new): draft of target users, decisions, what a building manager should learn at a glance, next steps by item type and open questions, marked as a draft for team agreement.
+- `tests/historical-attention-browser.cjs` (new) and `README.md` (description and test command).
+- Unchanged: synthetic Overview, Chronos-2 parsing, catalog/session/validation logic, CSV Upload, generated data and exporters.
+
+Notes: the panel uses the shared Overview date scope for both parts, so phase exports outside March to May show model candidates as Not scored until the dates are widened. The shared catalog places every phase series on the union date range of all loaded exports, so a series' coverage includes days with no export for it.
+
+Validation environment: Linux cloud copy of the working tree, Node v22.23.4, Playwright 1.63.0, Chrome for Testing 153.0.8010.12, Python 3 with pandas/NumPy. Server: `python3 -m http.server 8000 --bind 127.0.0.1`; browser suites used `CHROMIUM_PATH=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome DASHBOARD_URL=http://127.0.0.1:8000`. Not run on the requester's Windows computer.
+
+- `node --check` on all `js/`, `js/sections/`, `tests/` and `tests/fixtures/` scripts: PASS. `git -c core.whitespace=cr-at-eol diff --check`: PASS (CRLF line endings kept).
+- `node tests/historical-attention-browser.cjs`: PASS with the synthetic Chronos-2 fixture served in place of the committed CSVs. Covers the synthetic Overview unchanged, candidates without exports, ranking, latest/longest text, opening the latest candidate in the meter profile, data-check order/reasons/next steps, shared dates (Not scored), full range, source switch, dark/light at 390px, model CSVs unavailable and reload, with no page/console errors. Screenshots inspected at 1440px and 390px.
+- PASS: `regression`, `csv-upload`, `chronos2`, `history-catalog`, `historical-session`, `history-comparison`, `reports`, `historical-monitoring`, `historical-overview-browser`, `section-navigation`, `browser`, `historical-browser`, `history-catalog-browser`, `history-comparison-browser`, `csv-upload-browser`, `navigation`, `investigation-views`, `meter-comparison`.
+- `chronos-buildings-browser`: intermittent at line 85 (forecast-band path count): 2 of 4 runs failed on the unchanged base and 2 of 4 with this change. Pre-existing timing issue; not fixed here.
+- Not run here: `chronos-csv-cache-browser` and `real-buildings-browser` read earlier Git revisions absent from this copy; the report suites need Microsoft Edge. `pytest tests`: 32 passed, 4 failed identically on the unchanged base because `notebooks/` was not copied.
+
+Limits: no confirmation, classification or severity for candidates; ranking by count is a dashboard choice, not detector severity. No verified meter-to-building mapping. The users/decisions document is a proposal, not an agreed requirement. Next: team agrees on the primary user and candidate ranking; sync candidate review with the Anomaly Investigation page.

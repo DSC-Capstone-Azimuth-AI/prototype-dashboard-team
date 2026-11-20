@@ -6,7 +6,7 @@
   const fullScopes = new Map(), profiles = new Map();
 
   const redraw = () => {
-    if (DC.state.section === 'buildings' && H.session.source === 'historical') DC.setState({});
+    if (['buildings', 'overview'].includes(DC.state.section) && H.session.source === 'historical') DC.setState({});
   };
   async function load(read) {
     status = 'loading'; error = '';
@@ -319,5 +319,13 @@
     return provenance(scope);
   }
 
-  DC.chronosBuildings = { start, notice, fallback, append, full, eventCount, period, get bundle() { return bundle; } };
+  // Opens a meter profile focused on one candidate event (used by the historical Overview).
+  function openEvent(meter, id) {
+    const view = profileState(meter);
+    Object.assign(view, { event: id, focused: true, list: 'all', logTop: 0 });
+    DC.navigate('buildings', 'derconnect:' + meter);
+  }
+
+  DC.chronosBuildings = { start, notice, fallback, append, full, eventCount, period, openEvent,
+    get bundle() { return bundle; }, get status() { return status; } };
 })();
