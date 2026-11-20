@@ -112,7 +112,10 @@
     const padY = (hi - lo) * 0.06 || 1;
     const yt = niceTicks(lo - (lo === 0 ? 0 : padY), hi + padY, o.compact ? 3 : Math.max(3, Math.round(ih / 50)));
     const y0 = Math.min(yt[0], lo), y1 = Math.max(yt[yt.length - 1], hi);
-    const x = linear(t0, t1 - 1, m.l, m.l + iw), y = linear(y0, y1, m.t + ih, m.t);
+    // Hourly exports use a full plot-width bin even at the first and last samples.
+    const halfBin = o.centerBins ? 0.5 : 0;
+    const x = linear(t0 - halfBin, t1 - 1 + halfBin, m.l, m.l + iw);
+    const y = linear(y0, y1, m.t + ih, m.t);
     const svg = S("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": o.ariaLabel || "Time series chart" });
     el.append(svg);
 
