@@ -587,3 +587,6 @@ Run `node --test tests/chronos2.cjs` and, with the local server running and Play
 installed, `node tests/chronos-buildings-browser.cjs`. Set
 `CHRONOS_EXPORT_DIR=data/anomaly/chronos2-ft-5k` for the Node aggregate checks and
 `CHRONOS_REAL=1` for the browser walkthrough with the configured export.
+Run `node tests/chronos-csv-cache-browser.cjs` to verify an upgrade with the previous
+CSV parser in Chromium’s HTTP cache. This test starts its own local server and uses
+the committed exports.

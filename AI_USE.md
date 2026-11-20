@@ -5938,3 +5938,27 @@ After pushing, give me the new commit SHA and confirm that the remote branch con
 The requesting team member reviewed the prior handoff and authorized a push to the existing feature branch. Codex reviewed the complete diff, applied one indentation correction in `js/sections/chronos-buildings.js`, appended both records, and reran JavaScript, adapter and Chromium regressions. The preceding implementation entry lists the files included in the integration. The development log records the commands and passing results. Mac browser testing remains with the requesting team member.
 
 The commit containing this record is the implementation commit, based on `533dcec`.
+
+### 2026-11-19 — Chronos-2 CSV cache upgrade
+
+`````text
+I pulled the implementation onto my Mac and opened `http://localhost:8000/#/buildings`.
+
+The new Chronos-2 controls appear under Real DERCONNECT, but the dashboard displays this error:
+
+`Chronos-2 unavailable: DC.csv.records is not a function`
+
+As a result, no E2451 meter cards appear.
+
+Please inspect `js/csv.js`, `js/chronos2.js`, and the script-loading order in `index.html` to identify the incorrect API call or initialization issue.
+
+Fix the actual root cause rather than adding a workaround. Ensure the three committed CSVs automatically load from `data/anomaly/chronos2-ft-5k/`, without requiring manual file selection.
+
+Please add a regression test that catches this error in a real browser, not just a mocked environment.
+
+Verify in Chromium that all five meter cards appear and that E2451's observed vs. expected chart and event investigation work.
+
+Commit and push the fix to `feature/chronos2-hourly-exports`. Do not merge into main. Report the new commit SHA and test results.
+`````
+
+The requesting team member supplied the failing Mac scenario, acceptance criteria, and authorization to push to the existing feature branch. Codex traced the CSV API, reproduced the failure using Chromium with a cached previous Git asset, updated the script URL, and added the real-browser cache upgrade regression. The development log records the validation results. The affected files are `index.html`, `tests/chronos-csv-cache-browser.cjs`, `README.md`, `DEVELOPMENT_LOG.md` and `AI_USE.md`. The commit containing this entry records the fix, based on `3ababb5`. Mac verification remains pending.

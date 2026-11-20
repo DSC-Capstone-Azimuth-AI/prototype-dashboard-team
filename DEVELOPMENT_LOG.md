@@ -1001,3 +1001,15 @@ The requesting team member authorized publishing the completed dashboard integra
 - `node tests/csv-upload.cjs`, `node tests/historical-session.cjs`, and `node tests/regression.cjs` passed. Syntax checks passed for all application/test JavaScript and 14 Python files. The staged diff passed `git diff --cached --check`.
 
 Browser checks used Linux Chromium 155.0.8059.79 and Node 24.22.1. The team's Mac check is pending.
+
+### Chronos-2 CSV cache upgrade, 2026-11-19
+
+The requesting team member reported that Chronos-2 failed to load after pulling the dashboard on a Mac. Codex inspected `js/csv.js`, `js/chronos2.js` and `index.html` on `feature/chronos2-hourly-exports` at `3ababb5`. The scripts already ran in dependency order, but the CSV asset URL was shared by the previous and current API. The parser at `533dcec` did not export `records` or `parseTimestamp`. Chromium with that real asset cached reproduced the reported error before the fix.
+
+The HTML now requests the CSV API at a versioned URL so Chromium fetches the compatible parser. `tests/chronos-csv-cache-browser.cjs` primes Chromium's HTTP cache from the prior Git revision, serves the current dashboard and committed CSVs over loopback, and checks automatic loading, all five cards, and E2451 chart and investigation. The test changed from the reported error to a pass after the URL update. `README.md` lists the new test.
+
+- `node tests/chronos-csv-cache-browser.cjs` passed in Linux Chromium 155.0.8059.79.
+- With `python3 -m http.server 8013 --bind 127.0.0.1`, `DASHBOARD_URL=http://127.0.0.1:8013 CHRONOS_REAL=1 node tests/chronos-buildings-browser.cjs` and `DASHBOARD_URL=http://127.0.0.1:8013 node tests/csv-upload-browser.cjs` passed.
+- `CHRONOS_EXPORT_DIR=data/anomaly/chronos2-ft-5k node --test tests/chronos2.cjs` passed all five checks. `node tests/csv-upload.cjs`, syntax and diff checks passed.
+
+Verification used Node 24.22.1 and Chromium on Linux. The reporter’s Mac cache was unavailable for inspection.
