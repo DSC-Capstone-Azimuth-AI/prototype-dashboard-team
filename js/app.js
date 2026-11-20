@@ -11,7 +11,29 @@
     sel.value = options.some(([v]) => v === value) ? value : options[0][0];
     return sel.value;
   };
+  const realListFilters = () => DC.history.session.source === 'historical' && ['overview', 'investigate'].includes(DC.state.section);
+  function buildRealFilters() {
+    const S = DC.chronos2.session;
+    S.start();
+    fill($('#f-range'), [['all', 'All loaded dates'], ['7', 'Last 7 days'], ['14', 'Last 14 days'], ['30', 'Last 30 days'], ['custom', 'Custom…']], S.state.range);
+    fill($('#f-meter'), [['all', 'All meters'], ...(S.bundle?.meters || []).map(id => [id, id])], S.state.meter);
+    $('#f-range').disabled = $('#f-meter').disabled = S.status !== 'ready';
+    const custom = S.state.range === 'custom';
+    $('#f-from').hidden = $('#f-to').hidden = !custom;
+    for (const key of ['from', 'to']) {
+      const input = $('#f-' + key);
+      input.value = S.state[key]; input.removeAttribute('min'); input.removeAttribute('max');
+    }
+    contextualFilters();
+    const scope = S.scope();
+    $('#filter-summary').textContent = S.status === 'ready' ?
+      `Overview / event list scope · ${scope.events.length} grouped candidates · ${S.state.meter === 'all' ? 'All meters' : S.state.meter} · ${S.state.from || 'loaded start'} through ${S.state.to || 'loaded end'} (inclusive campus dates) · America/Los_Angeles` :
+      'Real event list filters · model results ' + (S.status === 'loading' ? 'loading…' : 'unavailable');
+  }
   function buildFilters() {
+    if (realListFilters()) { buildRealFilters(); return; }
+    $('#f-range').disabled = $('#f-meter').disabled = false;
+    fill($('#f-range'), [['7', 'Last 7 days'], ['14', 'Last 14 days'], ['monitor', 'Monitoring period (6 wk)'], ['all', 'Full history (12 wk)'], ['custom', 'Custom…']], DC.state.range);
     const s = DC.state;
     fill($("#f-subgrid"), [["all", "All sub-grids"], ...D.subgrids.map((g) => [g.id, g.name])], s.subgrid);
     const bOpts = D.buildings.filter((b) => s.subgrid === "all" || b.subgrid === s.subgrid).map((b) => [b.id, b.name]);
@@ -35,16 +57,19 @@
   }
   function contextualFilters() {
     const s = DC.state, detail = !!s.routeId;
-    const primary = s.section === "overview" ? ["range", "building"] : s.section === "investigate" ? ["range", "building", "severity", "status"] : s.section === "models" ? ["detector", "range"] : (s.profile ? ["range", "detector"] : ["range"]);
+    const real = realListFilters();
+    const primary = real ? ["range", "meter"] : s.section === "overview" ? ["range", "building"] : s.section === "investigate" ? ["range", "building", "severity", "status"] : s.section === "models" ? ["detector", "range"] : (s.profile ? ["range", "detector"] : ["range"]);
     const filters = $("#filters");
-    const historicalOverview = ["overview", "buildings"].includes(s.section) && DC.history.session.source === "historical";
-    filters.hidden = historicalOverview || ["buildings", "upload", "export", "historical"].includes(s.section) || (detail && s.section === "investigate");
+    const historicalOverview = ["overview", "buildings", "investigate"].includes(s.section) && DC.history.session.source === "historical";
+    filters.setAttribute("aria-label", real ? "Real event list filters" : "Filters");
+    filters.hidden = (historicalOverview && !real) || ["buildings", "upload", "export", "historical"].includes(s.section) || (detail && s.section === "investigate");
     $("#data-banner").hidden = historicalOverview || ["upload", "historical"].includes(s.section);
     for (const id of ["range", "subgrid", "building", "meter", "type", "severity", "status", "detector"]) {
       const node = $("#f-" + id).closest(".filter");
+      node.hidden = real && !primary.includes(id);
       (primary.includes(id) ? filters : $("#advanced-filter-body")).append(node);
     }
-    $("#advanced-filters").hidden = !!s.profile;
+    $("#advanced-filters").hidden = real || !!s.profile;
     filters.append($("#advanced-filters"), $("#f-reset"), $("#filter-summary"));
   }
   function rangeFor(v) {
@@ -61,11 +86,13 @@
   function wireFilters() {
     const on = (id, fn) => $(id).addEventListener("change", (e) => fn(e.target.value));
     on("#f-range", (v) => {
+      if (realListFilters()) { DC.chronos2.session.setRange(v); DC.setState({}); return; }
       if (v === "custom") return DC.setState({ range: "custom" });
       const [t0, t1] = rangeFor(v);
       DC.setState({ range: v, t0, t1 });
     });
     const custom = () => {
+      if (realListFilters()) { DC.chronos2.session.filter({ from: $('#f-from').value, to: $('#f-to').value }); DC.setState({}); return; }
       let a = DC.time.fromISODate($("#f-from").value), b = DC.time.fromISODate($("#f-to").value) + 24;
       if (!isFinite(a) || !isFinite(b)) return;
       a = Math.max(0, Math.min(a, M.n - 24)); b = Math.min(M.n, Math.max(b, a + 24));
@@ -75,12 +102,18 @@
     $("#f-to").addEventListener("change", custom);
     on("#f-subgrid", (v) => DC.setState({ subgrid: v, building: "all", meter: "all" }));
     on("#f-building", (v) => DC.setState({ building: v, meter: "all" }));
-    on("#f-meter", (v) => DC.setState({ meter: v }));
+    on("#f-meter", (v) => {
+      if (realListFilters()) { DC.chronos2.session.filter({ meter: v }); DC.setState({}); }
+      else DC.setState({ meter: v });
+    });
     on("#f-type", (v) => DC.setState({ type: v }));
     on("#f-severity", (v) => DC.setState({ severity: v }));
     on("#f-status", (v) => DC.setState({ status: v }));
     on("#f-detector", (v) => DC.setState({ detector: v, selected: null }));
-    $("#f-reset").addEventListener("click", () => DC.setState(Object.assign({}, DC.DEFAULT, { section: DC.state.section, selected: DC.state.selected, profile: DC.state.profile, routeId: DC.state.routeId })));
+    $("#f-reset").addEventListener("click", () => {
+      if (realListFilters()) { DC.chronos2.session.filter({ meter: 'all', from: '', to: '' }); DC.setState({}); }
+      else DC.setState(Object.assign({}, DC.DEFAULT, { section: DC.state.section, selected: DC.state.selected, profile: DC.state.profile, routeId: DC.state.routeId }));
+    });
   }
 
   // ---------- routing ----------
@@ -161,7 +194,7 @@
     buildFilters();
     const sec = DC.state.section;
     show(sec);
-    if (DC.state.routeId && ((sec === "investigate" && !DC.eventById(DC.state.routeId)) || (sec === "buildings" && !DC.buildingById[DC.state.routeId] && !DC.realBuildings.isRoute(DC.state.routeId)))) {
+    if (DC.state.routeId && ((sec === "investigate" && !DC.chronos2.session.isRoute(DC.state.routeId) && !DC.eventById(DC.state.routeId)) || (sec === "buildings" && !DC.buildingById[DC.state.routeId] && !DC.realBuildings.isRoute(DC.state.routeId)))) {
       DC.clear($("#sec-" + sec)).append(DC.el("h2", { id: "h-" + sec, text: "Record unavailable" }), DC.el("p", { text: "This ID is not in the loaded dataset." }), DC.el("a", { href: "#" + sec, text: "Back to " + (sec === "buildings" ? "buildings" : "anomaly list") }));
       lastRenderRoute = sec + "/" + DC.state.routeId;
       finishRouteNavigation(); return;
@@ -237,7 +270,8 @@
     DC.navigate("investigate");
   };
   function fromHash() {
-    const [sec, raw] = location.hash.slice(1).split("/");
+    const [sec, rawPart] = location.hash.slice(1).split("/");
+    const raw = rawPart?.split("?")[0];
     const section = SECTIONS.includes(sec) ? sec : "overview";
     let id = null;
     try { id = raw ? decodeURIComponent(raw) : null; } catch (_) { id = raw; }
@@ -245,10 +279,18 @@
     const old = DC.state.section;
     if (!DC.state.routeId) scopes[old] = Object.fromEntries(scopeKeys.map(k => [k, DC.state[k]]));
     const patch = Object.assign({}, old !== section || (!id && DC.state.routeId) ? (scopes[section] || DC.DEFAULT) : {}, { section, selected: null, profile: null, routeId: id });
+    if (section === "investigate" && DC.chronos2.session.isRoute(id)) {
+      DC.history.session.setSource('historical');
+      DC.chronos2.session.select(DC.chronos2.session.routeId(id));
+    }
     if (section === "investigate" && id && DC.eventById(id)) {
+      DC.history.session.setSource('synthetic');
       Object.assign(patch, DC.eventScope(DC.eventById(id)), { selected: id });
     }
-    if (section === "buildings" && id && DC.buildingById[id]) patch.profile = id;
+    if (section === "buildings" && id && DC.buildingById[id]) {
+      DC.history.session.setSource('synthetic');
+      patch.profile = id;
+    }
     if (section === "buildings" && DC.realBuildings.isRoute(id)) DC.history.session.setSource('historical');
     routeFocusPending = true;
     DC.setState(patch);

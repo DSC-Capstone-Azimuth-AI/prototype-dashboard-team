@@ -532,6 +532,12 @@ input[type="search"] { padding: 10px 14px; width: min(100%,380px); background: v
 .facts.summary-facts { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; margin: 22px 0; }
 .summary-facts .fact { border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
 .summary-facts .v { font-size: 23px; margin: 8px 0; }
+#real-event-detail .fact .v { overflow-wrap: anywhere; }
+#real-event-detail .event-period-fact .v { font-size: 14px; line-height: 1.5; }
+.kpi-link { display: block; color: var(--ink); text-decoration: none; cursor: pointer; }
+.kpi-link:hover { border-color: var(--accent); }
+.kpi-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.kpi-link .value { overflow-wrap: anywhere; }
 .review-panel { background: var(--surface-2); padding: 20px; border-radius: 8px; }
 .event-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 0 0 22px; border-bottom: 1px solid var(--border); margin-bottom: 22px; }
 .event-actions p { color: var(--ink-2); font-size: 12px; margin: 0; }
@@ -702,3 +708,12 @@ footer { font-size: 10px; }
 .overview-source select { max-width:100%; padding:8px; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--ink); }
 #historical-overview-scope, #historical-overview-quality { padding:16px; margin:16px 0; overflow-wrap:anywhere; }
 #overview-history-detail { display:inline-block; box-sizing:border-box; max-width:100%; white-space:normal; margin:12px 0; }
+
+/* Real operator annotations reuse the existing review panel, independent of model facts. */
+.real-review { margin-top: 24px; }
+.real-review h3 { margin-top: 0; }
+.real-review textarea { box-sizing: border-box; }
+.real-review input[type="text"] { box-sizing: border-box; width: 100%; max-width: 30rem; padding: 9px; border: 1px solid var(--border-strong); border-radius: 6px; font: inherit; color: var(--ink); background: var(--surface); }
+.real-review select { max-width: 100%; }
+.real-fact-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; }
+.real-fact-heading .metric-icon { flex: none; color: var(--accent); }

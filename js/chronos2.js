@@ -48,7 +48,7 @@
             !Number.isSafeInteger(duration) || duration <= 0 || (start !== null && end !== null && end <= start)) {
           fail('Invalid event ID, interval, duration, or direction.');
         }
-        return { id, meter, model, start, end, duration, direction,
+        return { id, meter, model, start, end, duration, direction, peakLocal: row.peak_time,
           score: number('peak_score', true), actual: number('peak_actual_kw'), expected: number('peak_expected_kw') };
       }
       const time = hour(row.time_utc), actual = number('actual_kw');
@@ -61,7 +61,7 @@
       const { period, flag, filled } = row;
       if (!['calibration', 'detection'].includes(period) || !['0', '1', ''].includes(flag) ||
           !['true', 'false', ''].includes(filled.toLowerCase())) fail('Invalid period, flag, or filled indicator.');
-      return { meter, time, actual, period, flag: flag === '' ? null : flag === '1',
+      return { meter, time, actual, localTime: row.time_local, period, flag: flag === '' ? null : flag === '1',
         filled: filled === '' ? null : filled.toLowerCase() === 'true', score: number('score'), threshold: number('threshold') };
     });
   }
@@ -105,8 +105,8 @@
         }
         while (i < meter.events.length && meter.events[i].end <= time) i++;
         const event = p?.period === 'detection' && meter.events[i]?.start <= time ? meter.events[i] : null;
-        return { time, day: DC.history.localDay(time), actual: f?.actual ?? null, q: f?.q ?? null,
-          period: p?.period ?? null, score: p?.score ?? null, threshold: p?.threshold ?? null,
+        return { time, day: DC.history.localDay(time), actual: f?.actual ?? p?.actual ?? null, q: f?.q ?? null,
+          predictionLocal: p?.localTime ?? null, period: p?.period ?? null, score: p?.score ?? null, threshold: p?.threshold ?? null,
           flag: p?.flag ?? null, filled: p?.filled ?? null, event };
       });
       const matched = new Set(meter.rows.map(row => row.event).filter(Boolean));
@@ -135,6 +135,20 @@
     };
   }
 
+  async function withReviewIdentity(bundle, texts) {
+    try {
+      // Content identity is derived from the exact three files, not a guessed upstream run ID.
+      const bytes = new TextEncoder().encode(JSON.stringify(names.map(name => [fileName(name), texts[name]])));
+      const digest = await window.crypto.subtle.digest('SHA-256', bytes);
+      const hash = Array.from(new Uint8Array(digest), value => value.toString(16).padStart(2, '0')).join('');
+      bundle.reviewIdentity = Object.freeze({ dataset: 'derconnect-hourly-total-active-power/v1', run: 'sha256:' + hash, model: MODEL });
+    } catch (_) {
+      bundle.reviewIdentity = null;
+      bundle.reviewIdentityError = 'A stable run fingerprint could not be computed. Review saving is unavailable for this load.';
+    }
+    return bundle;
+  }
+
   async function load(path) {
     const base = new URL(path, window.location.href);
     if (base.origin !== window.location.origin || !['http:', 'https:'].includes(base.protocol) ||
@@ -145,7 +159,8 @@
       if (!response.ok) throw new Error(name + ' CSV could not be loaded (HTTP ' + response.status + ').');
       return response.text();
     }));
-    return parse(Object.fromEntries(names.map((name, i) => [name, texts[i]])));
+    const source = Object.fromEntries(names.map((name, i) => [name, texts[i]]));
+    return withReviewIdentity(parse(source), source);
   }
 
   async function readFiles(files) {
@@ -156,8 +171,9 @@
       if (file.size > DC.csv.MAX_BYTES) throw new Error(fileName(name) + ' exceeds the 20 MB file limit.');
       return file.text();
     }));
-    return parse(Object.fromEntries(names.map((name, i) => [name, texts[i]])));
+    const source = Object.fromEntries(names.map((name, i) => [name, texts[i]]));
+    return withReviewIdentity(parse(source), source);
   }
 
-  DC.chronos2 = { MODEL, HOUR, load, readFiles, parse };
+  DC.chronos2 = { MODEL, HOUR, load, readFiles, parse, withReviewIdentity };
 })();

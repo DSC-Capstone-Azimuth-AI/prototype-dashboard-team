@@ -2,48 +2,42 @@
 (function () {
   'use strict';
   const DC = window.DC, el = DC.el, H = DC.history, A = DC.chronos2;
-  let bundle = null, status = 'idle', error = '', showBand = true;
-  const fullScopes = new Map(), profiles = new Map();
-
-  const redraw = () => {
-    if (DC.state.section === 'buildings' && H.session.source === 'historical') DC.setState({});
-  };
-  async function load(read) {
-    status = 'loading'; error = '';
-    try {
-      bundle = await read();
-      fullScopes.clear(); profiles.clear(); status = 'ready';
-    }
-    catch (err) { error = err.message; status = 'unavailable'; }
-    redraw();
-  }
-
-  function start() {
-    if (status !== 'idle') return;
-    const path = document.querySelector('meta[name="derconnect-chronos2"]')?.content;
-    if (path) load(() => A.load(path));
-    else status = 'unavailable';
-  }
+  const S = A.session;
+  let showBand = true;
+  const redraw = () => DC.setState({});
+  const start = () => S.start();
+  const controlId = name => (DC.state.section === 'buildings' ? '' : DC.state.section + '-') + name;
   function notice(root) {
-    if (status === 'ready') return;
-    root.append(el('p', { id: 'chronos-load-status', role: 'status', class: 'muted',
-      text: status === 'loading' ? 'Loading Chronos-2 hourly outputs…' : 'Chronos-2 unavailable. See Advanced data management.' }));
+    if (S.status === 'ready') return;
+    root.append(el('p', { id: controlId('chronos-load-status'), role: 'status', class: 'muted',
+      text: S.status === 'loading' ? 'Loading Chronos-2 hourly outputs…' : 'Chronos-2 unavailable. Load the three CSVs below or in Buildings → Advanced data management.' }));
   }
   function fallback(root) {
-    if (status !== 'unavailable') return;
-    root.append(el('p', { id: 'chronos-load-error', role: 'status', class: 'muted', text: error || 'No Chronos-2 export folder is configured.' }),
+    if (S.status !== 'unavailable') return;
+    root.append(el('p', { id: controlId('chronos-load-error'), role: 'status', class: 'muted', text: S.error || 'No Chronos-2 export folder is configured.' }),
       el('label', { class: 'chronos-file' }, el('span', { text: 'Choose the three Chronos-2 CSVs' }),
-      el('input', { type: 'file', multiple: true, accept: '.csv,text/csv', id: 'chronos-files',
+      el('input', { type: 'file', multiple: true, accept: '.csv,text/csv', id: controlId('chronos-files'),
         onchange: evt => {
           const files = Array.from(evt.target.files);
           if (!files.length) return;
-          load(() => A.readFiles(files));
-          redraw();
+          S.load(() => A.readFiles(files)); redraw();
         } })));
   }
 
   const kw = value => value == null ? 'Unavailable' : DC.fmt.kw(value);
-  const score = value => value == null ? 'Unavailable' : value.toLocaleString('en-US', { maximumFractionDigits: 4 });
+  const score = DC.ui.rawNumber;
+  const usageHelp = 'Actual minus expected power at the event’s highest detector-score point; not necessarily the largest difference during the event.';
+  function usageDifference(event) {
+    if (!Number.isFinite(event.actual) || !Number.isFinite(event.expected)) return null;
+    const difference = event.actual - event.expected;
+    return Number.isFinite(difference) ? difference : null;
+  }
+  function usageText(difference) {
+    if (difference === null) return 'Unavailable';
+    if (difference === 0) return 'At expected usage';
+    return Math.abs(difference).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
+      ' kW ' + (difference > 0 ? 'above' : 'below') + ' expected';
+  }
   const direction = { above: 'Above expected', below: 'Below expected', mixed: 'Mixed' };
   const range = rows => H.stamp(rows[0].time) + ' to ' + H.stamp(rows.at(-1).time + A.HOUR);
   const expectedColor = () => DC.css('--seq-5');
@@ -54,16 +48,8 @@
   const period = scope => dayLabel(scope.rows[0].day) + ' – ' + dayLabel(scope.rows.at(-1).day);
   const presets = [['7', '7 days'], ['30', '30 days'], ['full', 'Full range'], ['custom', 'Custom dates']];
 
-  function full(meter) {
-    if (!bundle) return null;
-    if (!fullScopes.has(meter)) fullScopes.set(meter, bundle.select(meter));
-    return fullScopes.get(meter);
-  }
-
-  function profileState(meter) {
-    if (!profiles.has(meter)) profiles.set(meter, { preset: '7', from: '', to: '', event: null, focused: false, list: 'all', order: 'date', logTop: 0 });
-    return profiles.get(meter);
-  }
+  const full = meter => S.full(meter);
+  const profileState = meter => S.profile(meter);
 
   function bounds(scope, view) {
     if (view.preset === 'custom') return [view.from, view.to];
@@ -74,19 +60,15 @@
     return [first, end < last ? end : last];
   }
 
-  function setEvent(view, event, focusId = 'chronos-event-title') {
-    const previous = view.event;
-    view.event = event?.id ?? null;
-    view.focused = Boolean(event);
-    DC.charts.tip.hide();
-    redraw();
-    requestAnimationFrame(() => {
-      const target = event ? document.getElementById(focusId) : DC.$('#chronos-event-list button[data-focus-key="' + previous + '"]');
-      (target?.disabled ? DC.$('#chronos-event-title') : target)?.focus();
-    });
+  function setEvent(view, event) {
+    if (event) { S.open(event); return; }
+    const previous = S.state.selected;
+    view.focused = false;
+    S.select(null); DC.charts.tip.hide(); redraw();
+    requestAnimationFrame(() => document.querySelector('#chronos-event-list button[data-focus-key="' + previous + '"]')?.focus());
   }
 
-  function chart(node, rows, events, selected, onEvent, isContext) {
+  function chart(node, rows, events, selected, onEvent, isContext, focusTime) {
     const origin = rows[0].time, offset = time => (time - origin) / A.HOUR;
     const last = offset(rows.at(-1).time), byHour = new Map(rows.map(row => [offset(row.time), row]));
     // Add one empty sample per UTC gap so neither lines nor bands bridge missing hours.
@@ -95,7 +77,7 @@
       if (samples.length && i > samples.at(-1) + 1) samples.push(samples.at(-1) + 1);
       samples.push(i);
     }
-    const tickCount = Math.min(last + 1, node.clientWidth < 480 ? 3 : 5);
+    const tickCount = Math.min(last + 1, node.clientWidth < 480 ? (last < 24 ? 2 : 3) : 5);
     const xTicks = Array.from({ length: tickCount }, (_, i) => Math.round(last * i / Math.max(1, tickCount - 1)));
     const actual = DC.css('--actual'), expected = expectedColor(), eventColor = candidate();
     const eventIds = new Set(events.map(event => event.id));
@@ -103,6 +85,7 @@
       { get: i => byHour.get(i)?.q?.q50, color: expected, dash: '5 4', width: 1.7 }];
     const markers = series.flatMap(s => samples.filter(i => s.get(i) != null && s.get(i - 1) == null && s.get(i + 1) == null)
       .map(i => ({ t: i, v: s.get(i), color: s.color })));
+    if (Number.isFinite(focusTime)) markers.push({ t: offset(focusTime), v: byHour.get(offset(focusTime))?.actual, color: eventColor, selected: true, shape: 'circle' });
     DC.charts.timeSeries(node, {
       t0: 0, t1: last + 1, centerBins: true, height: isContext ? 235 : 300, samples, xTicks,
       ariaLabel: isContext ? 'Hourly total power around the selected candidate anomaly' : 'Observed and expected hourly total active power in kW',
@@ -112,6 +95,7 @@
         return last < 72 ? day + ' ' + time.split(' ')[0] : day;
       },
       series, markers,
+      shade: Number.isFinite(focusTime) ? [{ start: offset(focusTime), end: offset(focusTime) + 1, color: eventColor, label: 'Flagged reading' }] : [],
       band: showBand ? [{ lo: i => byHour.get(i)?.q?.q10, hi: i => byHour.get(i)?.q?.q90, color: DC.css('--band-inner') }] : [],
       intervals: events.map(ev => ({ start: offset(ev.start), end: offset(ev.end), color: eventColor, selected: ev.id === selected?.id, event: ev })),
       onClick: !onEvent || !events.length ? undefined : (i, hit) => {
@@ -135,15 +119,15 @@
     });
   }
 
-  function appendChart(parent, id, rows, events, selected, onEvent, isContext = false) {
+  function appendChart(parent, id, rows, events, selected, onEvent, isContext = false, focusTime = null) {
     const node = el('div', { class: 'chart', id });
     parent.append(node);
-    requestAnimationFrame(() => { if (node.isConnected) chart(node, rows, events, selected, onEvent, isContext); });
+    requestAnimationFrame(() => { if (node.isConnected) chart(node, rows, events, selected, onEvent, isContext, focusTime); });
   }
 
   function rangeControls(view, from, to) {
     const update = change => {
-      Object.assign(view, change, { event: null, focused: false });
+      Object.assign(view, change, { focused: false, readingTime: null, readingUnavailable: false });
       redraw();
     };
     const controls = el('div', { class: 'chronos-range-controls' },
@@ -191,27 +175,33 @@
     c.tools.append(el('label', { class: 'chronos-band' }, el('input', { type: 'checkbox', id: 'chronos-band', checked: showBand,
       onchange: event => { showBand = event.target.checked; redraw(); } }), '80% forecast interval'));
     c.body.append(rangeControls(view, from, to));
-    const focused = view.focused && selected;
-    const rows = focused ? all.context(selected) : windowScope.rows;
+    const reading = Number.isFinite(view.readingTime) ? all.rows.find(row => row.time === view.readingTime) : null;
+    const focused = view.focused && (selected || reading || view.readingUnavailable);
+    const rows = focused && reading ? all.context({ start: reading.time, end: reading.time + A.HOUR }) : focused && selected ? all.context(selected) : windowScope.rows;
     const events = focused ? all.events : windowScope.events;
     if (focused) c.body.append(el('div', { class: 'chronos-focus-bar' },
-      el('span', { text: 'Focused on the selected event' }),
+      el('span', { id: 'chronos-reading-focus', text: reading ? 'Flagged reading · ' + H.stamp(reading.time) + ' · Actual: ' + kw(reading.actual) + ' · Expected: ' + kw(reading.q?.q50) : view.readingUnavailable ? 'Requested reading unavailable' : 'Focused on the selected event' }),
       el('button', { type: 'button', class: 'btn', id: 'chronos-restore-range', text: 'Return to chart range', onclick: () => {
-        view.focused = false; redraw();
+        view.focused = false; view.readingTime = null; view.readingUnavailable = false; redraw();
         requestAnimationFrame(() => DC.$('.chronos-range-controls button[aria-pressed="true"]')?.focus({ preventScroll: true }));
       } })));
+    if (view.focused && view.readingUnavailable) {
+      c.body.append(el('p', { class: 'empty', id: 'chronos-reading-unavailable', text: 'No eligible flagged detection reading matches this meter and UTC timestamp. Choose a chart range or another candidate.' }));
+      return c.card;
+    }
     if (!rows.length) {
       c.body.append(el('p', { class: 'empty', text: 'No Chronos-2 hours match these campus dates.' }));
       return c.card;
     }
     c.body.append(el('p', { class: 'muted', id: 'chronos-range', text: range(rows) + ' (end exclusive)' }));
     if (rows.some(row => row.actual !== null || row.q?.q50 != null)) {
-      appendChart(c.body, 'chronos-chart', rows, events, selected, event => setEvent(view, event));
+      appendChart(c.body, 'chronos-chart', rows, events, selected, event => setEvent(view, event), false, focused && reading ? reading.time : null);
       c.body.append(DC.ui.legend([
         { kind: 'line', color: DC.css('--actual'), label: 'Observed power' },
         { kind: 'dash', color: expectedColor(), label: 'Expected median' },
         ...(showBand ? [{ kind: 'box', color: DC.css('--band-inner'), label: 'Nominal 80% forecast interval' }] : []),
         { kind: 'box', color: candidate(), label: 'Candidate event interval' },
+        ...(focused && reading ? [{ kind: 'box', color: candidate(), label: 'Focused flagged reading' }] : []),
       ]));
     } else {
       c.body.append(el('p', { class: 'empty', text: 'Observed and expected power are unavailable for these hours.' }));
@@ -237,8 +227,9 @@
         el('button', { type: 'button', class: 'btn', text: 'Close event', onclick: () => setEvent(view, null) }))),
     el('dl', { class: 'chronos-peak' }, fact('Observed at peak', kw(actual)), fact('Expected at peak', kw(expected))),
     interpretation && el('p', { class: 'ink2', text: interpretation }),
-    el('dl', { class: 'chronos-facts' }, fact('Event ID', ev.id), fact('End (exclusive)', H.stamp(ev.end)), fact('Peak raw score', score(ev.score))),
+    el('dl', { class: 'chronos-facts' }, fact('Event ID', ev.id), fact('End (exclusive)', H.stamp(ev.end)), fact('Direction (exported)', direction[ev.direction])),
     el('p', { class: 'muted', text: 'Facilities verification is needed to interpret this candidate event.' }));
+    node.append(DC.realAnomalies.detectionDetails(ev));
     const rows = all.context(ev);
     if (rows.length) {
       node.append(el('p', { class: 'ink2', text: 'Hourly context · up to 24 hours on either side · kW' }));
@@ -247,46 +238,66 @@
     return node;
   }
 
-  function eventTable(events, selected, view) {
-    const headings = ['Start (campus time)', 'Duration', 'Peak detector score', 'Direction', 'Action'];
-    const head = el('thead', {}, el('tr', {}, headings.map(text => el('th', { scope: 'col', text }))));
+  function eventTable(events, selected, view, options = {}) {
+    const compact = options.compact === true;
+    const headings = ['Start', 'Duration', 'Usage difference (kW)', 'Status', 'Action'];
+    const head = el('thead', {}, el('tr', {}, headings.map(text => el('th', { scope: 'col', text,
+      title: text === 'Usage difference (kW)' ? usageHelp : null }))));
     const body = el('tbody', {}, events.map(event => {
       const active = event.id === selected?.id;
-      return el('tr', { class: active ? 'selected static' : 'static' },
-        el('td', {}, el('time', { datetime: new Date(event.start).toISOString(), title: H.stamp(event.start), text: H.axisStamp(event.start).join(' · ') })),
-        el('td', { text: event.duration + ' h' }), el('td', { text: score(event.score) }), el('td', { text: direction[event.direction] }),
+      const time = el('time', { datetime: new Date(event.start).toISOString(), title: H.stamp(event.start), text: H.axisStamp(event.start).join(' · ') });
+      const difference = usageDifference(event);
+      const cells = [el('td', {}, DC.realAnomalies.eventLink(event, time),
+        compact ? el('div', { class: 'muted', text: event.meter }) : null),
+        el('td', { text: event.duration + ' h' }), el('td', { text: usageText(difference), title: difference === null ? 'Unavailable' : difference + ' kW · actual minus expected' }),
+        el('td', {}, el('span', { class: 'status', title: 'Saved operator review status in this browser only',
+          text: DC.realReview.statusLabel(options.statuses ? options.statuses.get(event.id) : DC.realReview.savedStatus(S.bundle.reviewIdentity, event)) })),
         el('td', {}, el('button', { type: 'button', class: 'btn', 'aria-pressed': String(active), 'aria-label': 'Inspect event on ' + H.stamp(event.start),
-          'data-focus-key': event.id, text: active ? 'Selected' : 'Inspect', onclick: () => setEvent(view, event) })));
+          'data-focus-key': event.id, text: compact ? 'Inspect' : active ? 'Selected' : 'Inspect', onclick: () => setEvent(view, event) }))];
+      return DC.ui.eventRow(event.id, active, () => S.open(event), ...cells);
     }));
     const wrapper = el('div', { class: 'table-wrap chronos-event-table', tabindex: '0', role: 'region', 'aria-label': 'Candidate event table',
       onscroll: event => { view.logTop = event.currentTarget.scrollTop; } },
-      el('table', { id: 'chronos-event-list' }, head, body));
+      el('table', { id: options.id || 'chronos-event-list' }, head, body));
     requestAnimationFrame(() => { if (wrapper.isConnected) wrapper.scrollTop = view.logTop; });
     return wrapper;
   }
 
-  function anomalies(windowScope, all, selected, view) {
+  function anomalies(meter, all, selected, view) {
     const c = DC.ui.card('Candidate events', 'Grouped Chronos-2 detections');
     c.card.id = 'building-anomalies';
-    const scope = view.list === 'window' ? windowScope : all;
+    const shared = S.bundle.select(meter, S.state.from, S.state.to);
+    const [chartFrom, chartTo] = bounds(all, view);
+    const from = [S.state.from, chartFrom].filter(Boolean).sort().at(-1) || '';
+    const to = [S.state.to, chartTo].filter(Boolean).sort()[0] || '';
+    const scope = view.list === 'window' ? S.bundle.select(meter, from, to) : shared;
     const order = { date: (a, b) => a.start - b.start, newest: (a, b) => b.start - a.start,
-      duration: (a, b) => b.duration - a.duration, score: (a, b) => b.score - a.score };
-    const events = scope.events.slice().sort(order[view.order]);
+      duration: (a, b) => b.duration - a.duration, score: (a, b) => {
+        const left = usageDifference(a), right = usageDifference(b);
+        if (left === null) return right === null ? 0 : 1;
+        if (right === null) return -1;
+        return Math.abs(right) - Math.abs(left);
+      } };
+    const review = DC.realReview.tableView(S.bundle.reviewIdentity, scope.events, 'chronos-review-filter', () => { view.logTop = 0; redraw(); });
+    const events = review.events.slice().sort(order[view.order]);
+    c.tools.append(review.control);
     c.tools.append(el('select', { class: 'mini-select', id: 'chronos-event-sort', 'aria-label': 'Sort candidate events',
       onchange: event => { view.order = event.target.value; view.logTop = 0; redraw(); } },
-    [['date', 'Oldest first'], ['newest', 'Newest first'], ['duration', 'Longest duration'], ['score', 'Highest detector score']].map(([value, text]) =>
+    [['date', 'Oldest first'], ['newest', 'Newest first'], ['duration', 'Longest duration'], ['score', 'Largest usage difference']].map(([value, text]) =>
       el('option', { value, selected: value === view.order, text }))));
+    c.body.append(DC.realAnomalies.filters('building-events'));
     if (selected) c.body.append(investigation(selected, all, events, view));
     c.body.append(el('div', { class: 'chronos-log-controls' },
       DC.ui.segmented([['all', 'All detection dates'], ['window', 'Selected dates']], view.list, list => {
         view.list = list; view.logTop = 0; redraw();
       }, 'Event list dates'),
       el('p', { class: 'ink2', id: 'chronos-event-count', text: scope.scoredHours ?
-        scope.events.length + (scope.events.length === 1 ? ' candidate event' : ' candidate events') +
+        events.length + ' of ' + scope.events.length + ' candidate events match review status' +
           (scope.skipped.events ? ' matched · total unavailable' : ' · ' + DC.fmt.int(scope.scoredHours) + ' scored detection hours') :
         'No scored detection hours in this range.' })));
-    if (view.order === 'score') c.body.append(el('p', { class: 'muted', text: 'Detector score ranks forecast interval exceedance within this model. Operational severity is unverified.' }));
-    if (events.length) c.body.append(eventTable(events, selected, view));
+    c.body.append(review.note, el('p', { class: 'muted', text: usageHelp }));
+    if (events.length) c.body.append(eventTable(events, selected, view, { statuses: review.statuses }));
+    else c.body.append(el('p', { class: 'empty', text: 'No candidate events match the selected dates and review status.' }));
     return c.card;
   }
 
@@ -312,12 +323,25 @@
       return;
     }
     const view = profileState(meter);
+    const requestedTime = new URLSearchParams(location.hash.split('?')[1] || '').get('at');
+    if (view.readingKey !== requestedTime) {
+      view.readingKey = requestedTime; view.readingTime = null; view.readingUnavailable = false;
+      if (requestedTime !== null) {
+        const parsed = DC.csv.parseTimestamp(requestedTime);
+        const reading = parsed?.zoned ? all.rows.find(row => row.time === parsed.ms) : null;
+        S.select(null); view.focused = true;
+        if (reading?.flag === true && S.measuredPair(reading)) view.readingTime = reading.time;
+        else view.readingUnavailable = true;
+      }
+    }
     const [from, to] = bounds(all, view);
-    const scope = view.preset === 'full' ? all : bundle.select(meter, from, to);
-    const selected = all.events.find(event => event.id === view.event);
-    root.append(metrics(scope, from, to), analysis(view, scope, all, selected, from, to), anomalies(scope, all, selected, view));
+    const scope = view.preset === 'full' ? all : S.bundle.select(meter, from, to);
+    const selected = all.events.find(event => event.id === S.state.selected);
+    root.append(metrics(scope, from, to), analysis(view, scope, all, selected, from, to), anomalies(meter, all, selected, view));
     return provenance(scope);
   }
 
-  DC.chronosBuildings = { start, notice, fallback, append, full, eventCount, period, get bundle() { return bundle; } };
+  DC.chronosBuildings = { start, notice, fallback, append, full, eventCount, period, appendChart, provenance, eventTable, usageHelp,
+    usageLabel: event => usageText(usageDifference(event)),
+    get showBand() { return showBand; }, get bundle() { return S.bundle; } };
 })();
