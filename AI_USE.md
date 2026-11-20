@@ -6630,3 +6630,591 @@ Please provide the commit SHA and confirm the remote branch was updated so I can
 `````
 
 The requesting team member reviewed the refinement and authorized publication. Codex reviewed the diff from `4f396fb` and reran the checks listed in DEVELOPMENT_LOG.md. This entry accompanies the refinement commit. Mac visual verification remains pending.
+
+
+### 2026-11-19 — Synchronize real Overview and Anomaly Investigation
+
+Human contributor: requesting dashboard team member (requirements and existing repository instructions). AI contributor: OpenAI Codex (inspection, implementation, regression checks, visual review and documentation). Base: `9b545e7e1b602b217a1f2282e5506dee568d181a`, branch `feat/sync-real-anomalies-overview-investigation`. Human code review and facilities validation remain pending. No commit has been made for this task.
+
+Current-session repository-instruction prompt (verbatim):
+
+`````text
+# AGENTS.md instructions for /Users/mawvir/prototype-dashboard-team
+
+<INSTRUCTIONS>
+# Instructions for AI coding agents
+
+## Research purpose and scope
+
+This UC San Diego DSC 180A capstone with Azimuth AI develops a unified, anomaly-focused DERCONNECT electricity dashboard for building managers and electrical engineers. Support Detect → Classify → Visualize → Investigate → Interpret. Integrate evidence from the SarSim synthetic-data group, the Chronos-2 anomaly group, and eventually real DERCONNECT measurements. The Quarter 1 checkpoint is Friday, November 6, 2026. Synthetic performance is not evidence of real-world fault detection.
+
+Preserve the existing plain HTML/CSS/JavaScript and custom SVG architecture. Do not migrate to Streamlit, React, another framework, or a backend without a justified, explicitly scoped task. Audit the actual code rather than treating README claims as verified requirements. Do not assume access to unpublished code, datasets, trained weights, external generated runs, or the requirements document referenced by README.
+
+## Architecture and execution
+
+- `index.html` defines the shell, filters, section containers, and ordered classic scripts. There is no package manifest, bundler, application server, or existing test runner.
+- `css/styles.css` owns theme tokens, responsive layout, components, and chart styling. Preserve type symbols/colours, severity labels/icons, and readable light/dark themes.
+- `data/derconnect-data.js` assigns `window.DERCONNECT_DATA`; `data/synthetic-labels.js` assigns `window.DERCONNECT_LABELS`. Both are generated artifacts, not manually maintained application logic.
+- `js/util.js` initializes `window.DC`, taxonomy, time/format/DOM helpers and local status storage; `js/charts.js` supplies SVG primitives; `js/store.js` owns indexes, shared state and derived selectors; `js/ui.js` supplies shared view components. Preserve script dependency order.
+- `js/sections/{overview,investigate,buildings,models}.js` render the four sections. `js/app.js` wires filters, routing, theme and startup. Read shared data through the store; avoid independent copies of events, filters, time arithmetic or severity policy.
+- Run from the repository root: `python3 -m http.server 8000 --bind 127.0.0.1`. Browser code needs only the committed static assets. Live processes must be restarted in a new environment. Use the existing isolated checkout; do not create a Git worktree unless the user requests one.
+
+## Current data contract and boundaries
+
+The current fixture is synthetic: 8 real UCSD demonstration building names with synthetic profiles and relationships, 11 meters, 2,016 hourly samples from August 10, 2026, four baseline detectors, 26 labels and 161 detected events. Chronos-2 is an optional builder model, not a detector in this fixture. Counts are audit observations, not validation constants for future datasets.
+
+- `meta`: start, n, detector_start, calibration_start, clean_prefix, sampling_interval, levels, generator version, seeds and build time. Current indices are zero-based; event and label intervals are half-open `[start, end)`.
+- `tools/building_metadata.json` owns replaceable demonstration names and official name sources; names do not establish DERCONNECT coverage or real meter relationships.
+- Buildings reference synthetic subgrids and have occupancy arrays. Meters reference buildings and carry kind (`main`/`pv`), unit (`kW`), `actual[n]`, `dq[n]` (0 OK, 1 missing/zero, 2 stuck). Weather has aligned temperature °C, cloud fraction and irradiance W/m² arrays.
+- Each detector has settings, a raw threshold, and series keyed by meter ID. q01/q10/q50/q90/q99 and normalized `score` arrays begin at `meta.detector_start`, not at index zero of actual readings. q10–q90 and q01–q99 are nominal 80% and 98% intervals. Scores are rounded and capped at 99 in exports; they cannot reconstruct exact alert decisions.
+- Events reference detector, meter, building and subgrid; contain interval, peak_t (legacy score peak), score_peak_t, deviation_peak_t, duration_h, novelty (normalized peak score), operational priority (0–100), severity, behaviour, category, primary type, impact, explanations, detection settings and initial status. Novelty, operational priority, injected severity and review status are different concepts.
+- Ground-truth labels and one-to-one overlap matches are evaluation evidence. Development labels are used to select settings; test labels must not feed test detection, calibration, classification or priority. Never present missing labels as proof of a false positive. Explanations are hypotheses; a local dropdown is not evidence of engineer confirmation.
+- Current time helpers treat campus wall time as UTC solely to avoid DST shifts. Hourly kW sums stand in for kWh. ID suffixes, Monday-start weekly arithmetic and clean history are hardcoded assumptions. Do not extend these silently to real data.
+
+`tools/build_data.py` simulates campuses, injects anomalies and imports scoring/calibration/events/metrics/forecasters from `DSC-Capstone-Azimuth-AI/chronos2-sarsim0-anomaly-team/src/sarsim_fm`. It does not ingest that repository's completed Parquet/JSON runs. Current imports need NumPy **and pandas**; the README's NumPy-only claim is incomplete. Torch/Chronos and checkpoint access are needed only for optional Chronos inference. Do not broadly install or run model training for a dashboard change.
+
+Regenerate only when authorized, against a recorded upstream commit and dependency versions, with fixed seeds. Use a temporary output directory for verification:
+
+```bash
+python3 tools/build_data.py --repo /path/to/chronos2-sarsim0-anomaly-team --out /tmp/derconnect-validation-data
+```
+
+Do not overwrite committed data during an audit. Compare semantic JSON, ignoring build timestamps and object-key order. The upstream checkout is not included in this repository or guaranteed present in future tasks.
+
+Before implementing an adapter, agree on schema version, UTC timestamps and campus display timezone, sample cadence and resampling, missing/duplicate/out-of-order observations, stable meter/building mapping, units and sign conventions, forecast origins/horizons/quantiles, raw scores and horizon-specific thresholds/alert flags, half-open event bounds, label availability and provenance, classification/severity ownership, run/model/checkpoint/source hashes and compatibility rules. Preserve a stable internal chart interface; validate and translate external data at the boundary. Optional weather, occupancy, PV, evaluation and forecasts must have explicit unavailable states, not fabricated values. See DEVELOPMENT_LOG.md for the initial audit and proposed contract details.
+
+## Five-contributor collaboration
+
+Use small feature branches and reviewable PRs; never commit or push directly to main. Agree on file ownership before concurrent work. Prefer one owner each for ingestion/builder, shared state/routing, investigation, building views, and evaluation/validation; coordinate changes to `index.html`, shared charts, CSS tokens and generated assets. These are suggested work boundaries, not assigned people.
+
+Inspect `git status`, the active branch and applicable instructions before edits. Preserve existing changes, untracked files and other contributors' commits. Do not reset, clean, force-push, rewrite history, replace whole files blindly, or regenerate artifacts over local edits. Re-read shared documentation before appending; retain existing entries and resolve concurrent changes carefully. Keep source fixes separate from documentation-only tasks. Never invent contributor names, approvals, results, prompts or commit hashes.
+
+## Quality, reproducibility and validation
+
+Use small functions and existing DC helpers; favour textContent over HTML insertion for external content. Validate IDs, ranges, lengths, finite/null values, quantile ordering and references at ingestion. Report data quality separately from consumption anomalies. Keep evaluation splits and provenance explicit; never tune on held-out test labels or turn forecast benchmarking into a claim of anomaly-detection accuracy. Document any diagnostic use of future observations; centered decomposition is retrospective, not causal inference.
+
+For each relevant change:
+
+1. Run `git diff --check` and inspect the complete diff/status. Parse Python without leaving tracked caches and run `node --check` on changed JavaScript (all JS for shared changes).
+2. For data changes, validate schemas, referential integrity, series offsets, quantile ordering, bounds and matching metrics. Rebuild into `/tmp` where prerequisites exist and compare semantic output. Preserve underlying command exit status.
+3. For UI/state changes, serve the repository and check the affected flow in a real browser, including console/page errors, empty scope, all relevant detectors, filters, event selection, deep links, reload, status/theme persistence, and narrow viewport. For shared changes exercise all four sections. Check actual chart output and interactions; a running process or syntax check alone is insufficient.
+4. For integrations, use supplied fixtures covering missing context/labels, irregular times, nulls, ID mappings and thresholds/horizons. Add meaningful automated regression tests when implementing fixes. There is currently no committed automated suite; do not claim otherwise.
+5. Record exact commands, outcomes, versions, skipped/unrun checks and blockers. Do not disable assertions, integrity checks or TLS verification to obtain a pass. Stop after relevant checks; GPU/model experiments are optional unless required by the task.
+
+## Required records
+
+Append a dated entry to `DEVELOPMENT_LOG.md` for each substantive task: human/AI contributors, base revision/branch, changed files, rationale, checks, results, limitations and next steps. Use America/Los_Angeles for user-facing dates.
+
+For every AI-assisted task, append to `AI_USE.md`: the complete verbatim user prompt(s), AI contributions, human contributions/review, validation, limitations, changed files, and associated commit(s) when they actually exist. Preserve earlier entries; do not reconstruct historical prompts. If no commit has been made, say so. Never record credentials, personal data or private measurements; flag a prompt containing such material for secure handling rather than copying secrets. Documentation is part of the task, not a substitute for human review.
+
+</INSTRUCTIONS><environment_context>
+  <cwd>/Users/mawvir/prototype-dashboard-team</cwd>
+  <shell>zsh</shell>
+  <current_date>2026-11-19</current_date>
+  <timezone>America/Los_Angeles</timezone>
+  <filesystem><workspace_roots><root>/Users/mawvir/prototype-dashboard-team</root></workspace_roots><permission_profile type="managed"><file_system type="restricted"><entry access="read"><special>:root</special></entry><entry access="write"><path>/Users/mawvir/prototype-dashboard-team</path></entry><entry access="write"><special>:slash_tmp</special></entry><entry access="write"><special>:tmpdir</special></entry><entry access="read"><path>/Users/mawvir/prototype-dashboard-team/.git</path></entry><entry access="read"><path>/Users/mawvir/prototype-dashboard-team/.agents</path></entry><entry access="read"><path>/Users/mawvir/prototype-dashboard-team/.codex</path></entry><entry access="read"><path>/Users/mawvir/prototype-dashboard-team/.aws</path></entry></file_system></permission_profile></filesystem>
+</environment_context>
+`````
+
+IDE-context prompt (verbatim):
+
+`````text
+<external_ide_context># Context from my IDE setup:
+
+## Active file: data/derconnect-data.js
+
+## Open tabs:
+- derconnect-data.js: data/derconnect-data.js
+</external_ide_context>
+`````
+
+Attachment wrapper prompt (verbatim):
+
+`````text
+
+# Files pasted by the user:
+
+## "You are working in our existing DERCONNECT unified dashboard repository. Inspec…": /Users/mawvir/.codex/attachments/1cc2f05d-6ae5-4832-9316-e0f53ce83454/Pasted text.txt
+
+Pasted text contains the user's request.
+
+## My request:
+
+`````
+
+Attached request (complete, verbatim):
+
+`````text
+You are working in our existing DERCONNECT unified dashboard repository. Inspect the current codebase thoroughly before making changes.
+
+PROJECT CONTEXT
+We have already integrated real DERCONNECT measurements and the anomaly team's hourly Chronos-2-ft-5k outputs into our Real DERCONNECT interface. The dashboard supports five DERCONNECT meters, actual vs. expected power charts, anomaly flags, anomaly scores, grouped event inspection (including event duration and surrounding power measurements), meter cards, date filters, and an event table. The synthetic dashboard remains intact.
+
+GOAL
+Synchronize the existing Overview and Anomaly Investigation pages with the real DERCONNECT/Chronos-2 integration. When real data is selected, these pages should display real model-derived events instead of synthetic placeholders. Clicking Inspect anywhere should open the same event in the Anomaly Investigation page with the correct meter, timestamps, measurements, and model outputs. Preserve the existing layout, functionality, and synthetic demo mode.
+
+STEP 1 — INSPECT THE CODEBASE
+1. Read README, AGENTS.md if present, and relevant source files.
+2. Identify the app framework, routing/navigation, existing real/synthetic data-source controls, data loading, event grouping, chart components, and current Inspect behavior.
+3. Locate the canonical real DERCONNECT measurements and Chronos-2 output formats.
+4. Identify how anomaly flags, scores, expected power, start/end timestamps, and event IDs are produced.
+5. Inspect Overview, Buildings & Sub-grids, Real DERCONNECT event table, and Anomaly Investigation.
+6. Reuse existing components and utilities rather than building parallel systems.
+
+STEP 2 — SHARED DATA SOURCE AND EVENT STATE
+Implement or reuse a shared source of truth for:
+- Active data mode: real vs synthetic
+- Loaded real DERCONNECT measurements
+- Chronos-2 outputs and grouped anomaly events
+- Selected meter and date range
+- Selected anomaly event
+- Loading, missing-data, and error states
+
+Normalize events into a consistent internal structure containing available fields such as event ID, meter ID, start/end timestamps, duration, anomaly score, flags, observed power, expected power, and supporting time-series measurements.
+
+Preserve timezone and units. Use deterministic event IDs and make selection survive navigation and relevant rerenders. Do not duplicate data loading or create independent event lists that can disagree.
+
+STEP 3 — OVERVIEW REAL-DATA INTEGRATION
+When real mode is active, populate the existing Overview with real model-derived information:
+- Total detected candidate anomaly events
+- Number of affected meters
+- Number of loaded meters
+- Recent or relevant event activity
+- Existing meter status cards, charts, heatmaps, and event queue where supported by real data
+- Event table entries containing meter, start time, duration, and anomaly score where available
+
+Use the same date and meter filters as the real-data interface, or clearly distinguish global and local filters if the current architecture requires that.
+
+Count grouped events as events, not flagged hourly points. Do not imply real-time monitoring if these are historical outputs.
+
+Preserve the Overview's existing layout and styling as much as possible. For visualizations that require unavailable anomaly classification or severity, show an appropriate supported alternative or an explicit unavailable state. Never fabricate categories, severity, confidence, building names, or evaluation results.
+
+STEP 4 — SYNCHRONIZE INSPECT WITH ANOMALY INVESTIGATION
+Make every real-data Inspect action navigate to the existing Anomaly Investigation page and select the exact event.
+
+The selected event must populate:
+- Meter identity
+- Event start/end and duration
+- Anomaly flag and available score
+- Actual vs expected power
+- A chart highlighting the event interval
+- Surrounding historical measurements before and after the event
+- Any additional event fields genuinely provided by the current data
+
+Support Inspect from the Real DERCONNECT event table and the Overview event queue. Ensure that opening different events updates the investigation view correctly, even when events come from different meters.
+
+Use the existing router/navigation patterns. Prefer a shared event selection mechanism and, if practical, a URL-addressable event identifier for refresh/back navigation. If an event cannot be resolved, show a clear fallback instead of silently selecting a different event.
+
+Add a way to return to the corresponding meter chart in Buildings & Sub-grids, retaining the selected meter and time context.
+
+STEP 5 — PRESERVE SYNTHETIC MODE
+Do not delete the synthetic dashboard, its sample data, or its existing interaction flows.
+
+When synthetic mode is selected, preserve the existing Overview and Anomaly Investigation behavior. Switching between real and synthetic must not mix alerts or show stale events from the other mode.
+
+If real data has not been loaded, show an informative empty state rather than synthetic values disguised as real measurements.
+
+STEP 6 — DATA ACCURACY
+Treat Chronos-2 detections as unverified potential anomalies, not confirmed equipment failures.
+
+Do not infer anomaly type or severity from an anomaly score without an explicitly documented, justified rule. Do not treat anomaly scores as calibrated probabilities or operational risk levels.
+
+Preserve the actual hourly model resolution and align model outputs with measurement timestamps correctly. Handle missing values, partial intervals, date boundaries, and timezone differences.
+
+Do not change the anomaly model, its detection thresholds, or event-grouping rules unless strictly necessary for compatibility; document any changes.
+
+STEP 7 — TESTING
+Run the available checks and add focused tests for:
+1. Overview statistics match the underlying grouped real events.
+2. Date and meter filters yield consistent results across pages.
+3. Inspect from Overview opens the correct event.
+4. Inspect from the Real DERCONNECT event table opens the same event.
+5. Correct meter, timestamp, duration, score, actual/expected measurements, and chart highlight appear.
+6. Switching between two events or meters works.
+7. Switching real/synthetic modes does not leak state.
+8. Missing or unloaded data produces clear empty states.
+9. Existing synthetic features continue working.
+10. No console errors, broken routes, or chart regressions.
+
+DELIVERABLES
+Implement the changes directly in the existing codebase. Keep the current dashboard visual design and navigation. Prefer minimal, maintainable changes with reusable components and shared state.
+
+At the end, report:
+- Files modified and why
+- How the Overview now uses real anomaly outputs
+- How Inspect navigates and selects an event
+- Which real model fields are supported
+- Which features remain unavailable
+- Tests/checks executed and results
+- Any remaining integration limitations
+
+Do not stop at a plan. Inspect the repository, implement the synchronization, and verify it works.
+`````
+
+Codex reused the static architecture, canonical CSV adapter, history source flag, custom SVG chart, card components and hash router. It centralized session-only real bundle loading, meter/date scope and selected event ID; populated real Overview and Investigation; routed real Inspect to exact namespaced event URLs; retained phase measurements and synthetic behavior; and corrected prediction-only observation availability. The model, thresholds, event grouping and committed data are unchanged. No sub-agents were used.
+
+Changed files: `js/real-events.js`, `js/sections/real-anomalies.js`, `js/sections/chronos-buildings.js`, `js/sections/{overview,investigate,historical-overview}.js`, `js/app.js`, `js/chronos2.js`, `index.html`, `css/styles.css`, `tests/real-events.cjs`, `tests/real-events-browser.cjs`, `tests/chronos-buildings-browser.cjs`, `tests/chronos-csv-cache-browser.cjs`, `tests/historical-overview-browser.cjs`, `README.md`, `DEVELOPMENT_LOG.md`, `AI_USE.md`.
+
+Validation and exact outcomes are recorded in the corresponding DEVELOPMENT_LOG entry. Tests use explicitly synthetic fixtures and the already committed authorized model export. Human acceptance, independent source-measurement reconciliation, real labels/diagnoses, other browsers, training and model evaluation are outside this task. Files loaded manually and filter scopes are session-only; exact configured-bundle event routes survive refresh. Private phase measurements were not imported or recorded. No commit or push has been made.
+
+
+### 2026-11-19 — Restore real Overview structure and event interactions
+
+Human contributor: requesting dashboard team member (specific UI corrections and acceptance criteria). AI contributor: OpenAI Codex (code/instruction inspection, implementation, tests, visual checks and records). Base: `9b545e7e1b602b217a1f2282e5506dee568d181a` on `feat/sync-real-anomalies-overview-investigation`, with the prior 18 changed/untracked files already present. Preserved those changes; used a temporary comparison snapshot outside the repository. Human acceptance remains pending. No commit, push or deployment was made.
+
+Current user task prompt (complete, verbatim):
+
+`````text
+Fix the real-data UI integration in my DERCONNECT dashboard:
+
+Inspect the current code and applicable `AGENTS.md` instructions before editing. Preserve all existing uncommitted work.
+
+The real-data integration should retain the original dashboard’s structure and interactions. Fix the following without redesigning the application.
+
+### 1. Restore Overview as an all-meter summary
+
+The Real DERCONNECT Overview currently feels like a single-meter profile because its main chart defaults to the first meter.
+
+- Default to an overview across all loaded model meters.
+- Show total candidate events, affected meters, loaded meters, analyzed coverage, and recent events for the selected scope.
+- Make the default chart represent the all-meter scope through clearly labeled comparisons or separate traces.
+- Do not silently select the first meter.
+- Do not sum meters into a campus total without verified relationships that prevent double-counting.
+- Keep detailed single-meter analysis in meter profiles.
+
+### 2. Use the existing filter-bar experience
+
+Reuse the synthetic dashboard’s filter-bar design and interaction patterns for real data.
+
+- Provide an “All meters” option and individual meter selection.
+- Support date-range filtering.
+- Selecting a meter or date range must update the Overview metrics, chart, and event list consistently.
+- Retain filters when navigating to an event and back.
+- Clearly distinguish Overview/list filters from event-detail context.
+- Offer only filters supported by the loaded real results. Do not invent severity, anomaly types, building identities, or review statuses.
+- Preserve the existing source switch and synthetic filters.
+
+### 3. Restore metric icons
+
+Restore appropriate icons on the Real DERCONNECT Overview metric cards using the existing dashboard icon styling and reusable components. Preserve labels, values, layout, light/dark themes, and mobile behavior.
+
+### 4. Restore clickable events and dedicated investigation pages
+
+Clicking an event should open its dedicated Event Investigation page, matching the original synthetic workflow.
+
+- Make event IDs proper links.
+- Make event rows clickable and keyboard accessible.
+- Preserve the Inspect button.
+- All entry points must open the exact same selected event.
+- Prevent duplicate navigation from links/buttons inside clickable rows.
+- Use the existing investigation-page layout and shared components where practical.
+- Show the correct meter, event interval, duration, direction, raw score, actual/expected readings, thresholds, forecast context, and quality information where available.
+- Highlight the selected event and preserve missing-data gaps.
+- Keep unsupported classification, severity, and diagnosis explicitly unavailable.
+- Support Back to event list, browser Back/Forward, direct links, and reload.
+- Open the exact event even if it falls outside retained list filters; explain that scope difference rather than substituting another event.
+- Preserve synthetic event investigation and review behavior.
+
+### Scope and implementation
+
+Keep the plain HTML/CSS/JavaScript architecture and existing visual design. Reuse shared components and state rather than duplicating filters, event selection, or routing.
+
+Inspect these likely relevant files:
+
+- `js/sections/overview.js`
+- `js/sections/real-anomalies.js`
+- `js/real-events.js`
+- `js/sections/investigate.js`
+- `js/sections/chronos-buildings.js`
+- `js/ui.js`
+- `js/app.js`
+- `css/styles.css`
+- `index.html`
+
+Do not change model results, thresholds, event grouping, source measurements, or generated datasets. Do not add training, live inference, or unrelated features.
+
+### Verification
+
+Add focused regression coverage and check the actual dashboard in a browser:
+
+1. All-meter Overview is the default and does not silently chart one meter.
+2. Meter/date filters update metrics, charts, and events consistently.
+3. Metric icons display in both themes and on mobile.
+4. Event ID, row, Inspect button, and keyboard interaction open the correct detail page.
+5. Event evidence and highlighted intervals match the selected event.
+6. Returning to the list preserves filters.
+7. Direct links, reload, and browser Back/Forward work.
+8. Empty scopes and unavailable data are handled clearly.
+9. Synthetic views and real meter profiles still work.
+10. No browser errors or layout overflow occur.
+
+Follow repository documentation requirements. Implement and verify the fixes, then report what changed, checks performed, and remaining limitations. Do not commit, push, or deploy.
+`````
+
+Current supplied context messages (verbatim):
+
+`````text
+<external_codex_apps_open_page>{"page_id":null}</external_codex_apps_open_page>
+`````
+
+`````text
+<external_codex_apps_selected_page_part_1_of_1>Companion Page snapshot part 1 of 1:
+{"page_id":null,"document_view":null}</external_codex_apps_selected_page_part_1_of_1>
+`````
+
+`````text
+<external_ide_context># Context from my IDE setup:
+
+## Active file: local-data/derconnect-history.json
+
+## Open tabs:
+- derconnect-history.json: local-data/derconnect-history.json
+- derconnect-data.js: data/derconnect-data.js
+</external_ide_context>
+`````
+
+Codex restored the original global filter-bar controls for real Overview/event lists, all-meter comparisons and scoped coverage, extracted the original metric-card/icon component into shared UI, added native event-ID links and accessible row activation with nested-control guards, preserved independent list/profile/detail scopes, and reused the dedicated investigation layout. Added an exported-threshold fact and shared raw-number formatting so tiny nonzero scores/thresholds do not round to zero. No model values/rules, measurements or generated data changed. No sub-agents were used. The IDE's private local JSON was not opened or copied.
+
+Changed in this follow-up: `js/app.js`, `js/ui.js`, `js/real-events.js`, `js/sections/overview.js`, `js/sections/real-anomalies.js`, `js/sections/chronos-buildings.js`, `index.html`, `tests/real-events.cjs`, `tests/real-events-browser.cjs`, `tests/chronos-buildings-browser.cjs`, `tests/historical-overview-browser.cjs`, `README.md`, `DEVELOPMENT_LOG.md`, `AI_USE.md`. Pre-existing changes in other files remain intact.
+
+Validation: see the dated DEVELOPMENT_LOG entry for exact commands/outcomes/versions. Tests cover both synthetic fixtures and the committed model export, shared scopes, all-meter chart identity, metric icons, event entry points and single navigation, evidence/highlight geometry, tiny thresholds, history/reload, outside-scope links, empty/unavailable data, synthetic review, real profiles and responsive themes. Limits: manual imports/filter scopes remain session-only; meter scales are independent and no campus total is inferred. No real classifications, diagnoses, severity, verified topology or detection accuracy are available. Facilities and human acceptance remain pending. No commit, push or deployment was made.
+
+
+### 2026-11-19 — Physical Overview metrics and score-peak investigation facts
+
+Human contributor: requesting dashboard team member (metric definitions, requested physical facts, score-semantics concern and acceptance criteria). AI contributor: OpenAI Codex (inspection, CSV audit, implementation, focused tests/browser/visual checks and records). Base remains `9b545e7e1b602b217a1f2282e5506dee568d181a` on `feat/sync-real-anomalies-overview-investigation`, with earlier uncommitted work preserved in place and compared against `/private/tmp/derconnect-metric-facts-before`. Human review is pending. No agents, commits, pushes or deployments were used.
+
+Complete user prompt (verbatim):
+
+`````text
+Update the Real DERCONNECT Overview metrics and event-investigation facts in my current dashboard.
+
+The all-meter Overview/filter behavior and clickable event navigation are already implemented. Preserve them; do not redo those changes.
+
+Inspect the current code and applicable `AGENTS.md` instructions first. Preserve existing uncommitted work and the dashboard’s visual design.
+
+### 1. Update the four Overview metric cards
+
+| Card                            | What to show                                                                                                                                        | Suggested icon                          |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| Candidate Events                | Number of grouped events matching selected meters/dates                                                                                             | Clipboard/list                          |
+| Meters with Candidates          | Affected meters out of selected meters, such as “3 of 5”                                                                                            | Meter/gauge                             |
+| Largest Deviation from Expected | Largest absolute actual-minus-forecast-median difference among eligible flagged detection readings, displayed as signed kW with above/below wording | Vertical arrows around a reference line |
+| Longest Candidate Event         | Longest matching exported event duration, with meter and date                                                                                       | Clock/timer                             |
+
+- Make all cards follow the existing meter/date filters.
+- Link each card to its relevant list, event, or meter/time evidence using existing navigation.
+- For deviation calculations, use aligned actual and q50 values with valid timestamps and finite, non-interpolated measurements.
+- Do not substitute raw anomaly score for a kW difference.
+- If a flagged reading has no grouped event, open its meter/time evidence.
+- Explain when a full event duration extends outside selected dates.
+- Move analyzed meter-hours and data-quality information into a secondary area.
+- Use detection-period results; keep calibration flags separate.
+- Show zero for a valid empty count and “Unavailable” when evidence needed for a calculation is missing.
+
+Reuse the existing icon system and styling. Keep meaningful text labels, hide decorative icons from screen readers, and verify visibility in both themes and on mobile. Do not add a dependency solely for icons.
+
+### 2. Replace “Peak raw score” in investigation
+
+Replace the prominent score fact with **Deviation at Score Peak**.
+
+Show:
+
+- Signed actual-minus-expected difference in kW
+- “Above expected” or “below expected”
+- Supporting actual and expected readings
+
+Example:\
+“16.71 kW below expected”\
+“Actual: 104.04 kW · Expected: 120.75 kW”
+
+Use these four main investigation facts:
+
+- Meter
+- Event period
+- Duration
+- Deviation at Score Peak
+
+Do not call the last fact “Largest Deviation” unless it is separately calculated across the entire event. The score peak and largest power difference may occur at different times.
+
+Move technical information into an expandable **Detection details** section:
+
+- Raw anomaly score from the corresponding prediction row
+- Detection threshold
+- Exported normalized event peak score
+- Model identity and a short scoring explanation
+
+Verify the export semantics: event `peak_score` appears normalized, whereas prediction `score` is raw. Near-zero thresholds can inflate normalized scores into millions. Explain that these values are not probabilities, severity, or kW. Do not silently clip them or reconstruct raw scores from rounded thresholds.
+
+### Scope and verification
+
+Preserve the already-working all-meter Overview, filters, clickable events, investigation routes, browser history, and synthetic mode.
+
+Do not alter model outputs, thresholds, flags, event grouping, or generated data. Do not add live inference or unsupported diagnoses.
+
+Validate calculations against the loaded files. Add focused regression coverage and check card links, filters, investigation facts, missing-data states, light/dark themes, and mobile layout in a real browser.
+
+Follow repository documentation requirements. Implement and verify the changes, then report changed files, checks, and limitations. Do not commit, push, or deploy.
+`````
+
+Codex retained the existing all-meter comparisons, real filters, canonical event objects, clickable rows, route/history behavior and synthetic workflows. Replaced the four real Overview metrics with linked grouped count, affected/selected meters, largest eligible measured kW deviation, and longest matching full exported duration. Moved coverage/quality to a disclosure. Added no-group flagged-hour links to existing meter profiles using an optional UTC-time query, focused marker and surrounding measurements, with an explicit unavailable fallback.
+
+Replaced prominent event score facts with Meter, Event period, Duration and Deviation at Score Peak using a unique source peak-time prediction/forecast join. Technical raw prediction score/threshold, normalized event score and model explanation are under Detection details. Corrected real table/profile score labels. Source peak-time metadata is retained by the existing adapter; source values, flags, grouping and datasets are unchanged. Missing/ambiguous/interpolated peak evidence is withheld rather than guessed. Reviewed all 106 real event peak joins, actual/q50 agreement, normalization consistency within rounded export bounds, and independent source-file metric calculations. No raw-score reconstruction or clipping is used.
+
+Changed files: `js/chronos2.js`, `js/real-events.js`, `js/sections/real-anomalies.js`, `js/sections/chronos-buildings.js`, `js/ui.js`, `js/app.js`, `css/styles.css`, `index.html`, `tests/real-metrics.cjs`, `tests/real-metrics-browser.cjs`, `tests/real-events-browser.cjs`, `tests/chronos-buildings-browser.cjs`, `tests/chronos-csv-cache-browser.cjs`, `tests/section-navigation.cjs`, `README.md`, `DEVELOPMENT_LOG.md`, `AI_USE.md`. Navigation test appearance lookups now retry only detached nodes after responsive rerender; original assertions remain intact.
+
+Validation: exact commands, versions, source-file audit and outcomes are recorded in the corresponding DEVELOPMENT_LOG entry. Uses synthetic fixtures and the already committed authorized model bundle; private local phase measurements were not read. Limits: exact normalization/floor cannot be recovered from rounded exports and the upstream exporter is absent; missing peak joins withhold physical facts; counts use the existing matched-event selection; filters/manual imports remain session-only; no real diagnosis, severity, calibrated probabilities or accuracy labels are available. No new model inference, training, re-export, source measurements or generated datasets were introduced. Human acceptance is pending. No commit, push or deployment was made.
+
+## 2026-11-19 — Real operator review and shared compact event table
+
+Human contribution: the user supplied these two verbatim follow-up prompts and repository instructions. Codex implemented, tested and documented the changes; no human code review or facilities interpretation is claimed. Work remained on `feat/sync-real-anomalies-overview-investigation`, base `9b545e7e1b602b217a1f2282e5506dee568d181a`, preserving pre-existing uncommitted work. No associated commit exists; no push/deployment.
+
+First prompt:
+
+`````
+Update the real Anomaly Investigation event-detail page with two focused changes.
+
+Inspect applicable `AGENTS.md` instructions and preserve existing uncommitted work. Reuse existing investigation components and review-storage patterns where practical.
+
+### 1. Replace the prominent normalized event score
+
+Replace **“Normalized event score”** with **“Deviation at Score Peak (kW)”**.
+
+Example:\
+**16.71 kW below expected**\
+Actual: 104.04 kW · Expected: 120.75 kW
+
+- Calculate actual minus forecast median at the event’s score-peak timestamp.
+- Validate that the readings correspond to the same meter and timestamp.
+- Show “Unavailable” when reliable evidence is missing.
+- Do not merely rename the normalized number.
+- Do not call this “Largest Deviation”; that may occur at another timestamp.
+- Use a corresponding icon consistent with the existing dashboard.
+
+Move normalized event score into an expandable **Detection details** section alongside the raw prediction score and threshold. Explain that scores are not probabilities or severity, and near-zero thresholds can inflate normalized values.
+
+### 2. Add Building Manager / Operator Review
+
+Add a clearly labeled review section within the real event-detail page.
+
+Include:
+
+- **Review status:** Not reviewed, In review, Follow-up needed, Reviewed.
+- **Assessment:** Uncertain, Expected operation, Possible operational issue, Possible measurement issue.
+- **Review notes:** What was observed and any relevant operating context.
+- **Follow-up action:** What should be checked or done next.
+- **Reviewer name:** Optional, entered by the user.
+- **Save review** button.
+- **Last saved** timestamp and clear save/error feedback.
+
+Behavior:
+
+- Reuse the existing review UI and storage approach where suitable, while keeping real and synthetic records separate.
+- Identify each saved review using the dataset/run/model identity, meter, and event ID to prevent collisions.
+- Restore saved review fields when reopening the same event or reloading.
+- Prevent unsaved drafts from leaking into another event.
+- Provide an unsaved-changes indication and protect drafts from accidental loss during navigation.
+- Keep review information distinct from model predictions.
+- A saved assessment must not automatically become confirmed ground truth, change detection results, or feed training/evaluation.
+- Explain that reviews are saved in this browser only if using localStorage. Do not imply shared multi-user storage.
+- Handle unavailable browser storage explicitly rather than claiming a successful save.
+
+### Scope and verification
+
+Leave Overview, filters, model outputs, event grouping, and existing event navigation unchanged. Preserve synthetic review behavior.
+
+Verify:
+
+- Correct deviation values for the event with the approximately 18-million normalized score.
+- Missing-reading behavior.
+- Saving, reopening, editing, and reloading real-event reviews.
+- Isolation between different events, model runs, and synthetic reviews.
+- Unsaved drafts and storage failures.
+- Keyboard accessibility, both themes, and mobile layout.
+- Existing event links and browser navigation.
+
+Add focused regression coverage and follow repository documentation requirements. Implement and report the changes, checks, and limitations. Do not commit, push, or deploy.
+`````
+
+Subsequent steering prompt:
+
+`````
+Make the real Anomaly Investigation event list use the same table layout and interaction pattern as the event table in Buildings & Sub-grids.
+
+Inspect and reuse that existing implementation rather than creating another table design.
+
+Use these columns:
+
+- Start
+- Duration
+- Peak detector score
+- Direction
+- Action
+
+Requirements:
+
+- Preserve the existing meter/date filters.
+- Format timestamps, durations, scores, and direction consistently with Buildings & Sub-grids.
+- Preserve the exported score without changing detection calculations.
+- Explain in a tooltip or short help text whether the displayed score is normalized; it is not severity or probability.
+- Do not replace this table’s score column with a kW-deviation column.
+- Keep the Inspect action opening the exact event’s dedicated investigation page.
+- Preserve clickable event rows and keyboard access.
+- Keep the detailed evidence and Building Manager / Operator Review on the event-detail page, separate from this compact list.
+- Preserve Back navigation, retained filters, direct links, reload, and synthetic behavior.
+
+Follow applicable `AGENTS.md` instructions and preserve existing uncommitted work. Keep this change focused; do not modify Overview, model results, thresholds, or event grouping.
+
+Verify table consistency, correct event navigation, filters, keyboard access, both themes, and mobile layout. Add focused regression coverage and report checks and limitations. Do not commit, push, or deploy.
+`````
+
+Codex contribution: reused the existing Buildings eventTable renderer with compact options, the existing row/link navigation, score/time/duration/direction formatters, scrolling and sticky Action styling. The list keeps normalized exported scores and help text; detail retains physical evidence and review. No Overview renderer or detection computation changes were made in these follow-ups. Added the requested physical fact label, direction/supporting readings and existing icon; normalized score remains under Detection details. Added separate browser-local real review storage with dataset/model/exact-file SHA-256 run/meter/event keys, full requested fields, restored saves, isolated in-memory drafts, unload warning, timestamp and explicit storage/conflict errors. No annotations feed predictions, ground truth or training/evaluation.
+
+Changed files: `js/chronos2.js`, `js/real-review.js`, `js/sections/real-anomalies.js`, `js/sections/chronos-buildings.js`, `css/styles.css`, `index.html`, `tests/real-review.cjs`, `tests/real-review-browser.cjs`, `tests/real-event-list-browser.cjs`, `tests/real-metrics-browser.cjs`, `README.md`, `DEVELOPMENT_LOG.md`, `AI_USE.md`.
+
+Validation: 26 Node regression tests passed against fixtures and committed exports; Chrome review/list tests passed with both fixtures and real exports. Existing physical metric/missing-data tests, Buildings workflow tests and synthetic four-section browser regression passed. Checked exact 18-million event delta, keyboard entry points and Save, no duplicate navigation, retained filters/history/reload, run/event/synthetic separation, draft protection and storage failures, light/dark themes and 390px mobile without page overflow. Syntax checks passed for all 65 JS/CJS files and AST parsing for 14 Python files; diff whitespace and incremental source review passed. Full commands, versions, screenshots and limitations are recorded in DEVELOPMENT_LOG.md. No source/generated/model data was modified, regenerated or trained.
+
+Limitations: reviews are local to this browser/site and unsaved drafts to this tab; unload dialogs depend on browser policy. Exact-file formatting changes create a separate content-run scope; SHA-256 is not verified upstream run provenance and saving requires Web Crypto. Rounded zero thresholds do not reveal exact normalization. Other browser engines and human facilities/code/design acceptance remain unverified. No commit, push or deployment was made.
+
+## 2026-11-19 — Usage difference in real event tables
+
+Verbatim user prompt:
+
+`````
+Make a quick, focused change to the real-data event tables in both **Anomaly Investigation** and **Buildings & Sub-grids**.
+
+Replace **“Peak detector score”** with **“Usage difference (kW)”**.
+
+- Calculate `peak_actual_kw − peak_expected_kw` using the event’s existing exported fields.
+- Display the absolute difference with direction, such as **“16.71 kW below expected”** or **“12.40 kW above expected.”**
+- Show **“At expected usage”** when the difference is zero.
+- Show **“Unavailable”** if either value is missing or nonfinite.
+- Remove the separate **Direction** column because direction is included in the new value.
+- Use these columns consistently in both tables: **Start · Duration · Usage difference (kW) · Action**.
+- Add help text: “Actual minus expected power at the event’s highest detector-score point; not necessarily the largest difference during the event.”
+- Preserve existing Inspect actions, clickable rows, filters, sorting behavior, and event navigation. Update any score-based sorting tied to this column to sort by absolute kW difference.
+- Keep technical detector scores in the event’s Detection details.
+- Preserve the existing table styling and synthetic views.
+
+Inspect applicable `AGENTS.md` instructions and preserve existing uncommitted work. Do not change model results, thresholds, or event grouping.
+
+**Do not write or run tests.** Make only the necessary edits, review the changed code for obvious mistakes, and briefly report what changed. Do not commit, push, or deploy.
+`````
+
+User supplied scope and review-only validation constraint. Codex inspected instructions/status and existing shared table/export mapping; updated both real tables through that renderer to display exported peak actual minus expected as magnitude/direction with zero/unavailable states, four requested columns, shared help and descending absolute-difference sorting. Preserved navigation callbacks, styling, filters, synthetic views, technical detail scores and all existing uncommitted work. Changed `js/sections/chronos-buildings.js`, `js/sections/real-anomalies.js`, `index.html` (cache versions), `README.md`, `DEVELOPMENT_LOG.md`, `AI_USE.md`.
+
+Validation: manual source/diff review and `git diff --check` only. No tests were written, modified or run; no browser or syntax execution, as requested. Existing table assertions refer to the superseded columns and remain untouched. Runtime layout/behavior and human acceptance are unverified for this change. No model outputs, thresholds, grouping or generated data were changed. Base branch/revision and review details are recorded in DEVELOPMENT_LOG.md. No associated commit; no commit, push or deployment.
+
+## 2026-11-19 — Overview recent-event usage difference follow-up
+
+Verbatim user prompt:
+
+`````
+the overview&#x20;
+
+### Recent candidate event activity
+
+needs to change it to usage difference too
+`````
+
+User supplied the follow-up; Codex updated Overview's recent-events score column to Usage difference (kW), removed its separate Direction column, and reused the existing exported actual-minus-expected calculation/formatter via a shared wrapper. Preserved recent order/limit, filters, styling and navigation; added the same help text. Changed `js/sections/real-anomalies.js`, `js/sections/chronos-buildings.js` (formatter export), `index.html` (cache versions), `README.md`, `DEVELOPMENT_LOG.md`, `AI_USE.md`. Existing uncommitted work retained. Source/diff review and `git diff --check` only; no tests written, modified or run, following the preceding request. No browser/syntax execution; runtime appearance and human acceptance remain unverified. No model/data/threshold/grouping changes. No associated commit, push or deployment.

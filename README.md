@@ -516,9 +516,10 @@ exports. Later additions retain earlier meters, selection and dates. Historical
 Monitoring's existing loader and comparison loader use this same catalog. Identical
 overlap bins count once; conflicting aggregates are withheld, with source evidence
 retained. Clear the catalog to remove conflicts or change transformation versions.
-The shared source choice affects Overview and Buildings; anomaly investigation and
-Detection Quality remain the synthetic demonstration. Choose **Prototype Data**
-to return to the existing Buildings workflow. Files and source choice clear on reload.
+The shared source choice affects Overview, Buildings and Anomaly Investigation.
+Detection Quality remains explicitly scoped to the synthetic demonstration. Choose **Prototype Data**
+to return to the existing Buildings workflow. Manual imports clear on reload; real
+meter/event routes restore real mode and reload the configured model bundle.
 
 Both modes use the original searchable building-card grid and click-through profile
 layout. Existing cards, charts, spacing, typography and responsive columns are
@@ -576,9 +577,11 @@ The window summary’s mean and peak use readings explicitly marked as measured.
 
 The sortable **Candidate events** table opens to **All detection dates**. Choose
 **Selected dates** to limit the table to the current analysis window. Inspect a row
-or click a highlighted chart interval for the event context, duration, raw score,
-observed and expected peak values, and direction. **Previous** and **Next** follow
-the table’s order. **Return to chart range** restores the original chart window while
+or click a highlighted chart interval to open that exact event in Anomaly Investigation.
+The **View meter chart** link returns to the meter profile with the event highlighted.
+Profile **Previous** and **Next** follow the meter table order and open Investigation;
+Investigation **Previous** and **Next** follow the shared event log, newest first.
+**Return to chart range** in the profile restores its original chart window while
 keeping the event details open. Calibration assumptions, UTC exclusions and
 interpolation counts are under **Model provenance and data quality**. Candidate
 events require facilities verification.
@@ -596,3 +599,127 @@ installed, `node tests/chronos-buildings-browser.cjs`. Set
 Run `node tests/chronos-csv-cache-browser.cjs` to verify an upgrade with the previous
 CSV parser in Chromium’s HTTP cache. This test starts its own local server and uses
 the committed exports.
+
+
+### Shared real Overview and Anomaly Investigation
+
+Choose **Real DERCONNECT** in Overview, Buildings or Investigation. All three use
+one session-only Chronos bundle and the same exported grouped events. Overview
+shows four linked metric cards: **Candidate Events** in the shared scope,
+**Meters with Candidates** out of selected meters, **Largest Deviation from Expected**
+and **Longest Candidate Event**. The deviation is signed observed-minus-q50 kW, ranked
+by absolute magnitude, using only aligned, finite, explicitly non-interpolated flagged
+detection readings. Calibration flags are excluded. A flag without a group links to
+its meter and UTC-hour evidence (`#buildings/derconnect%3A<meter>?at=<UTC timestamp>`),
+with a marked reading and surrounding context; the link supports reload. Longest
+uses the full matching exported duration and explains when it extends beyond selected
+campus dates. Eligible zero counts are shown as zero; unavailable calculations are
+labelled explicitly. Analyzed meter-hours, exclusions and calibration counts are in
+**Analyzed coverage & data quality**. Counts describe historical outputs, not live alarms.
+Labeled actual/expected power comparisons still show all loaded model meters by default,
+with separate vertical scales and no summed campus power.
+Additional phase measurements remain available below the model overview; phase
+JSON dates and model chart presets are separately labelled.
+
+Overview and the Investigation list reuse the original filter bar: **All meters** or
+one loaded model meter, **All loaded dates**, historical **Last 7/14/30 days** presets,
+**Custom** inclusive campus dates, and **Reset**. Presets end at the loaded bundle's
+last campus date, rather than today's date. Unsupported synthetic filters are hidden;
+switching back restores the synthetic controls and scope. Metrics, comparisons and
+events use the same shared selection. Metric cards reuse the original icons/styling.
+A meter profile uses its own meter and retains the shared candidate dates without
+changing the Overview/list meter filter.
+Its **All detection dates** table still respects those shared dates; **Selected dates**
+additionally intersects them with the local chart window. Directory card counts
+continue to describe the full detection period. The **All candidate dates** action
+clears shared date bounds. Dates are inclusive campus dates in America/Los_Angeles;
+model joins and interval highlights use UTC instants and half-open event bounds.
+
+Every real Inspect action uses `#investigate/real%3A<exported-event-id>`, independently
+of list filters. Event IDs are native links; rows also open with click or Enter/Space,
+and Inspect remains available. Links/buttons inside a row navigate once. Dedicated
+Event Investigation pages reuse the original detail heading, cards and evidence
+layout. They hide list controls and explain when event context falls outside retained
+list filters. Back to candidate events restores those filters. Refresh and Back/Forward
+resolve that exact ID after loading the configured CSV bundle. Unknown IDs and absent/failed loads show explicit unavailable
+states. Local file bundles must be selected again after reload. Unresolved IDs are
+never replaced by a different candidate. Selection and filters remain separate from
+the synthetic demonstration and synthetic review storage.
+
+The four main Event Investigation facts are **Meter**, **Event period**, **Duration**,
+and **Deviation at Score Peak**, with supporting actual/q50 values and above/below
+wording. The score peak need not be the largest power deviation. The source event's
+`peak_time` wall-time key must match exactly one prediction inside the event's UTC
+bounds; missing/ambiguous keys or interpolated/missing pairs withhold the physical
+fact instead of choosing a different hour. No host-timezone interpretation is used.
+
+Expandable **Detection details** separates the corresponding prediction `score` (raw),
+its exported `threshold`, the event `peak_score` (normalized), and model/scoring context.
+The paired committed files confirm 106/106 peak-row and actual/q50 joins. All 81 peaks
+with nonzero exported thresholds are consistent with normalized ratios within the
+four-decimal CSV rounding bounds. The other 25 event thresholds export as zero, so
+an exact normalization/floor cannot be verified from these rounded files; the upstream
+exporter implementation is not bundled. Near-zero thresholds can inflate normalized
+scores into millions. Scores are not kW, severity or probabilities. The UI does not
+clip normalized scores or reconstruct raw scores from rounded thresholds. Raw and
+normalized labels in tables/profile evidence now reflect this distinction.
+
+The existing highlighted power chart, up to 24 hours of available context per side,
+nominal q10–q90 band, missing-data gaps, source quality, and disclosed hourly table
+remain available. Large normalized values and tiny raw values remain visible with
+appropriate formatting; hover facts retain numeric values. Model outputs, thresholds,
+flags, grouping rules and committed datasets are unchanged.
+Classification, severity, operational priority, calibrated fault confidence, verified
+building topology and real detection accuracy remain unavailable. Candidate events
+need facilities verification; scores are not fault probabilities.
+
+Checks (serve on loopback first, with Playwright and a Chrome/Chromium executable):
+
+```bash
+CHRONOS_EXPORT_DIR=data/anomaly/chronos2-ft-5k node --test tests/real-events.cjs tests/real-metrics.cjs
+node tests/real-metrics-browser.cjs
+node tests/real-events-browser.cjs
+CHRONOS_REAL=1 node tests/real-events-browser.cjs
+```
+
+Use `NODE_PATH` for an existing Playwright installation when needed, and
+`CHROMIUM_PATH` for the installed browser. Optional `SCREENSHOT_DIR` stores browser
+QA captures outside the repository. These checks cover grouped counts and shared
+filters, both Inspect paths, exact event evidence/highlights, meter switching,
+refresh/history, unavailable data, source isolation, synthetic review, and themes
+at desktop/mobile sizes.
+
+The real Anomaly Investigation list reuses the Buildings & Sub-grids event-table
+renderer and scroll/sticky-action styling. Both real tables use Start, Duration,
+Usage difference (kW) and Action. Usage difference uses the exported peak actual minus
+expected power, displayed as an absolute magnitude with above/below wording; it is
+not necessarily the largest difference during the event. Missing/nonfinite pairs
+are unavailable. The Buildings largest-difference sort uses absolute kW difference,
+with unavailable values last. Start links, row click/Enter/Space and Inspect resolve
+the same event ID. Technical detector scores remain in Detection details.
+Meter/date scope and event-detail context remain separate.
+Overview's Recent candidate event activity uses the same exported usage difference
+and help text, with direction included in the value instead of a separate column.
+
+Real event details include a **Building Manager / Operator Review** with status,
+assessment, notes, follow-up action and optional reviewer name. Save writes only to
+this browser's localStorage for this site. It does not change detections, ground truth,
+training, evaluation or synthetic reviews. Keys include dataset, model, meter, event
+and a SHA-256 fingerprint of the exact three loaded CSV texts. Identical files restore
+reviews after reload; any content/formatting change creates a different run scope.
+The fingerprint is a content identity, not a verified upstream run identifier.
+If Web Crypto or localStorage is unavailable, saving is explicitly unavailable or
+reports failure. Successful writes are checked; conflicting saved changes in another
+tab are not overwritten. Unsaved drafts remain isolated by event/run in this tab
+during dashboard navigation. Save before reload/close; a native browser unload
+warning is requested while drafts remain unsaved, subject to browser behavior.
+
+Additional focused checks (same browser environment as above):
+
+```bash
+node --test tests/real-review.cjs
+node tests/real-review-browser.cjs
+CHRONOS_REAL=1 node tests/real-review-browser.cjs
+node tests/real-event-list-browser.cjs
+CHRONOS_REAL=1 node tests/real-event-list-browser.cjs
+```

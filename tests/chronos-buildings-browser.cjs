@@ -31,6 +31,11 @@ const real = process.env.CHRONOS_REAL === '1';
       await page.locator('[data-real-meter="' + meter + '"] .action-link').click();
       await page.waitForFunction(id => document.querySelector('#h-buildings')?.textContent === 'Meter ' + id, meter);
     };
+    const inspectAndReturn = async () => {
+      await page.locator('#real-event-chart svg').waitFor();
+      await page.locator('#real-return-meter').click();
+      await page.locator('#chronos-context-chart svg').waitFor();
+    };
     const preset = name => page.getByRole('group', { name: 'Model chart range' }).getByRole('button', { name, exact: true }).click();
     const setDates = async (from, to) => {
       if (!await page.locator('#chronos-from').count()) await preset('Custom dates');
@@ -82,6 +87,7 @@ const real = process.env.CHRONOS_REAL === '1';
     assert.match(await page.locator('#chronos-range').textContent(), real ? /Jan 15, 2026.*Jun 1, 2026/ : /Feb 28, 2026.*Mar 8, 2026/);
     await preset('7 days');
     const previousRange = await page.locator('#chronos-range').textContent();
+    await chart.locator('path[stroke-dasharray="5 4"]').waitFor({ state: 'attached' });
     assert.equal(await chart.locator('path[stroke-dasharray="5 4"]').count(), 1);
     assert.equal(await chart.locator('path[stroke="none"]').count(), 1);
     await page.locator('#chronos-band').uncheck();
@@ -98,6 +104,7 @@ const real = process.env.CHRONOS_REAL === '1';
       await hit.hover({ position: { x: 1, y: 100 } });
       assert.match(await page.locator('.tooltip.show').textContent(), /55\.0 kW.*16\.0 kW.*Flagged hour.*E2451-test-event/);
       await hit.click({ position: { x: 1, y: 100 } });
+      await inspectAndReturn();
       await page.locator('#chronos-context-chart svg').waitFor();
       assert.match(await page.locator('#chronos-event').textContent(), /Above expected.*55\.0 kW.*16\.0 kW.*E2451-test-event.*2\.5/);
       await page.getByRole('button', { name: 'Close event' }).click();
@@ -105,29 +112,33 @@ const real = process.env.CHRONOS_REAL === '1';
     } else {
       const march26 = page.locator('#chronos-event-list tbody tr').filter({ hasText: 'Mar 26 · 22:00 PDT' });
       await march26.getByRole('button').click();
+      await inspectAndReturn();
       await page.locator('#chronos-context-chart svg').waitFor();
       assert.match(await page.locator('#chronos-event').textContent(), /58\.6 kW.*101\.7 kW.*E2451-007.*9\.33/);
       assert.match(await page.locator('#chronos-range').textContent(), /Mar 25, 2026.*Mar 27, 2026/);
       await page.getByRole('button', { name: 'Next', exact: true }).click();
+      await inspectAndReturn();
       assert.match(await page.locator('#chronos-event').textContent(), /E2451-008/);
       await page.getByRole('button', { name: 'Previous', exact: true }).click();
+      await inspectAndReturn();
       assert.match(await page.locator('#chronos-event').textContent(), /E2451-007/);
       await page.getByRole('button', { name: 'Return to chart range', exact: true }).click();
       assert.equal(await page.locator('#chronos-range').textContent(), previousRange);
       assert.equal(await march26.getByRole('button').getAttribute('aria-pressed'), 'true');
       await page.getByLabel('Sort candidate events').selectOption('score');
-      const scores = await page.locator('#chronos-event-list tbody td:nth-child(3)').allTextContents();
+      const scores = await page.locator('#chronos-event-list tbody td:nth-child(4)').allTextContents();
       const numeric = scores.map(value => Number(value.replaceAll(',', '')));
       assert.deepEqual(numeric, numeric.toSorted((a, b) => b - a));
       await page.getByLabel('Sort candidate events').selectOption('date');
     }
     await events.first().focus();
     await page.keyboard.press('Enter');
+    await inspectAndReturn();
     await page.locator('#chronos-context-chart svg').waitFor();
     assert.equal(await events.first().getAttribute('aria-pressed'), 'true');
     assert.equal(await page.locator('#chronos-event-title').textContent(), 'Unclassified candidate anomaly');
     assert.equal(await chart.locator('rect[stroke-width="1.5"]').count(), 1);
-    assert.match(await page.locator('#chronos-event').textContent(), /Observed at peak.*Expected at peak.*End \(exclusive\).*Peak raw score/);
+    assert.match(await page.locator('#chronos-event').textContent(), /Observed at peak.*Expected at peak.*End \(exclusive\).*Detection details/);
     for (const theme of ['dark', 'light']) {
       if (await page.locator('html').getAttribute('data-theme') !== theme) await page.locator('#theme-toggle').click();
       for (const width of [390, 1440]) {

@@ -19,6 +19,8 @@
 
   function render(root) {
     DC.clear(root);
+    root.append(DC.realAnomalies.sourceControl());
+    if (DC.history.session.source === 'historical') { DC.realAnomalies.investigate(root); return; }
     const events = DC.sortEvents(DC.events(), view.sort);
     const selId = DC.state.selected;
     root.append(el("div", { class: "section-head" },

@@ -12,6 +12,54 @@
     return { card: c, body, tools, head };
   }
 
+  function rawNumber(value) {
+    if (!Number.isFinite(value)) return 'Unavailable';
+    const magnitude = Math.abs(value);
+    if (magnitude > 0 && magnitude < 0.0001) return value.toExponential(4);
+    return value.toLocaleString('en-US', { maximumFractionDigits: 4 });
+  }
+
+  function metricIcon(kind) {
+    const paths = {
+      review: ["M9 5H5v16h14V5h-4", "M9 3h6v4H9z", "M8 12h8M8 16h5"],
+      priority: ["m12 3 10 18H2L12 3Z", "M12 9v5M12 17h.01"],
+      buildings: ["M3 21h18M5 21V4h10v17M15 10h4v11M8 8h4M8 12h4M8 16h4"],
+      deviation: ["M3 12h18", "M8 9V3m-3 3 3-3 3 3", "M16 15v6m-3-3 3 3 3-3"],
+      duration: ["M12 5a8 8 0 1 0 0 16 8 8 0 0 0 0-16", "M9 2h6M12 9v5l3 2"],
+      meters: ["M4 4h16v16H4z", "M8 8h8v5H8z", "M9 17h6"],
+      completeness: ["M4 5h16v14H4z", "m8 12 3 3 5-6"],
+    };
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 24 24"); svg.setAttribute("class", "metric-icon");
+    svg.setAttribute("aria-hidden", "true"); svg.setAttribute("focusable", "false");
+    for (const d of paths[kind]) {
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", d); svg.append(path);
+    }
+    return svg;
+  }
+  function kpi(label, value, unit, note, icon, action = null) {
+    return el(action ? "a" : "div", { class: "card kpi" + (action ? " kpi-link" : ""), href: action?.href, onclick: action?.onclick, "aria-label": action?.label },
+      el("span", { class: "kpi-heading" }, el("span", { class: "label", text: label }), el("span", { class: "kpi-symbol" }, metricIcon(icon))),
+      el("div", { class: "value" }, value, unit ? el("small", { text: unit }) : null),
+      note ? el("div", { class: "note", text: note }) : null);
+  }
+
+  // Row activation leaves native links/buttons and modified clicks in control.
+  function eventRow(id, selected, open, ...cells) {
+    return el('tr', { class: selected ? 'selected' : '', tabindex: '0', 'data-event-id': id,
+      'aria-label': 'Open event ' + id,
+      onclick: event => {
+        if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey ||
+            event.target.closest('a, button, input, select, textarea')) return;
+        open();
+      },
+      onkeydown: event => {
+        if (event.target !== event.currentTarget || !['Enter', ' '].includes(event.key)) return;
+        event.preventDefault(); open();
+      } }, ...cells);
+  }
+
   function legend(items) {
     const box = el("div", { class: "legend" });
     for (const it of items) {
@@ -130,5 +178,5 @@
     };
   }
 
-  DC.ui = { card, buildingCard, legend, segmented, eventTooltip, overlays, scopeSeries, refresh };
+  DC.ui = { rawNumber, kpi, metricIcon, eventRow, card, buildingCard, legend, segmented, eventTooltip, overlays, scopeSeries, refresh };
 })();

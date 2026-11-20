@@ -45,10 +45,19 @@ const base = process.env.DASHBOARD_URL || 'http://127.0.0.1:8000';
   };
   const staticMetrics = async page => {
     const cards = page.locator('#sec-overview .kpi');
-    const appearance = card => card.evaluate(n => {
-      const s = getComputedStyle(n), value = getComputedStyle(n.querySelector('.value'));
-      return [s.backgroundColor, s.borderColor, s.boxShadow, s.outlineStyle, value.color];
-    });
+    const appearance = async card => {
+      // A debounced viewport render can replace a node after Playwright resolves its locator.
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const values = await card.evaluate(n => {
+          if (!n.isConnected) return null;
+          const s = getComputedStyle(n), value = getComputedStyle(n.querySelector('.value'));
+          const result = [s.backgroundColor, s.borderColor, s.boxShadow, s.outlineStyle, value.color];
+          return n.isConnected ? result : null;
+        });
+        if (values) return values;
+      }
+      throw Error('Metric remained detached during appearance check');
+    };
     const scope = await page.evaluate(() => JSON.stringify(DC.state));
     const values = await cards.locator('.value').allTextContents();
     assert.equal(await cards.count(), 4);

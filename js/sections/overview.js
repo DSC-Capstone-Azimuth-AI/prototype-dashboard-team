@@ -6,35 +6,14 @@
 
   let showEvents = false, diagnosticsOpen = false;
 
-  function metricIcon(kind) {
-    const paths = {
-      review: ["M9 5H5v16h14V5h-4", "M9 3h6v4H9z", "M8 12h8M8 16h5"],
-      priority: ["m12 3 10 18H2L12 3Z", "M12 9v5M12 17h.01"],
-      buildings: ["M3 21h18M5 21V4h10v17M15 10h4v11M8 8h4M8 12h4M8 16h4"],
-      completeness: ["M4 5h16v14H4z", "m8 12 3 3 5-6"],
-    };
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("viewBox", "0 0 24 24"); svg.setAttribute("class", "metric-icon");
-    svg.setAttribute("aria-hidden", "true"); svg.setAttribute("focusable", "false");
-    for (const d of paths[kind]) {
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path.setAttribute("d", d); svg.append(path);
-    }
-    return svg;
-  }
-  function kpi(label, value, unit, note, icon) {
-    return el("div", { class: "card kpi" },
-      el("span", { class: "kpi-heading" }, el("span", { class: "label", text: label }), el("span", { class: "kpi-symbol" }, metricIcon(icon))),
-      el("div", { class: "value" }, value, unit ? el("small", { text: unit }) : null),
-      note ? el("div", { class: "note", text: note }) : null);
-  }
+  const kpi = (...args) => ui().kpi(...args);
 
   function render(root) {
     DC.clear(root);
-    const source = el("select", { id: "overview-source", "aria-label": "Overview data source", onchange: evt => { DC.history.session.setSource(evt.target.value); DC.setState({}); document.querySelector('#overview-source')?.focus({preventScroll:true}); } }, el("option", { value: "synthetic", text: "Synthetic Demo" }), el("option", { value: "historical", text: "Historical DERCONNECT" }));
+    const source = el("select", { id: "overview-source", "aria-label": "Overview data source", onchange: evt => { DC.history.session.setSource(evt.target.value); DC.setState({}); document.querySelector('#overview-source')?.focus({preventScroll:true}); } }, el("option", { value: "synthetic", text: "Synthetic Demo" }), el("option", { value: "historical", text: "Real DERCONNECT" }));
     source.value = DC.history.session.source;
     root.append(el("label", { class: "overview-source" }, el("span", { text: "Overview data source" }), source));
-    if (DC.history.session.source === "historical") { DC.historicalOverview.render(root); return; }
+    if (DC.history.session.source === "historical") { DC.realAnomalies.overview(root); return; }
     const s = DC.state, [t0, t1] = DC.range();
     const events = DC.events();
     const open = events.filter(DC.isOpen);
