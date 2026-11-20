@@ -95,7 +95,8 @@
         return last < 72 ? day + ' ' + time.split(' ')[0] : day;
       },
       series, markers,
-      shade: Number.isFinite(focusTime) ? [{ start: offset(focusTime), end: offset(focusTime) + 1, color: eventColor, label: 'Flagged reading' }] : [],
+      shade: [...DC.calendar.shades(rows, offset),
+        ...(Number.isFinite(focusTime) ? [{ start: offset(focusTime), end: offset(focusTime) + 1, color: eventColor, label: 'Flagged reading' }] : [])],
       band: showBand ? [{ lo: i => byHour.get(i)?.q?.q10, hi: i => byHour.get(i)?.q?.q90, color: DC.css('--band-inner') }] : [],
       intervals: events.map(ev => ({ start: offset(ev.start), end: offset(ev.end), color: eventColor, selected: ev.id === selected?.id, event: ev })),
       onClick: !onEvent || !events.length ? undefined : (i, hit) => {
@@ -112,6 +113,8 @@
         if (detection) details.push({ label: 'Raw score / threshold', value: score(row.score) + ' / ' + score(row.threshold) });
         if (detection && row.flag) details.push({ label: 'Detector flag', value: 'Flagged hour' });
         if (eventIds.has(row.event?.id)) details.push({ label: 'Candidate event', value: row.event.id });
+        const calendarRow = DC.calendar.tooltipRow(row.day);
+        if (calendarRow) details.push(calendarRow);
         const observation = row.filled ? 'Interpolated observation' : row.actual === null ? 'Observation unavailable' : row.filled === null ? 'Interpolation status unavailable' : 'Measured observation';
         const period = detection ? 'Detection' : row.period === 'calibration' ? 'Assumed-normal calibration' : 'Detector output unavailable';
         return { title: H.stamp(row.time), rows: details, note: period + ' · ' + observation };
@@ -173,7 +176,7 @@
     const c = DC.ui.card('Observed vs. expected total active power', 'Hourly power in kW · America/Los_Angeles');
     c.card.id = 'chronos-analysis';
     c.tools.append(el('label', { class: 'chronos-band' }, el('input', { type: 'checkbox', id: 'chronos-band', checked: showBand,
-      onchange: event => { showBand = event.target.checked; redraw(); } }), '80% forecast interval'));
+      onchange: event => { showBand = event.target.checked; redraw(); } }), '80% forecast interval'), DC.calendar.toggle(redraw));
     c.body.append(rangeControls(view, from, to));
     const reading = Number.isFinite(view.readingTime) ? all.rows.find(row => row.time === view.readingTime) : null;
     const focused = view.focused && (selected || reading || view.readingUnavailable);
@@ -202,6 +205,7 @@
         ...(showBand ? [{ kind: 'box', color: DC.css('--band-inner'), label: 'Nominal 80% forecast interval' }] : []),
         { kind: 'box', color: candidate(), label: 'Candidate event interval' },
         ...(focused && reading ? [{ kind: 'box', color: candidate(), label: 'Focused flagged reading' }] : []),
+        ...DC.calendar.legend(rows),
       ]));
     } else {
       c.body.append(el('p', { class: 'empty', text: 'Observed and expected power are unavailable for these hours.' }));
@@ -229,7 +233,7 @@
     interpretation && el('p', { class: 'ink2', text: interpretation }),
     el('dl', { class: 'chronos-facts' }, fact('Event ID', ev.id), fact('End (exclusive)', H.stamp(ev.end)), fact('Direction (exported)', direction[ev.direction])),
     el('p', { class: 'muted', text: 'Facilities verification is needed to interpret this candidate event.' }));
-    node.append(DC.realAnomalies.detectionDetails(ev));
+    node.append(DC.calendar.context(ev), DC.realAnomalies.detectionDetails(ev));
     const rows = all.context(ev);
     if (rows.length) {
       node.append(el('p', { class: 'ink2', text: 'Hourly context · up to 24 hours on either side · kW' }));
@@ -248,7 +252,7 @@
       const time = el('time', { datetime: new Date(event.start).toISOString(), title: H.stamp(event.start), text: H.axisStamp(event.start).join(' · ') });
       const difference = usageDifference(event);
       const cells = [el('td', {}, DC.realAnomalies.eventLink(event, time),
-        compact ? el('div', { class: 'muted', text: event.meter }) : null),
+        compact ? el('div', { class: 'muted', text: event.meter }) : null, DC.calendar.tag(event)),
         el('td', { text: event.duration + ' h' }), el('td', { text: usageText(difference), title: difference === null ? 'Unavailable' : difference + ' kW · actual minus expected' }),
         el('td', {}, el('span', { class: 'status', title: 'Saved operator review status in this browser only',
           text: DC.realReview.statusLabel(options.statuses ? options.statuses.get(event.id) : DC.realReview.savedStatus(S.bundle.reviewIdentity, event)) })),
@@ -279,8 +283,8 @@
         return Math.abs(right) - Math.abs(left);
       } };
     const review = DC.realReview.tableView(S.bundle.reviewIdentity, scope.events, 'chronos-review-filter', () => { view.logTop = 0; redraw(); });
-    const events = review.events.slice().sort(order[view.order]);
-    c.tools.append(review.control);
+    const events = DC.calendar.filterEvents(review.events).slice().sort(order[view.order]);
+    c.tools.append(review.control, DC.calendar.filterControl('chronos-calendar-filter', () => { view.logTop = 0; redraw(); }));
     c.tools.append(el('select', { class: 'mini-select', id: 'chronos-event-sort', 'aria-label': 'Sort candidate events',
       onchange: event => { view.order = event.target.value; view.logTop = 0; redraw(); } },
     [['date', 'Oldest first'], ['newest', 'Newest first'], ['duration', 'Longest duration'], ['score', 'Largest usage difference']].map(([value, text]) =>
@@ -293,11 +297,12 @@
       }, 'Event list dates'),
       el('p', { class: 'ink2', id: 'chronos-event-count', text: scope.scoredHours ?
         events.length + ' of ' + scope.events.length + ' candidate events match review status' +
+          (DC.calendar.state.filter !== 'all' ? ' and calendar filter' : '') +
           (scope.skipped.events ? ' matched · total unavailable' : ' · ' + DC.fmt.int(scope.scoredHours) + ' scored detection hours') :
         'No scored detection hours in this range.' })));
     c.body.append(review.note, el('p', { class: 'muted', text: usageHelp }));
     if (events.length) c.body.append(eventTable(events, selected, view, { statuses: review.statuses }));
-    else c.body.append(el('p', { class: 'empty', text: 'No candidate events match the selected dates and review status.' }));
+    else c.body.append(el('p', { class: 'empty', text: 'No candidate events match the selected dates, review status and calendar filter.' }));
     return c.card;
   }
 

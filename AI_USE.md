@@ -7241,3 +7241,22 @@ Preserve uncommitted work and follow applicable repository instructions. Make on
 User supplied requirements; Codex inspected instructions/status and reused validated real review records plus the shared table. Added saved-status reads, the existing four statuses, Not reviewed for absent records, a shared session status filter, neutral status pills, browser-only guidance, filtered counts/empty state, and refresh after a successful detail-form save. Unsaved draft edits do not alter table statuses; unavailable/corrupt storage is explicitly unavailable. Preserved the staged/uncommitted work and index, measurements/model results, synthetic review paths, existing date/meter filters, sorting and navigation.
 
 Changed `js/real-review.js`, `js/sections/chronos-buildings.js`, `js/sections/real-anomalies.js`, `index.html`, `README.md`, `DEVELOPMENT_LOG.md`, `AI_USE.md`. Validation was source/incremental-diff review and `git diff --check` only. No tests written/modified/run and no browser/syntax execution as requested; runtime themes/mobile and human acceptance remain unverified. Saved statuses are browser/site-local, review filters session-only; no shared multi-user storage or model/ground-truth updates. No new staging, commit, push or deployment. Base and detailed review are recorded in DEVELOPMENT_LOG.md.
+
+
+## 2026-11-20 — Academic calendar context for real DERCONNECT events
+
+Human: requesting team member. AI: Claude (Anthropic). Branch `feature/academic-calendar-layer` (local commit only, not pushed). Human review pending.
+
+Verbatim user prompt:
+
+```text
+I would like to add a calendar feature to determine if potential holidays or breaks may explain anomalies, help implement this using the UCSD academic calendar
+```
+
+When asked how to handle Git for the branch, the user chose "Allow git access (Recommended)" and approved delete access for the repository folder so Git could manage its lock files.
+
+AI contribution: looked up the UC San Diego 2025–26 academic calendar and the Farmworkers Day renaming notice; created the branch; wrote the calendar data file, the `DC.calendar` module, chart/table/filter/detail/overview integration, styles, unit tests and README section; ran unit, existing and browser checks (see the matching DEVELOPMENT_LOG.md entry); committed locally. Human contributions: feature choice, branch requirement, Git-access approval and review.
+
+Files changed: `data/campus-calendar.js`, `js/calendar.js`, `tests/calendar.cjs` (new); `js/sections/chronos-buildings.js`, `js/sections/real-anomalies.js`, `css/styles.css`, `index.html`, `README.md`, `DEVELOPMENT_LOG.md`, `AI_USE.md`.
+
+Limitations: calendar context is unverified explanatory evidence, not a label or confirmed cause; coverage is January–June 2026. No private measurements or personal paths are recorded here.

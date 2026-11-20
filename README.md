@@ -728,3 +728,37 @@ CHRONOS_REAL=1 node tests/real-review-browser.cjs
 node tests/real-event-list-browser.cjs
 CHRONOS_REAL=1 node tests/real-event-list-browser.cjs
 ```
+
+
+## Academic calendar context for real DERCONNECT events (November 20, 2026)
+
+Real-data views (Overview, Anomaly Investigation and the meter profiles in Buildings) now show
+UC San Diego academic-calendar context for Chronos-2 candidate events. Holidays and days
+without classes were behind the largest deviations in the EDA, so the calendar is shown as a
+possible explanation, never as a confirmed cause, and it does not change detections or scores.
+
+- `data/campus-calendar.js` holds the hand-maintained calendar (`window.DERCONNECT_CALENDAR`,
+  inclusive campus days, America/Los_Angeles) with a source for each entry. It currently covers
+  January–June 2026 from the
+  [UC San Diego Academic and Administrative Calendar 2025–2026](https://blink.ucsd.edu/instructors/resources/academic/calendars/2025.html):
+  university holidays (New Year, Martin Luther King Jr., Presidents' Day, Farmworkers Day
+  (formerly César Chávez Day) and Memorial Day), days without instruction (Jan 2–4 and the
+  Mar 22–29 quarter break), winter/spring finals and the first day of instruction. Add the next
+  academic year's entries before loading data for that period.
+- `js/calendar.js` (`DC.calendar`) validates the file, maps events to campus days (handling
+  midnight and DST) and provides chart shading, tooltips, event tags, the list filter and the
+  explanation text. An invalid file disables the context with a visible message instead of guessing.
+- **Charts:** holidays, no-class days and finals are shaded on the Overview, event and meter
+  charts, with legend entries and hover details. The **Academic calendar** checkbox hides them.
+- **Event tables:** candidate events on calendar days carry a tag such as *Holiday · Memorial Day*.
+  The **Calendar** filter shows all days, only holidays and breaks, or excludes them.
+- **Event details:** an *Academic calendar context* box explains the overlap. A *below-expected*
+  event on a holiday or break is a **possible explanation (unverified)**; an *above-expected*
+  event on those days is flagged as **not explained** by the calendar; finals and the first day
+  of instruction are shown as context only.
+- **Overview:** a note counts the candidate events that overlap holidays or no-class days, with
+  a shortcut to that filtered list. With the committed Chronos-2 export this is 12 of 106 events.
+
+The synthetic demo (August–November 2026) is unchanged and has no calendar entries.
+
+Checks: `node tests/calendar.cjs` (unit tests, including the committed Chronos-2 export).
