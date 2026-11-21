@@ -273,10 +273,12 @@
     if (b) root.append(el("p", { class: "muted" }, "Verified UCSD demonstration name · DERCONNECT coverage: " + (b.derconnect_coverage || "Not verified") + ". All profiles and meter relationships are simulated. ", b.name_source ? el("a", { href: b.name_source, target: "_blank", rel: "noopener", text: "Official building-name source" }) : "Name source unavailable."));
     const eventsFor = (bid) => DC.allEvents().filter(e => e.building === bid && e.start < t1 && t0 < e.end);
     if (!b) {
-      const list = el("div", { class: "building-directory" });
+      const list = el("div", { class: "building-directory comparison-cards" });
+      const comparison = el('div', { class: 'directory-comparison' });
       const search = el("input", { type: "search", placeholder: "Search buildings…", "aria-label": "Search buildings" });
       const draw = () => {
-        DC.clear(list);
+        DC.clear(list); DC.clear(comparison);
+        const rows = [];
         for (const building of DC.D.buildings.filter(x => x.name.toLowerCase().includes(search.value.toLowerCase()))) {
           const meters = DC.D.meters.filter(m => m.building === building.id), main = DC.mainMeter(building.id), events = eventsFor(building.id), pending = DC.sortEvents(events.filter(DC.isOpen), "priority");
           list.append(ui().buildingCard({ eyebrow: building.subgrid + " · " + building.id, name: building.name,
@@ -285,12 +287,23 @@
             measurement: main && main.actual.slice(t0, t1).some(Number.isFinite) ? `${DC.fmt.kwh(DC.energy(main, t0, t1))} · ${events.length} detected events` : "No simulated measurements",
             completeness: `${meters.length} simulated meters · ${meters.length ? DC.fmt.pct(DC.completeness(meters, t0, t1), 1) + " data completeness" : "Completeness unavailable"}`,
             action: "Open building profile →" }));
+          rows.push({ id: building.id, cells: [el('a', { href: '#buildings/' + building.id, text: building.name }),
+            el('div', {}, building.subgrid, el('small', { text: meters.map(m => m.id).join(', ') })),
+            main && main.actual.slice(t0, t1).some(Number.isFinite) ? DC.fmt.kwh(DC.energy(main, t0, t1)) : 'Unavailable',
+            el('strong', { text: events.length }),
+            el('div', {}, el('strong', { text: pending.length + ' require review' }),
+              el('small', { text: events.filter(e => DC.eventStatus(e) !== 'new').length + ' / ' + events.length + ' annotated locally' })),
+            meters.length ? DC.fmt.pct(DC.completeness(meters, t0, t1), 1) : 'Unavailable',
+            el('a', { class: 'action-link', href: '#buildings/' + building.id, text: 'Open profile →' })] });
         }
         if (!list.children.length) list.append(el("p", { class: "empty", text: "No buildings match your search." }));
+        comparison.append(rows.length ? ui().comparisonTable('Synthetic building comparison · selected dates · all relationships are simulated',
+          ['Building', 'Simulated sub-grid / meters', 'Main-meter use', 'Events', 'Local review', 'Data completeness', 'Action'], rows) :
+          el('p', { class: 'empty desktop-only', text: 'No buildings match your search.' }));
       };
       search.value = buildingSearch;
       search.addEventListener("input", () => { buildingSearch = search.value; draw(); });
-      root.append(search, list);
+      root.append(search, comparison, list);
       const research = el("details", { class: "disclosure", open: researchOpen }, el("summary", { text: "Advanced building & sub-grid analysis" }), el("div"));
       research.addEventListener("toggle", () => { if (!research.isConnected) return; researchOpen = research.open; if (research.open && !research.lastChild.children.length) renderResearch(research.lastChild); });
       root.append(research); draw();
@@ -327,7 +340,7 @@
 
   function render(root) {
     const controls = el('div', { class: 'buildings-controls', id: 'buildings-controls', role: 'region', 'aria-label': 'Buildings controls' });
-    const source = ui().segmented([['synthetic', 'Prototype Data'], ['historical', 'Real DERCONNECT']], DC.history.session.source, value => {
+    const source = ui().segmented([['synthetic', 'Synthetic Demo'], ['historical', 'Real DERCONNECT']], DC.history.session.source, value => {
       DC.history.session.setSource(value);
       if (DC.realBuildings.isRoute(DC.state.routeId)) DC.navigate('buildings'); else DC.setState({});
     }, 'Buildings data source');

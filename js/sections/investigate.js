@@ -24,9 +24,8 @@
     const events = DC.sortEvents(DC.events(), view.sort);
     const selId = DC.state.selected;
     root.append(el("div", { class: "section-head" },
-      el("div", { class: "section-eyebrow", text: selId ? "Event evidence & review" : "Event triage" }),
       el("h2", { id: "h-investigate", text: selId ? "Event investigation" : "Anomaly investigation" }),
-      el("p", { text: selId ? "Inspect the measured departure, compare available context and record your review." : "Start with priority events, or compare shapes in the gallery. Open an event to inspect its evidence." })));
+      selId ? null : el("p", { text: "Start with priority events, or compare shapes in the gallery. Open an event to inspect its evidence." })));
 
     const grid = el("div", { class: "grid cols-12" });
     root.append(grid);
@@ -167,7 +166,7 @@
           DC.sevBadge(ev.severity))),
       el("div", { style: { marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center" } }, DC.statusPill(status))));
 
-    body.prepend(el("nav", { class: "breadcrumbs", "aria-label": "Breadcrumbs" }, el("a", { href: "#investigate", text: "← Back to anomaly list" }), el("a", { href: "#buildings/" + b.id, text: "View " + b.name })));
+    body.prepend(el("nav", { class: "breadcrumbs", "aria-label": "Breadcrumbs" }, el("a", { href: "#investigate", text: "← Back to anomaly list" }), el("a", { href: "#buildings/" + b.id, text: "View " + b.name }), ui().reviewJump('synthetic-operator-review')));
     body.querySelector(".detail-head h3").textContent = DC.CATEGORY_LABEL[ev.category] || DC.typeById[ev.type]?.label || "Detected event";
     body.querySelector(".ids").textContent = `${b.name} · ${m.id} · ${DC.time.stamp(ev.start)} → ${DC.time.stamp(ev.end)} (end exclusive)`;
     const fact = (k, v, note) => el("div", { class: "fact" }, el("div", { class: "k", text: k }), el("div", { class: "v", text: v }), el("div", { class: "muted", text: note || "" }));
@@ -176,14 +175,15 @@
     const value = v => DC.fmt.one(v) + " " + facts.unit;
     const forecastBounds = peak ? [DC.q(m.id, "q01", peak.t, ev.detector), DC.q(m.id, "q99", peak.t, ev.detector)] : [];
     const forecastRange = forecastBounds.length === 2 && forecastBounds.every(Number.isFinite) ? forecastBounds.map(value).join(" to ") : "unavailable";
-    body.append(el("div", { class: "facts summary-facts" },
+    body.append(el("div", { class: "facts summary-facts evidence-facts" },
       fact("Duration", DC.fmt.hours(ev.duration_h), "Hourly samples · [start, end)"),
       fact("Peak deviation", peak ? DC.fmt.signed(deviation, " " + facts.unit) : "Unavailable", peak ? DC.time.stamp(deviationT) : "No paired reading and forecast"),
       fact("Estimated excess use", facts.excess == null ? "Unavailable" : DC.fmt.signed(facts.excess, " kWh"), "Net hourly residual sum; withheld for missing or suspect readings"),
       fact("Operational priority", ev.priority.toFixed(0) + " / 100", "Dashboard heuristic; not a fault probability")));
     if (evidenceView.forecastPairs < ev.end - ev.start) body.append(el("p", { class: "note-box", text: `Forecast comparison incomplete: ${evidenceView.forecastPairs} of ${ev.end - ev.start} samples have a usable reading and forecast. Missing forecasts are unavailable, not zero.` }));
     const comparison = buildMeterComparison(ev);
-    body.append(el("div", { class: "event-actions" }, comparison.button, el("p", { text: "Compare aligned readings with up to two peer meters." })));
+    const comparisonActions = el("div", { class: "event-actions" }, comparison.button, ui().reviewJump('synthetic-operator-review', 'Review this event'),
+      el("p", { text: "Compare aligned readings with up to two peer meters." }));
 
     const physical = el("details", { class: "disclosure" }, el("summary", { text: "Physical evidence & review provenance" }),
       el("div", { class: "facts" },
@@ -208,8 +208,10 @@
     const diagnostics = el("details", { class: "disclosure" }, el("summary", { text: "Advanced technical details" }));
     const evidence = el("div", { class: "stack" });
     diagnostics.append(evidence);
-    left.append(el("div", { class: "chart-title", text: "Actual vs. expected electricity demand (kW)" }), mainEl,
+    left.append(el("div", { class: "chart-title", text: "Actual vs. expected electricity demand (kW)" }),
+      el('p', { class: 'chart-scope', text: `Chart context: ${DC.time.stamp(t0)} → ${DC.time.stamp(t1)} (end exclusive) · simulated campus wall time` }),
       ui().legend([{ kind: "line", color: DC.css("--actual"), label: "Actual" }, { kind: "dash", color: DC.css("--expected"), label: "Expected" }, { kind: "box", color: DC.css("--band-inner"), label: "80% / 98% forecast bands" }, { kind: "type", type: ev.type, label: "Selected event" }]),
+      mainEl,
       el("p", { class: "muted", text: `Event window: ${DC.time.stamp(ev.start)} → ${DC.time.stamp(ev.end)} (exclusive). ${peak ? `Peak deviation ${DC.fmt.signed(deviation, " " + facts.unit)} at ${DC.time.stamp(deviationT)}.` : "Peak deviation unavailable; no paired reading and forecast."} Simulated campus wall time; hourly cadence.` }));
     if (lens === "point") left.append(el("p", { class: "reading-summary", text: peak ? `${value(peak.actual)} observed · ${value(peak.expected)} expected · ${DC.time.stamp(peak.t)} · nominal 98% forecast range: ${forecastRange}` : "Paired observation and forecast unavailable." }));
     interpretation.append(el("h3", { text: "Why was this flagged?" }), el("p", { text: `${peak ? `The largest paired demand departure is ${DC.fmt.signed(deviation, " " + facts.unit)}.` : "Paired demand evidence is unavailable."} The detected ${DC.BEHAVIOR_LABEL[ev.behavior] || ev.behavior || "unclassified"} interval lasts ${DC.fmt.hours(ev.duration_h)}.` }),
@@ -228,7 +230,7 @@
       drawHistory(historyChart, history, ev);
     }
     if (lens === "context") left.append(context);
-    left.append(comparison.panel);
+    left.append(comparisonActions, comparison.panel);
     evidence.append(physical);
     evidence.append(el("div", { class: "chart-title", text: "Normalized anomaly score / threshold (not probability)" }), scoreEl);
 
@@ -277,7 +279,7 @@
         ? [el("b", { text: `${lab.label_id} · ${DC.LABEL_KIND[lab.kind] || lab.kind}` }), ` injected ${DC.time.short(lab.start)} for ${DC.fmt.hours(lab.end - lab.start)}, magnitude ${DC.fmt.signed(lab.magnitude_kw, " kW")}. Detected after ${match.delay_h} h.`]
         : [el("b", { text: "No matched evaluation label." }), " No matched evaluation label is available for this record. This alone does not establish a false alarm. Labels never feed detection or priority."]));
 
-    const review = el("section", { class: "review-panel", "aria-label": "Operator review" });
+    const review = el("section", { class: "review-panel", id: 'synthetic-operator-review', "aria-label": "Operator review" });
     const notes = el("textarea", { id: "review-notes", rows: "4", maxlength: "2000", placeholder: "Record evidence, checks and follow-up actions…" });
     notes.value = DC.notesStore.get(ev.id);
     const feedback = el("span", { role: "status", class: "muted" });

@@ -7588,3 +7588,468 @@ Verbatim user confirmation:
 AI contributions: inspected the current code and final CSS cascade, read the document playbook and format specification, asked two structured language-confirmation rounds, corrected the stale blue shell assumption through computed evidence and a further user answer, captured desktop/mobile and both themes, wrote DESIGN.md and the schema-v2 preview sidecar, validated token provenance/references and narrative consistency, rendered nine isolated component previews in both themes, and appended the required records. No application design changes were made. Human contributions: requested documentation and confirmed the metaphor, voice, final color names, depth and component character. Artifact review remains pending.
 
 Changed files: `DESIGN.md`, `.impeccable/design.json`, `DEVELOPMENT_LOG.md`, `AI_USE.md`. Preserved existing product/configuration files, earlier records and untracked tool/skill folders. Validation: successful approved local serving and Impeccable desktop/mobile captures; read-only Playwright computed-style scan of seven entry sections and light/dark Overview with no console/page errors; final isolated nine-component galleries in light/dark with no errors; safe Ruby YAML parse and Python artifact assertions; `git diff --check` and full diff/status review. Exact commands, versions, initial sandbox failures, the corrected preview-harness error and evidence paths are recorded in DEVELOPMENT_LOG.md. Preview ramps are synthesized aids, not source-defined application colors. No regression suite, detailed real-data workflow, accessibility certification or live-panel integration check; no UI/source/data modifications, training, commit, push or deployment. No associated commit for this task.
+
+
+## 2026-11-20 — Comprehensive DERCONNECT design critique
+
+Human: requesting team member. AI: Codex (OpenAI), including skill-directed independent Assessment A `/root/design_review` and Assessment B `/root/evidence_review`. Base revision `4e530247b5ccac58f41af6c2dcf90417fc4eb443`, branch `design/impeccable-ui-refinement`.
+
+Verbatim user task prompt:
+
+`````text
+Use $impeccable critique to conduct a comprehensive design review of our DERCONNECT dashboard.
+
+
+
+Read PRODUCT.md, DESIGN.md, and .impeccable/design.json before starting.
+
+
+
+**Goal:** Make our dashboard look less AI-generated and more like a professional Facilities Operations Console for building managers and electrical engineers.
+
+
+
+**Evaluate:**
+
+1. Overview page — information hierarchy, first-glance usability, excessive cards, and visual clutter.
+2. Real DERCONNECT monitoring — measured vs. expected power charts, meter selection, filters, and anomaly indicators.
+3. Anomaly Investigation — event investigation workflow, chart readability, and evidence presentation.
+4. Buildings & Sub-grids — organization, navigation, and information density.
+5. Shared navigation — consistency, spacing, typography, and visual hierarchy.
+6. Overall design — unnecessary shadows, rounded cards, repetitive components, generic SaaS styling, and inconsistent colors.
+
+
+
+**Requirements:**
+
+- Evaluate both desktop and mobile layouts.
+- Evaluate light and dark themes.
+- Distinguish genuine usability issues from subjective aesthetic preferences.
+- Rank findings by severity and expected impact.
+- Reference specific files/components when possible.
+- Provide concrete recommendations and a prioritized redesign plan.
+
+
+
+**Important:** Do not modify application code yet. I want to review the critique before implementing changes. Preserve the existing anomaly detection functionality, Chronos-2 model integration, and real/synthetic data separation.
+`````
+
+Verbatim user-supplied skill instructions:
+
+`````text
+<skill>
+<name>impeccable</name>
+<path>/Users/mawvir/prototype-dashboard-team/.agents/skills/impeccable/SKILL.md</path>
+---
+name: impeccable
+description: "Use when the user wants to design, redesign, shape, critique, audit, polish, simplify, harden, animate, or otherwise improve a frontend interface: websites, landing pages, dashboards, product UI, components, forms, settings, onboarding, empty states, and native iOS or Android screens. Handles UX review, hierarchy, layout, typography, color, motion, UX copy, accessibility, responsive behavior, edge cases, and capturing or documenting design systems (DESIGN.md, tokens). Also for making bland UI bolder, loud UI quieter, or ambitious visual effects. Not for backend-only or non-UI tasks."
+metadata:
+  version: 4.10.0
+---
+
+This skill gives you the tools and permission to make design that earns the name out-of-distribution craft. Work as an award-winning design director would: production-grade code, a clear POV, a deep grasp of what the client and its users need, and exceptional craft.
+
+Core principles:
+- Finish the job. No hedging, no shortcuts: the deliverable is complete, except assets the user must provide.
+- Scale ambition to the surface's mode (see Modes). Persuade and Experience get full commitment: bold, distinct work with a point of view. On Operate and Read, ambition shows as precision and restraint, and patterns the visitor already knows earn their place.
+- Verify by looking at the rendered result at the sizes it ships at (web: `.agents/skills/impeccable/scripts/impeccable shot <page>`), and batch the checks: fix what one look shows before looking again.
+
+## Setup
+
+1. Run `<skill-base-dir>/scripts/impeccable context` once per session, where `<skill-base-dir>` is the directory that contains this SKILL.md (the skill folder, not a plugin root two levels above it); keep cwd at the user's project. That base directory resolves every `.agents/skills/impeccable/scripts/impeccable <verb>` command in this skill and its references, and `.agents/skills/impeccable/scripts` is the fallback only when the runtime reports no base directory. On a Windows shell without `sh`, call `.agents/skills/impeccable/scripts/impeccable.cmd` instead. The launcher runs a self-contained binary that ships next to it or is downloaded once on first run; no Node or other runtime is required. Pass a named source file or route as `--target <path>`. It loads PRODUCT.md and DESIGN.md (long ones as a map: read the sections your task needs), the matching surface brief, and native-platform guidance when applicable; follow its directives and do not rerun it.
+2. Load the request's playbook: its Commands-table reference for an explicit/implied sub-command, or [reference/new-work.md](reference/new-work.md) for a new surface, a replacement visual world, or a build from an approved comp. Some playbooks come in parts; read the part this request needs in the same step: [reference/new-work-world.md](reference/new-work-world.md) when a visual world is created or replaced (a redesign, a new look, or no established world), [reference/new-work-comp.md](reference/new-work-comp.md) for a build from an approved comp or on a comp-led build path, and [reference/critique-rubric.md](reference/critique-rubric.md) for a critique whose Assessment A runs in this context (a native platform, or no sub-agent tool); a delegated Assessment A gets the rubric's path in its prompt instead. Inspect target and incumbent visual truth before editing. When the app cannot run, start with committed visual-regression goldens or screenshot fixtures; verify target and freshness against current tokens, CSS, components, or assets, resolve conflicts, and compare theme/variant captures.
+3. After resolving analysis and direction, read [reference/craft-floor.md](reference/craft-floor.md) immediately before any UI edit, including small refinements. It carries the quality floor, the absolute bans, and the reflexes no detector catches. Do not load it for planning-only work.
+
+**Launcher unavailable:** On the first refusal or failure, don’t retry; send a separate message **before the next tool call**: “Context loading did not run; I’ll read the existing project context directly.” Then read existing PRODUCT.md and DESIGN.md without inventing missing context, follow applicable steps 2–3, including reading [reference/craft-floor.md](reference/craft-floor.md) immediately before any UI edit, and continue through permitted tools. This applies to planning and editing; launcher failure alone does not block either.
+
+## How to design
+
+- **The brief wins.** Honor pinned aesthetics, eras, materials, fonts, and palettes even when they conflict with a saturated-pattern warning. Redirecting a clear brief toward your taste is failure.
+- **Refinement preserves; redesign replaces.** Refinement keeps the incumbent identity, behavior, copy, and everything outside scope. Ask before replacing factual copy or adding claims. Redesign keeps product truth, content, function, native affordances, and constraints, but treats the old look as evidence and anti-reference; choose a replacement world in new-work and replace DESIGN.md. Never split the difference into polish on the discarded look.
+- **Loaded symbols stay out of the decoration.** A subject's world does not license emblems tied to militarism, supremacy, or hate movements as motifs, badges, or ornament, such as the Rising Sun flag's rays, the Confederate battle flag, or Nazi-era insignia and their stylised variants; reach for that world's neutral forms instead. Content that documents such a symbol as fact stays as it is.
+- **Visual authority is evidence, not a filename.** Missing DESIGN.md alone does not make a project greenfield; new-work decides whether to preserve, expand, or replace the incumbent world.
+
+## Modes
+
+The mode names what the visitor's success looks like on this surface.
+
+- **Persuade:** the visitor decides and acts; design is the product. Landing pages, marketing, campaigns, pricing. Earn attention and action. Ship real imagery when the brief needs it; follow the committed world, not category habit.
+- **Operate:** the visitor completes a task. App UI, dashboards, editors, admin, settings, tools. Scanability, consistency, native expectations, and the real usage scene outrank expression. Brand lives in precise details.
+- **Read:** the visitor understands something. Docs, articles, guides, help, changelogs. Structure for comprehension, then make the reading experience worth staying in.
+- **Experience:** the visitor is inside the work itself. Portfolios, galleries, showcases. Let the artifact lead from the first viewport; the interface recedes.
+
+Choose the mode from the requested surface, not the product, and persist it only in that surface brief. A tool's landing page is still Persuade; a fashion house's documentation is still Read; a docs index is Read, not Persuade. See [new-work.md](reference/new-work.md) for new surfaces and [operate.md](reference/operate.md) for deeper Operate/Read guidance.
+
+## Commands
+
+| Command | Category | Description | Reference |
+|---|---|---|---|
+| `craft [feature]` | Build | Deprecated alias for an ordinary new-work request | [reference/craft.md](reference/craft.md) |
+| `shape [feature]` | Build | Plan UX/UI before writing code | [reference/shape.md](reference/shape.md) |
+| `init` | Build | Capture durable product context in PRODUCT.md | [reference/init.md](reference/init.md) |
+| `document` | Build | Generate DESIGN.md from existing project code | [reference/document.md](reference/document.md) |
+| `extract [target]` | Build | Pull reusable tokens and components into design system | [reference/extract.md](reference/extract.md) |
+| `critique [target]` | Evaluate | UX design review with heuristic scoring | [reference/critique.md](reference/critique.md) |
+| `audit [target]` | Evaluate | Technical quality checks (a11y, perf, responsive) | [reference/audit.md](reference/audit.md) · native: [reference/audit.native.md](reference/audit.native.md) |
+| `polish [target]` | Refine | Final quality pass before shipping | [reference/polish.md](reference/polish.md) |
+| `bolder [target]` | Refine | Amplify safe or bland designs | [reference/bolder.md](reference/bolder.md) |
+| `quieter [target]` | Refine | Tone down aggressive or overstimulating designs | [reference/quieter.md](reference/quieter.md) |
+| `distill [target]` | Refine | Strip to essence, remove complexity | [reference/distill.md](reference/distill.md) |
+| `harden [target]` | Refine | Production-ready: errors, i18n, edge cases | [reference/harden.md](reference/harden.md) |
+| `onboard [target]` | Refine | Design first-run flows, empty states, activation | [reference/onboard.md](reference/onboard.md) |
+| `animate [target]` | Enhance | Add purposeful animations and motion | [reference/animate.md](reference/animate.md) |
+| `colorize [target]` | Enhance | Add strategic color to monochromatic UIs | [reference/colorize.md](reference/colorize.md) |
+| `typeset [target]` | Enhance | Improve typography hierarchy and fonts | [reference/typeset.md](reference/typeset.md) |
+| `layout [target]` | Enhance | Fix spacing, rhythm, and visual hierarchy | [reference/layout.md](reference/layout.md) |
+| `delight [target]` | Enhance | Add personality and memorable touches | [reference/delight.md](reference/delight.md) |
+| `overdrive [target]` | Enhance | Push past conventional limits | [reference/overdrive.md](reference/overdrive.md) |
+| `clarify [target]` | Fix | Improve UX copy, labels, and error messages | [reference/clarify.md](reference/clarify.md) |
+| `adapt [target]` | Fix | Adapt for different devices and screen sizes | [reference/adapt.md](reference/adapt.md) · native: [reference/adapt.native.md](reference/adapt.native.md) |
+| `optimize [target]` | Fix | Diagnose and fix UI performance | [reference/optimize.md](reference/optimize.md) |
+| `live` | Iterate | Visual variant mode: pick elements in the browser, iterate on alternatives | [reference/live.md](reference/live.md) |
+| `generate [n] [action] [element]` | Iterate | Variants, versions, or alternatives of a named element to choose from in the live browser; no manual picking | [reference/generate.md](reference/generate.md) |
+
+Routing:
+
+- **No argument:** read [routing.md](reference/routing.md) and present its context-aware menu; never auto-run a command.
+- **Explicit or clearly implied request to run a command:** load its reference (native variant on native platforms) and follow it. Ask once if two commands fit.
+- **Workflow or command-selection question:** read [Workflow questions](reference/routing.md#workflow-questions).
+- **Otherwise:** treat the request as general design work. Missing PRODUCT.md routes a new surface or replacement world through init, then new-work; a narrow refinement of existing code proceeds on the incumbent implementation as `impeccable context` directs, offering init afterward rather than blocking on it.
+- `teach` aliases `init`. `craft` is a deprecated alias for ordinary new-work and adds nothing. `shape` owns task discovery, then enters new-work only for visual-world and surface-concept decisions.
+
+After init writes PRODUCT.md, resume without rerunning `impeccable context`; init loads the native platform reference itself when the platform it recorded is `ios`, `android`, or `adaptive`.
+
+**Pin / Unpin:** `.agents/skills/impeccable/scripts/impeccable pin <pin|unpin> <command>` creates or removes a standalone `$<command>` shortcut. Report the script's result concisely; relay stderr verbatim on error.
+
+**Hooks:** `$impeccable hooks <on|off|status|ignore-rule|ignore-file|ignore-value|reset>` manages the design detector hook for this project (auto-runs the detector after UI file edits and surfaces findings). Load [reference/hooks.md](reference/hooks.md) when the user invokes it with any argument.
+
+**Doctor:** `$impeccable doctor` reports and repairs drift between this project's Impeccable artifacts (PRODUCT.md, DESIGN.md and its sidecar, config, surface briefs, the hook) and what this version reads. Load [reference/doctor.md](reference/doctor.md) when the user invokes it, or when they ask what is out of date, stale, or needs refreshing. A `CONTEXT_STALE` directive in Setup's output is the cheap subset of the same report; act on it there per its own instructions rather than running doctor unasked.
+
+**Foundations:** `$impeccable foundations` runs `.agents/skills/impeccable/scripts/impeccable foundations` and walks the user through the product-foundations roadmap (secrets, 404 page, icons, CI and more); `$impeccable foundations <id>` fixes that one item. Load [reference/foundations.md](reference/foundations.md) when the user invokes it.
+
+**Never repair drift as a side effect of a design task.** A `CONTEXT_STALE` finding is reported, not acted on, unless the user asks. The one exception is a finding marked `auto`, which the next write to that file performs anyway.
+</skill>
+`````
+
+AI contributions: read product/design/sidecar and repository instructions; ran separate skill-directed design and detector assessments without cross-contamination, using A's final independent rubric score; inspected desktop/mobile and light/dark real/synthetic flows; measured layout, verified event/range/review behaviors in a disposable browser context, separated observed usability issues from aesthetic preferences, adjudicated detector false positives/limitations, and produced ranked recommendations and a phased redesign plan. Persisted the report with the Impeccable helper and appended required records. Human contributions: review scope, professional-console goal, explicit protection of detection/model/source separation and prohibition on application edits. Human acceptance/review of the resulting report is pending.
+
+Changed files: `DEVELOPMENT_LOG.md`, `AI_USE.md`, and generated critique snapshot `.impeccable/critique/2026-11-20T22-57-54Z__index-html.md` plus its helper-created ignore file. No application code, data, existing product/design/config files or detection functionality changed; 37 source/data fingerprints verified unchanged. Validation: A's rendered core-flow review (both sizes/themes, zero page/console errors), source/linked-style detector exit 2 with one warning/one advisory, artifact score/metadata review, full diff/status review and `git diff --check`. B's runtime detector failed and was not counted as a clean scan; no overlay or browser visibility was established. Exact commands, versions, sandbox/native-browser failures and coverage limits are in DEVELOPMENT_LOG.md and the temporary assessment reports. This is not a conformance audit or model validation; full regression suites and populated private phase-data flows were not run. No app tests added, model work, commit, push or deployment. No associated commit for this task.
+
+
+## 2026-11-20 — Implement DERCONNECT redesign Phases 1 and 2
+
+Human: requesting team member. AI: Codex (OpenAI), sole implementation agent for this task. Base revision `4e530247b5ccac58f41af6c2dcf90417fc4eb443`, branch `design/impeccable-ui-refinement`.
+
+Verbatim user prompt:
+
+`````text
+Use the Impeccable skill to implement the first phase of our DERCONNECT dashboard redesign.
+
+
+
+Read PRODUCT.md, DESIGN.md, and the saved Impeccable critique before making changes.
+
+
+
+Our goal is to make the dashboard look less AI-generated and more like a professional Facilities Operations Console while improving usability for building managers and electrical engineers.
+
+
+
+**Phase 1 — Improve usability and evidence access**
+
+1. Replace the oversized mobile navigation with a compact, accessible menu.
+2. Improve the Overview page's visual hierarchy so important energy metrics and anomaly candidates are easier to find.
+3. Make anomaly investigation charts more prominent, reducing unnecessary text and containers before the actual evidence.
+4. Add a clear way to jump from anomaly evidence to the operator review section.
+5. Display a prominent warning when the selected date range contains no analyzed measurements, rather than showing misleading zero-anomaly metrics.
+
+
+
+**Phase 2 — Improve charts and clarity**
+
+6. Improve full-history chart readability by providing a shorter inspection window while preserving full-history access.
+7. Move chart legends and active date-range labels above the visualizations.
+8. Clearly distinguish saved date ranges from selected-event chart contexts.
+9. Improve chart labels and prevent overlapping date annotations.
+10. Reduce unnecessary card nesting and repetitive UI elements where doing so improves readability.
+
+
+
+**Important constraints**
+
+- Preserve all existing Chronos-2 model outputs, anomaly thresholds, event grouping, and calculations.
+- Preserve real DERCONNECT and synthetic data separation.
+- Do not remove any dashboard functionality.
+- Keep the existing HTML, CSS, and JavaScript architecture.
+- Follow the Facilities Operations Console design system.
+- Preserve both light and dark themes.
+
+
+
+**Implementation workflow**
+
+1. Inspect the existing code and critique.
+2. Make the improvements incrementally, starting with mobile navigation and anomaly investigation.
+3. Test desktop and mobile layouts.
+4. Verify charts, filters, navigation, and review functionality.
+5. Run Impeccable's audit and polish checks.
+6. Summarize the changed files and improvements.
+
+
+
+Implement Phases 1 and 2 on the current design branch. Do not commit, push, or merge changes yet.
+`````
+
+AI contributions: read product/design/sidecar, saved critique, repository instructions and Impeccable refinement/audit/polish guidance; incrementally implemented compact accessible mobile disclosure, Overview metric strips/queue priority, earlier event evidence, review jumps, explicit no-analysis recovery and unavailable headline presentation, display-only 7/30/full inspection, legends/ranges before primary plots, saved-versus-focused scope separation and fitting calendar annotations. Preserved source data/model outputs and review semantics, added meaningful feature/store regressions, updated the mobile navigation test and design records, ran syntax/unit/browser/contrast/touch/detector and polish checks, persisted audit and appended required records. No subagents were used for implementation. Human contributions: scope, constraints and no-commit/push/merge instruction. Human code/design acceptance remains pending.
+
+Changed files: `index.html`, `css/styles.css`, `js/app.js`, `js/ui.js`, `js/charts.js`, `js/real-events.js`, `js/sections/overview.js`, `js/sections/investigate.js`, `js/sections/real-anomalies.js`, `js/sections/chronos-buildings.js`, `DESIGN.md`, `.impeccable/design.json`, `tests/evidence-access-browser.cjs` (new), `tests/real-events.cjs`, `tests/section-navigation.cjs`, `DEVELOPMENT_LOG.md`, `AI_USE.md`; local runtime audit snapshot `.impeccable/audit/2026-11-20T23-22-45Z__index-html.md` and its helper-generated ignore file. Existing critique logs and untracked contributor/tool folders preserved.
+
+Validation: committed-export non-browser command 38/38 passed; expanded real-event suite 9/9; new evidence-access, section-navigation, investigation-views, related-meter and real-review browser suites passed. Twelve width/theme combinations had no document overflow, sampled text roles met 4.5:1, and synthesized touch/menu/review actions passed; browser checks reported no page/console errors. All app JS and changed CJS syntax, design YAML/JSON narrative checks, protected-source/data SHA comparisons and git diff checks passed. Verified original metric/fact function bodies byte-identical. Initial browser suites accidentally invoked without NODE_PATH failed dependency resolution; meter-comparison was rerun successfully, generic navigation.cjs not rerun (section-navigation and new feature suite passed). Initial new feature test's route-wait race was fixed without disabling assertions. Detector exit 2 retained two contextual findings, not a clean scan; actual skip-link theme/contrast checked. Exact commands, outcomes, versions, coverage, audit score and artifact paths are in DEVELOPMENT_LOG.md.
+
+Limits: isolated Chrome/emulated touch, no physical devices or every-engine/screen-reader/text-zoom certification; legacy hourly chart keyboard inspection remains limited with table fallback. No private phase-export walkthrough, model training, regeneration, new dependencies, commit, push, merge or deployment. Real and synthetic evidence remain separate; no accuracy/diagnosis claim added. No associated commit for this task.
+
+
+## 2026-11-20 — Read-only reevaluation after Phases 1 and 2
+
+Verbatim user task prompt (literal backslashes retained):
+
+`````text
+$impeccable critique\
+\
+Reevaluate the updated dashboard against the\
+previous 27/40 baseline.\
+\
+Identify remaining usability problems and\
+generic AI-generated design patterns.\
+\
+Do not modify code.
+`````
+
+AI contributions: applied Impeccable critique to the existing uncommitted redesign; read product/design/sidecar and baseline; coordinated skill-required isolated design/browser and detector assessments; synthesized 29/40 versus 27/40 without anchoring A to the prior score; distinguished resolved, partial and remaining issues, functional accessibility/workflow gaps versus aesthetic preferences; archived full critique and appended required records. A and B assessed independently; parent combined results after A completed. Human contributions: explicit reevaluation target, baseline, requested issue categories and no-code-change constraint; final human review remains pending.
+
+Task-changed files: DEVELOPMENT_LOG.md and AI_USE.md (append only), new local runtime snapshot `.impeccable/critique/2026-11-20T23-38-59Z__index-html.md`. Application/data/tests/PRODUCT.md/DESIGN.md/design sidecar and existing uncommitted changes remain unchanged; 84 protected-file SHA-256 hashes match the task start. No source fixes, data regeneration, training, dependency installation, commit, push, merge or deployment. No associated commit exists for this task.
+
+Validation: A's completed isolated Chrome walkthrough covered core desktop/mobile (1440x1000 and 390x844), light/dark, real/synthetic Overview/directories, real event/list/profile, compact menu focus, review jump, empty-date recovery, saved/focused chart restoration and deep-link/theme reload. No observed page/console errors or page-wide overflow in tested surfaces; no fabricated review saved. B source detector exit 2: one intentional navigation-stripe warning and one unverified skip-color advisory. B's separate browser launch waited for approval then returned aborted with no runtime artifacts; it was not counted as a completed runtime check. No native overlay/injection was available; A's fresh Playwright captures and B's source output are the stated fallback. Static server stopped; critique body deleted; other temporary review evidence retained. Trend helper returned 27 -> 29 out of40. Exact commands, versions and paths are in DEVELOPMENT_LOG.md. Git diff/status and append-only record checks performed at close; no application syntax or full regression run required for this documentation-only task.
+
+Limitations: heuristic critique, not authorship detection, a user study, model validation or full accessibility certification. No fresh contrast/screen-reader/zoom/physical-device audit; optional import/report/Historical/Detection Quality and complete synthetic detector/gallery matrix not exhaustively reviewed. P1 precise-hour chart access is pre-existing and newly prioritized, not a regression claim. No historical prompts reconstructed; earlier task records retained.
+
+
+## 2026-11-20 — Desktop-only operations refinement
+
+Verbatim user task prompt:
+
+`````text
+Use Impeccable to continue refining our DERCONNECT dashboard, focusing exclusively on the **desktop website**.
+
+
+
+Read PRODUCT.md, DESIGN.md, and the latest Impeccable critique (29/40).
+
+
+
+Our goal is to make the website look less AI-generated and more like a professional energy monitoring and anomaly investigation platform for building managers and electrical engineers.
+
+
+
+**Focus on desktop layouts (1440px and wider). Do not spend time redesigning mobile layouts.**
+
+### 1. Improve the Overview page
+
+- Strengthen the visual hierarchy between operational metrics, anomaly candidates, and charts.
+- Make the most important information immediately visible.
+- Reduce unnecessary containers, repeated descriptions, and generic KPI-card styling.
+- Preserve useful metrics and the existing anomaly investigation workflow.
+
+### 2. Redesign Buildings & Sub-grids
+
+- Replace repetitive meter cards with a cleaner, more compact comparison layout.
+- Make it easier to compare meters, anomaly candidates, measurement availability, and investigation progress.
+- Avoid repeating model descriptions and unnecessary labels.
+- Do not invent building identities, sub-grid relationships, or anomaly classifications.
+
+### 3. Simplify meter profiles
+
+- Remove duplicated event-context charts where the main chart already displays the same evidence.
+- Keep the selected-event summary and important measurements.
+- Add a direct "Open event review" action.
+- Preserve saved date ranges and chart navigation.
+
+### 4. Improve chart usability
+
+- Add keyboard-accessible hourly inspection or an accessible hourly data table.
+- Make exact measurements, thresholds, anomaly scores, and data quality easier to inspect.
+- Preserve the existing observed-versus-expected visualizations and uncertainty intervals.
+
+### 5. Refine overall visual consistency
+
+- Reduce generic SaaS design patterns such as excessive rounded cards, repeated headers, and unnecessary visual decoration.
+- Improve spacing, alignment, typography hierarchy, and information density.
+- Group navigation more logically.
+- Standardize terminology such as "Synthetic Demo" versus "Prototype Data".
+
+### Constraints
+
+- Preserve all existing Chronos-2 model outputs, anomaly thresholds, calculations, and event grouping.
+- Preserve real DERCONNECT and synthetic data separation.
+- Preserve review records, filters, navigation, and event deep links.
+- Maintain existing mobile functionality without undertaking mobile redesign work.
+- Keep the current design system, colors, and application architecture.
+
+
+
+Implement these desktop-focused changes on the current design branch.
+
+
+
+Run regression tests and review the desktop experience in light and dark themes.
+
+
+
+Do not commit, push, or merge changes.
+
+
+
+Summarize what changed and identify any remaining desktop UI/UX issues.
+`````
+
+AI contributions: read product/design/sidecar and latest 29/40 critique, preserved starting dirty branch state, implemented desktop-focused hierarchy/open worklists, native real/synthetic comparison tables, persisted local review progress, profile chart deduplication/direct review action, exact keyboard hourly inspection and consistent source/navigation language. Updated design documentation/components; added meaningful desktop and review-progress regressions, ran source/unit/browser/layout/polish checks and inspected desktop screenshots in both themes. Sole implementation/review agent was Codex (OpenAI); attempted Impeccable layout delegation failed at usage limit before returning findings, so no independent assessment success is claimed. Human contributions: desktop scope, constraints and explicit no-commit/push/merge instruction; acceptance/review pending.
+
+Changed this task: index.html, css/styles.css, js/charts.js, js/ui.js, js/real-review.js, js/sections/overview.js, js/sections/real-anomalies.js, js/sections/real-buildings.js, js/sections/buildings.js, js/sections/chronos-buildings.js, DESIGN.md, .impeccable/design.json, tests/real-review.cjs, new tests/desktop-operations-browser.cjs, DEVELOPMENT_LOG.md and AI_USE.md. Preserved earlier uncommitted files, records, untracked contributor/tool folders and new evidence-access test. No data/model artifacts, thresholds, calculations, grouping, adapter/store, review schema or PRODUCT.md changes. Existing mobile cards/menu remain functional; no mobile redesign.
+
+Validation: 40/40 non-browser tests; new desktop regression at 1440px/1920px light/dark; existing evidence-access, section-navigation, investigation-views, meter-comparison and real-review browser suites passed. Final feature suite includes exact tiny thresholds/raw scores, measured/interpolated/missing/zero states, real/synthetic boundaries, phase-only synthetic contract evidence, canonical model immutability, saved custom date ranges across navigation, exact event review, saved review/reload, comparison workload, search and narrow smoke. No observed page/console errors or desktop overflow; sampled table text contrast >=4.5:1. Early new-suite failures were collapsed/hidden locator assumptions and missing null fixture classification; corrected without disabling assertions. All app JS/task-test syntax, design YAML/JSON/token consistency, protected-file hashes and git diff checks passed. Pre/post Impeccable layout scan returned [] within its scope; no new critique score claimed. Exact commands/outcomes/versions/paths are in DEVELOPMENT_LOG.md. Screenshots and baseline copies retained in /private/tmp; task server stopped and isolated browsers closed.
+
+Limits: isolated Chrome and emulated viewport checks, not a user study, full accessibility/zoom/screen-reader/physical-device/other-engine certification or every legacy/utility regression. Original-card pixel parity/older inline-event tests not rerun; new desktop suite verifies replacement behavior. No private export/training/regeneration/install/deployment. Direct timestamp jumping, comparison sorting and lengthy all-meter chart pages remain future desktop opportunities; prior mobile legend finding intentionally outside scope. No commit, push or merge; no associated commit exists for this task.
+
+
+## 2026-11-20 — Desktop-only Impeccable critique after desktop refinement
+
+Verbatim user task prompt (literal backslashes retained):
+
+`````text
+$impeccable critique\
+\
+Evaluate the updated DERCONNECT dashboard at\
+1440px and 1920px in light and dark themes.\
+\
+Focus exclusively on desktop usability, visual hierarchy,\
+professional appearance, chart readability, and\
+anomaly investigation workflow.\
+\
+Compare the findings with the previous 29/40 assessment.\
+\
+Do not modify application code.
+`````
+
+Verbatim user-supplied skill message:
+
+`````text
+<skill>
+<name>impeccable</name>
+<path>/Users/mawvir/prototype-dashboard-team/.agents/skills/impeccable/SKILL.md</path>
+---
+name: impeccable
+description: "Use when the user wants to design, redesign, shape, critique, audit, polish, simplify, harden, animate, or otherwise improve a frontend interface: websites, landing pages, dashboards, product UI, components, forms, settings, onboarding, empty states, and native iOS or Android screens. Handles UX review, hierarchy, layout, typography, color, motion, UX copy, accessibility, responsive behavior, edge cases, and capturing or documenting design systems (DESIGN.md, tokens). Also for making bland UI bolder, loud UI quieter, or ambitious visual effects. Not for backend-only or non-UI tasks."
+metadata:
+  version: 4.10.0
+---
+
+This skill gives you the tools and permission to make design that earns the name out-of-distribution craft. Work as an award-winning design director would: production-grade code, a clear POV, a deep grasp of what the client and its users need, and exceptional craft.
+
+Core principles:
+- Finish the job. No hedging, no shortcuts: the deliverable is complete, except assets the user must provide.
+- Scale ambition to the surface's mode (see Modes). Persuade and Experience get full commitment: bold, distinct work with a point of view. On Operate and Read, ambition shows as precision and restraint, and patterns the visitor already knows earn their place.
+- Verify by looking at the rendered result at the sizes it ships at (web: `.agents/skills/impeccable/scripts/impeccable shot <page>`), and batch the checks: fix what one look shows before looking again.
+
+## Setup
+
+1. Run `<skill-base-dir>/scripts/impeccable context` once per session, where `<skill-base-dir>` is the directory that contains this SKILL.md (the skill folder, not a plugin root two levels above it); keep cwd at the user's project. That base directory resolves every `.agents/skills/impeccable/scripts/impeccable <verb>` command in this skill and its references, and `.agents/skills/impeccable/scripts` is the fallback only when the runtime reports no base directory. On a Windows shell without `sh`, call `.agents/skills/impeccable/scripts/impeccable.cmd` instead. The launcher runs a self-contained binary that ships next to it or is downloaded once on first run; no Node or other runtime is required. Pass a named source file or route as `--target <path>`. It loads PRODUCT.md and DESIGN.md (long ones as a map: read the sections your task needs), the matching surface brief, and native-platform guidance when applicable; follow its directives and do not rerun it.
+2. Load the request's playbook: its Commands-table reference for an explicit/implied sub-command, or [reference/new-work.md](reference/new-work.md) for a new surface, a replacement visual world, or a build from an approved comp. Some playbooks come in parts; read the part this request needs in the same step: [reference/new-work-world.md](reference/new-work-world.md) when a visual world is created or replaced (a redesign, a new look, or no established world), [reference/new-work-comp.md](reference/new-work-comp.md) for a build from an approved comp or on a comp-led build path, and [reference/critique-rubric.md](reference/critique-rubric.md) for a critique whose Assessment A runs in this context (a native platform, or no sub-agent tool); a delegated Assessment A gets the rubric's path in its prompt instead. Inspect target and incumbent visual truth before editing. When the app cannot run, start with committed visual-regression goldens or screenshot fixtures; verify target and freshness against current tokens, CSS, components, or assets, resolve conflicts, and compare theme/variant captures.
+3. After resolving analysis and direction, read [reference/craft-floor.md](reference/craft-floor.md) immediately before any UI edit, including small refinements. It carries the quality floor, the absolute bans, and the reflexes no detector catches. Do not load it for planning-only work.
+
+**Launcher unavailable:** On the first refusal or failure, don’t retry; send a separate message **before the next tool call**: “Context loading did not run; I’ll read the existing project context directly.” Then read existing PRODUCT.md and DESIGN.md without inventing missing context, follow applicable steps 2–3, including reading [reference/craft-floor.md](reference/craft-floor.md) immediately before any UI edit, and continue through permitted tools. This applies to planning and editing; launcher failure alone does not block either.
+
+## How to design
+
+- **The brief wins.** Honor pinned aesthetics, eras, materials, fonts, and palettes even when they conflict with a saturated-pattern warning. Redirecting a clear brief toward your taste is failure.
+- **Refinement preserves; redesign replaces.** Refinement keeps the incumbent identity, behavior, copy, and everything outside scope. Ask before replacing factual copy or adding claims. Redesign keeps product truth, content, function, native affordances, and constraints, but treats the old look as evidence and anti-reference; choose a replacement world in new-work and replace DESIGN.md. Never split the difference into polish on the discarded look.
+- **Loaded symbols stay out of the decoration.** A subject's world does not license emblems tied to militarism, supremacy, or hate movements as motifs, badges, or ornament, such as the Rising Sun flag's rays, the Confederate battle flag, or Nazi-era insignia and their stylised variants; reach for that world's neutral forms instead. Content that documents such a symbol as fact stays as it is.
+- **Visual authority is evidence, not a filename.** Missing DESIGN.md alone does not make a project greenfield; new-work decides whether to preserve, expand, or replace the incumbent world.
+
+## Modes
+
+The mode names what the visitor's success looks like on this surface.
+
+- **Persuade:** the visitor decides and acts; design is the product. Landing pages, marketing, campaigns, pricing. Earn attention and action. Ship real imagery when the brief needs it; follow the committed world, not category habit.
+- **Operate:** the visitor completes a task. App UI, dashboards, editors, admin, settings, tools. Scanability, consistency, native expectations, and the real usage scene outrank expression. Brand lives in precise details.
+- **Read:** the visitor understands something. Docs, articles, guides, help, changelogs. Structure for comprehension, then make the reading experience worth staying in.
+- **Experience:** the visitor is inside the work itself. Portfolios, galleries, showcases. Let the artifact lead from the first viewport; the interface recedes.
+
+Choose the mode from the requested surface, not the product, and persist it only in that surface brief. A tool's landing page is still Persuade; a fashion house's documentation is still Read; a docs index is Read, not Persuade. See [new-work.md](reference/new-work.md) for new surfaces and [operate.md](reference/operate.md) for deeper Operate/Read guidance.
+
+## Commands
+
+| Command | Category | Description | Reference |
+|---|---|---|---|
+| `craft [feature]` | Build | Deprecated alias for an ordinary new-work request | [reference/craft.md](reference/craft.md) |
+| `shape [feature]` | Build | Plan UX/UI before writing code | [reference/shape.md](reference/shape.md) |
+| `init` | Build | Capture durable product context in PRODUCT.md | [reference/init.md](reference/init.md) |
+| `document` | Build | Generate DESIGN.md from existing project code | [reference/document.md](reference/document.md) |
+| `extract [target]` | Build | Pull reusable tokens and components into design system | [reference/extract.md](reference/extract.md) |
+| `critique [target]` | Evaluate | UX design review with heuristic scoring | [reference/critique.md](reference/critique.md) |
+| `audit [target]` | Evaluate | Technical quality checks (a11y, perf, responsive) | [reference/audit.md](reference/audit.md) · native: [reference/audit.native.md](reference/audit.native.md) |
+| `polish [target]` | Refine | Final quality pass before shipping | [reference/polish.md](reference/polish.md) |
+| `bolder [target]` | Refine | Amplify safe or bland designs | [reference/bolder.md](reference/bolder.md) |
+| `quieter [target]` | Refine | Tone down aggressive or overstimulating designs | [reference/quieter.md](reference/quieter.md) |
+| `distill [target]` | Refine | Strip to essence, remove complexity | [reference/distill.md](reference/distill.md) |
+| `harden [target]` | Refine | Production-ready: errors, i18n, edge cases | [reference/harden.md](reference/harden.md) |
+| `onboard [target]` | Refine | Design first-run flows, empty states, activation | [reference/onboard.md](reference/onboard.md) |
+| `animate [target]` | Enhance | Add purposeful animations and motion | [reference/animate.md](reference/animate.md) |
+| `colorize [target]` | Enhance | Add strategic color to monochromatic UIs | [reference/colorize.md](reference/colorize.md) |
+| `typeset [target]` | Enhance | Improve typography hierarchy and fonts | [reference/typeset.md](reference/typeset.md) |
+| `layout [target]` | Enhance | Fix spacing, rhythm, and visual hierarchy | [reference/layout.md](reference/layout.md) |
+| `delight [target]` | Enhance | Add personality and memorable touches | [reference/delight.md](reference/delight.md) |
+| `overdrive [target]` | Enhance | Push past conventional limits | [reference/overdrive.md](reference/overdrive.md) |
+| `clarify [target]` | Fix | Improve UX copy, labels, and error messages | [reference/clarify.md](reference/clarify.md) |
+| `adapt [target]` | Fix | Adapt for different devices and screen sizes | [reference/adapt.md](reference/adapt.md) · native: [reference/adapt.native.md](reference/adapt.native.md) |
+| `optimize [target]` | Fix | Diagnose and fix UI performance | [reference/optimize.md](reference/optimize.md) |
+| `live` | Iterate | Visual variant mode: pick elements in the browser, iterate on alternatives | [reference/live.md](reference/live.md) |
+| `generate [n] [action] [element]` | Iterate | Variants, versions, or alternatives of a named element to choose from in the live browser; no manual picking | [reference/generate.md](reference/generate.md) |
+
+Routing:
+
+- **No argument:** read [routing.md](reference/routing.md) and present its context-aware menu; never auto-run a command.
+- **Explicit or clearly implied request to run a command:** load its reference (native variant on native platforms) and follow it. Ask once if two commands fit.
+- **Workflow or command-selection question:** read [Workflow questions](reference/routing.md#workflow-questions).
+- **Otherwise:** treat the request as general design work. Missing PRODUCT.md routes a new surface or replacement world through init, then new-work; a narrow refinement of existing code proceeds on the incumbent implementation as `impeccable context` directs, offering init afterward rather than blocking on it.
+- `teach` aliases `init`. `craft` is a deprecated alias for ordinary new-work and adds nothing. `shape` owns task discovery, then enters new-work only for visual-world and surface-concept decisions.
+
+After init writes PRODUCT.md, resume without rerunning `impeccable context`; init loads the native platform reference itself when the platform it recorded is `ios`, `android`, or `adaptive`.
+
+**Pin / Unpin:** `.agents/skills/impeccable/scripts/impeccable pin <pin|unpin> <command>` creates or removes a standalone `$<command>` shortcut. Report the script's result concisely; relay stderr verbatim on error.
+
+**Hooks:** `$impeccable hooks <on|off|status|ignore-rule|ignore-file|ignore-value|reset>` manages the design detector hook for this project (auto-runs the detector after UI file edits and surfaces findings). Load [reference/hooks.md](reference/hooks.md) when the user invokes it with any argument.
+
+**Doctor:** `$impeccable doctor` reports and repairs drift between this project's Impeccable artifacts (PRODUCT.md, DESIGN.md and its sidecar, config, surface briefs, the hook) and what this version reads. Load [reference/doctor.md](reference/doctor.md) when the user invokes it, or when they ask what is out of date, stale, or needs refreshing. A `CONTEXT_STALE` directive in Setup's output is the cheap subset of the same report; act on it there per its own instructions rather than running doctor unasked.
+
+**Foundations:** `$impeccable foundations` runs `.agents/skills/impeccable/scripts/impeccable foundations` and walks the user through the product-foundations roadmap (secrets, 404 page, icons, CI and more); `$impeccable foundations <id>` fixes that one item. Load [reference/foundations.md](reference/foundations.md) when the user invokes it.
+
+**Never repair drift as a side effect of a design task.** A `CONTEXT_STALE` finding is reported, not acted on, unless the user asks. The one exception is a finding marked `auto`, which the next write to that file performs anyway.</skill>
+`````
+
+Verbatim reviewer-permission reply:
+
+`````text
+<send_user_message_question_reply>
+[{"questionItemId":"[\"request_user_input_async\",\"call_13be689c198c478c9bb84535896e3b1e\",0]","question":"Impeccable critique is designed to run two independent sub-agents for an unanchored assessment. May I use sub-agents for this critique?","answer":"Yes, use two independent reviewers"}]
+</send_user_message_question_reply>
+`````
+
+AI contributions: Codex (OpenAI) root synthesized skill-required independent A design and B detector/runtime assessments, read product/design/sidecar and prior29/40 critique, preserved all working-tree implementation changes, compared closed/remaining desktop issues, archived full critique and appended records. A scored current source/verified-current desktop screenshots without prior scores or B findings; its pending fresh browser attempt was aborted after508.6s with no runtime artifacts. B independently completed fresh 1440/1920 light/dark runtime checks, withholding results until A completed. A corrected a redundant proposed return-to-meter issue after source confirmed existing links/state preservation; six coherent facts were not counted as a chunking failure. No code fix was made. Human contributions: explicit desktop-only/read-only scope, baseline comparison and consent to two independent reviewers. Human acceptance remains pending.
+
+Result:29/40 Good, unchanged on the coarse rubric, with two P2 findings (competing date scopes and machine-ID-led worklist) and one P3 (small consequential text). Prior keyboard precision gap and duplicate focus chart/direct-review issues are resolved in observed desktop flows. Current scope excludes mobile, so the earlier mixed-view total is not a controlled benchmark. No AI-authorship or real-fault accuracy inference.
+
+Task-written repository files: new local snapshot `.impeccable/critique/2026-11-21T00-26-27Z__index-html.md`; DEVELOPMENT_LOG.md and AI_USE.md appended only. All77 protected application/data/design/test files match starting hashes, including existing uncommitted redesign; no HTML/CSS/JS, model output, threshold, grouping, calculation, taxonomy, source separation, design token, test or review record altered. No associated commit; no commit, push, merge, deployment, installation, data regeneration or training.
+
+Validation: B fresh all four desktop size/theme combinations,68 recorded states, no document overflow/observed sampled date overlap/page errors or console warning/error in successful walkthrough, exact keyboard hourly values and explicit quality/score/threshold, event-to-profile-to-saved-range flow and meter/theme reload. No review annotations saved; save persistence not newly validated. Source detector exit2 retained one intentional stripe warning and one unconfirmed skip-color advisory; no ignore changes. A browser abort, B sandbox/refused-before-ready/hidden-selector attempts are recorded separately from successful checks in DEVELOPMENT_LOG.md. No reliable overlay/native visible browser; headless screenshots/DOM/console supplied fallback. Server stopped; B browsers closed; no successful A browser ownership established. Report body deleted after archive; other temporary review evidence retained. Hash/prefix/score and git diff/status checks passed; no unnecessary syntax/unit/regression reruns. Exact commands, paths, outcomes and existing toolchain versions appear in DEVELOPMENT_LOG.md.
+
+Limits: heuristic review, A source/image fallback plus B fresh runtime, not two successful fresh runtime passes. No mobile, full contrast/screen-reader/zoom/physical-device/cross-engine/failure/filter matrix or model evaluation. Earlier notes/prompts retained; no historical prompts reconstructed. Future changes await human direction.

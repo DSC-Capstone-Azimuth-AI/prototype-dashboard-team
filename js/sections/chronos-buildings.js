@@ -68,6 +68,12 @@
     requestAnimationFrame(() => document.querySelector('#chronos-event-list button[data-focus-key="' + previous + '"]')?.focus());
   }
 
+  function reviewAction(event) {
+    const link = DC.realAnomalies.eventLink(event, 'Open event review');
+    link.className = 'btn action-link'; link.id = 'chronos-open-review';
+    return link;
+  }
+
   function chart(node, rows, events, selected, onEvent, isContext, focusTime) {
     const origin = rows[0].time, offset = time => (time - origin) / A.HOUR;
     const last = offset(rows.at(-1).time), byHour = new Map(rows.map(row => [offset(row.time), row]));
@@ -89,6 +95,7 @@
     DC.charts.timeSeries(node, {
       t0: 0, t1: last + 1, centerBins: true, height: isContext ? 235 : 300, samples, xTicks,
       ariaLabel: isContext ? 'Hourly total power around the selected candidate anomaly' : 'Observed and expected hourly total active power in kW',
+      inspectionLabel: 'Inspect hourly values',
       xFormat: i => {
         const [day, time] = H.axisStamp(origin + i * A.HOUR);
         if (last < 24) return time;
@@ -107,11 +114,14 @@
         const row = byHour.get(i);
         if (!row) return { title: H.stamp(origin + i * A.HOUR), rows: [], note: 'No model output for this UTC hour.' };
         const detection = row.period === 'detection';
-        const details = [{ label: 'Observed total', value: kw(row.actual), color: actual },
-          { label: 'Expected total (median)', value: kw(row.q?.q50), color: expected, kind: 'dash' }];
-        if (showBand && row.q?.q10 != null && row.q?.q90 != null) details.push({ label: 'Nominal 80% interval', value: kw(row.q.q10) + ' to ' + kw(row.q.q90) });
-        if (detection) details.push({ label: 'Raw score / threshold', value: score(row.score) + ' / ' + score(row.threshold) });
-        if (detection && row.flag) details.push({ label: 'Detector flag', value: 'Flagged hour' });
+        const exactPower = value => Number.isFinite(value) ? String(value) + ' kW' : 'Unavailable';
+        const details = [{ label: 'Observed total', value: kw(row.actual), exactValue: exactPower(row.actual), color: actual },
+          { label: 'Expected total (median)', value: kw(row.q?.q50), exactValue: exactPower(row.q?.q50), color: expected, kind: 'dash' }];
+        if (showBand && row.q?.q10 != null && row.q?.q90 != null) details.push({ label: 'Nominal 80% interval', value: kw(row.q.q10) + ' to ' + kw(row.q.q90),
+          exactValue: exactPower(row.q.q10) + ' to ' + exactPower(row.q.q90) });
+        if (detection) details.push({ label: 'Raw prediction score', value: score(row.score), exactValue: row.score ?? 'Unavailable' },
+          { label: 'Prediction threshold', value: score(row.threshold), exactValue: row.threshold ?? 'Unavailable' });
+        if (detection) details.push({ label: 'Detector flag', value: row.flag === null ? 'Unavailable' : row.flag ? 'Flagged hour' : 'Not flagged' });
         if (eventIds.has(row.event?.id)) details.push({ label: 'Candidate event', value: row.event.id });
         const calendarRow = DC.calendar.tooltipRow(row.day);
         if (calendarRow) details.push(calendarRow);
@@ -168,7 +178,7 @@
     const dates = from && to && from <= to ? dayLabel(from) + ' – ' + dayLabel(to) : from && to ? 'Check date order' :
       from ? 'From ' + dayLabel(from) : to ? 'Through ' + dayLabel(to) : 'All dates';
     return el('section', { class: 'chronos-summary', 'aria-labelledby': 'chronos-summary-title' },
-      el('div', { class: 'chronos-summary-heading' }, el('h3', { id: 'chronos-summary-title', text: 'Window summary' }),
+      el('div', { class: 'chronos-summary-heading' }, el('h3', { id: 'chronos-summary-title', text: 'Saved chart window' }),
         el('span', { class: 'ink2', text: dates })), kpis);
   }
 
@@ -184,6 +194,7 @@
     const events = focused ? all.events : windowScope.events;
     if (focused) c.body.append(el('div', { class: 'chronos-focus-bar' },
       el('span', { id: 'chronos-reading-focus', text: reading ? 'Flagged reading · ' + H.stamp(reading.time) + ' · Actual: ' + kw(reading.actual) + ' · Expected: ' + kw(reading.q?.q50) : view.readingUnavailable ? 'Requested reading unavailable' : 'Focused on the selected event' }),
+      selected && !reading && !view.readingUnavailable ? reviewAction(selected) : null,
       el('button', { type: 'button', class: 'btn', id: 'chronos-restore-range', text: 'Return to chart range', onclick: () => {
         view.focused = false; view.readingTime = null; view.readingUnavailable = false; redraw();
         requestAnimationFrame(() => DC.$('.chronos-range-controls button[aria-pressed="true"]')?.focus({ preventScroll: true }));
@@ -196,9 +207,8 @@
       c.body.append(el('p', { class: 'empty', text: 'No Chronos-2 hours match these campus dates.' }));
       return c.card;
     }
-    c.body.append(el('p', { class: 'muted', id: 'chronos-range', text: range(rows) + ' (end exclusive)' }));
+    c.body.append(el('p', { class: 'chart-scope', id: 'chronos-range', text: (focused ? 'Selected ' + (reading ? 'reading' : 'event') + ' context · ' : 'Saved chart window · ') + range(rows) + ' (end exclusive)' }));
     if (rows.some(row => row.actual !== null || row.q?.q50 != null)) {
-      appendChart(c.body, 'chronos-chart', rows, events, selected, event => setEvent(view, event), false, focused && reading ? reading.time : null);
       c.body.append(DC.ui.legend([
         { kind: 'line', color: DC.css('--actual'), label: 'Observed power' },
         { kind: 'dash', color: expectedColor(), label: 'Expected median' },
@@ -207,6 +217,7 @@
         ...(focused && reading ? [{ kind: 'box', color: candidate(), label: 'Focused flagged reading' }] : []),
         ...DC.calendar.legend(rows),
       ]));
+      appendChart(c.body, 'chronos-chart', rows, events, selected, event => setEvent(view, event), false, focused && reading ? reading.time : null);
     } else {
       c.body.append(el('p', { class: 'empty', text: 'Observed and expected power are unavailable for these hours.' }));
     }
@@ -227,6 +238,7 @@
         el('h4', { id: 'chronos-event-title', tabindex: '-1', text: 'Unclassified candidate anomaly' }),
         el('p', { class: 'ink2', text: H.stamp(ev.start) + ' · ' + ev.duration + ' h · ' + direction[ev.direction] })),
       el('div', { class: 'chronos-event-actions' },
+        !view.focused ? reviewAction(ev) : null,
         step(-1, 'Previous', 'chronos-prev-event'), step(1, 'Next', 'chronos-next-event'),
         el('button', { type: 'button', class: 'btn', text: 'Close event', onclick: () => setEvent(view, null) }))),
     el('dl', { class: 'chronos-peak' }, fact('Observed at peak', kw(actual)), fact('Expected at peak', kw(expected))),
@@ -234,8 +246,10 @@
     el('dl', { class: 'chronos-facts' }, fact('Event ID', ev.id), fact('End (exclusive)', H.stamp(ev.end)), fact('Direction (exported)', direction[ev.direction])),
     el('p', { class: 'muted', text: 'Facilities verification is needed to interpret this candidate event.' }));
     node.append(DC.calendar.context(ev), DC.realAnomalies.detectionDetails(ev));
+    // The primary plot already contains this context while focused. Keep the
+    // secondary chart only when the operator has returned to the saved window.
     const rows = all.context(ev);
-    if (rows.length) {
+    if (!view.focused && rows.length) {
       node.append(el('p', { class: 'ink2', text: 'Hourly context · up to 24 hours on either side · kW' }));
       appendChart(node, 'chronos-context-chart', rows, [ev], ev, null, true);
     }
@@ -342,11 +356,24 @@
     const [from, to] = bounds(all, view);
     const scope = view.preset === 'full' ? all : S.bundle.select(meter, from, to);
     const selected = all.events.find(event => event.id === S.state.selected);
-    root.append(metrics(scope, from, to), analysis(view, scope, all, selected, from, to), anomalies(meter, all, selected, view));
+    const savedMetrics = metrics(scope, from, to);
+    const focused = view.focused && (selected || Number.isFinite(view.readingTime) || view.readingUnavailable);
+    if (focused) {
+      root.append(analysis(view, scope, all, selected, from, to),
+        el('details', { class: 'disclosure saved-window-summary' }, el('summary', { text: 'Saved chart window metrics · ' + from + ' through ' + to }),
+          el('p', { class: 'muted', text: 'These metrics describe the saved range, not the selected event context. Return to chart range to restore that plot.' }), savedMetrics));
+    } else {
+      if (!scope.scoredHours) root.append(el('section', { class: 'scope-notice', role: 'status' },
+        el('h3', { text: 'No analyzed measurements in this date range' }),
+        el('p', { text: 'The saved chart window contains no complete scored detection hours. Calibration or incomplete outputs do not establish an anomaly-free period.' }),
+        el('button', { class: 'btn', type: 'button', text: 'Use full model range', onclick: () => { view.preset = 'full'; redraw(); } })));
+      root.append(savedMetrics, analysis(view, scope, all, selected, from, to));
+    }
+    root.append(anomalies(meter, all, selected, view));
     return provenance(scope);
   }
 
-  DC.chronosBuildings = { start, notice, fallback, append, full, eventCount, period, appendChart, provenance, eventTable, usageHelp,
+  DC.chronosBuildings = { start, notice, fallback, append, full, eventCount, period, range, appendChart, provenance, eventTable, usageHelp,
     usageLabel: event => usageText(usageDifference(event)),
     get showBand() { return showBand; }, get bundle() { return S.bundle; } };
 })();

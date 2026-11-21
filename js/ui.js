@@ -84,6 +84,15 @@
       el("a", { class: "action-link", href: o.href, text: o.action }));
   }
 
+  // Desktop comparison shares the same source facts as the compact-screen cards.
+  function comparisonTable(label, headings, rows) {
+    return el('div', { class: 'table-wrap desktop-comparison', tabindex: '0', role: 'region', 'aria-label': label },
+      el('table', {}, el('caption', { text: label }),
+        el('thead', {}, el('tr', {}, headings.map(text => el('th', { scope: 'col', text })))),
+        el('tbody', {}, rows.map(row => el('tr', { 'data-comparison-id': row.id }, row.cells.map((cell, i) =>
+          el(i ? 'td' : 'th', i ? {} : { scope: 'row' }, cell)))))));
+  }
+
   function segmented(options, value, onChange, label) {
     const box = el("div", { class: "seg", role: "group", "aria-label": label || "" });
     for (const [v, text] of options) {
@@ -178,5 +187,15 @@
     };
   }
 
-  DC.ui = { rawNumber, kpi, metricIcon, eventRow, card, buildingCard, legend, segmented, eventTooltip, overlays, scopeSeries, refresh };
+  function reviewJump(id, label = 'Jump to operator review') {
+    return el('button', { class: 'btn review-jump', type: 'button', 'aria-controls': id, text: label, onclick: () => {
+      const target = document.getElementById(id);
+      if (!target) return;
+      target.setAttribute('tabindex', '-1');
+      target.focus({ preventScroll: true });
+      target.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+    } });
+  }
+
+  DC.ui = { rawNumber, kpi, metricIcon, eventRow, card, buildingCard, comparisonTable, legend, segmented, eventTooltip, overlays, scopeSeries, refresh, reviewJump };
 })();

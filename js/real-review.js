@@ -30,6 +30,15 @@
     } catch (_) { return null; }
   }
   const statusLabel = value => statuses.find(([id]) => id === value)?.[1] ?? 'Unavailable';
+  function progress(identity, events) {
+    const counts = Object.fromEntries(statuses.map(([id]) => [id, 0]));
+    counts.unavailable = 0; counts.total = events.length;
+    for (const event of events) {
+      const status = savedStatus(identity, event);
+      counts[status ?? 'unavailable']++;
+    }
+    return counts;
+  }
   let listStatus = 'all';
   function tableView(identity, events, id, onChange) {
     // Read persisted reviews, never the editable per-event drafts or model records.
@@ -133,5 +142,5 @@
       el('p', { class: 'muted', text: 'Saved reviews stay in this browser’s localStorage for this site only; they are not shared multi-user records. Unsaved drafts stay with their event during dashboard navigation. Save before reloading or closing. This tab requests a browser warning while drafts are unsaved. A run fingerprint of the three loaded CSV files separates re-exported or changed data from earlier reviews.' }));
     refreshFeedback(); return section;
   }
-  DC.realReview = { open, update, save, dirty, hasUnsaved, render, keyFor, identityFor, savedStatus, statusLabel, tableView };
+  DC.realReview = { open, update, save, dirty, hasUnsaved, render, keyFor, identityFor, savedStatus, statusLabel, progress, tableView };
 })();

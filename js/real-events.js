@@ -95,15 +95,27 @@
     Object.assign(state, patch);
     if ('from' in patch || 'to' in patch) state.range = state.from || state.to ? 'custom' : 'all';
   }
+  const recentStart = (day, days) => new Date(Date.parse(day + 'T00:00:00Z') - (Number(days) - 1) * 86400000).toISOString().slice(0, 10);
   function setRange(value) {
     if (!['all', '7', '14', '30', 'custom'].includes(value)) throw Error('Unsupported real date range.');
     if (value === 'all') filter({ from: '', to: '' });
     else if (value !== 'custom' && bundle) {
       // Civil-date arithmetic only; observation joins/durations continue to use source UTC instants.
-      const from = new Date(Date.parse(bundle.to + 'T00:00:00Z') - (Number(value) - 1) * 86400000).toISOString().slice(0, 10);
+      const from = recentStart(bundle.to, value);
       filter({ from, to: bundle.to });
     }
     state.range = value;
+  }
+  // Presentation-only chart window inside the retained Overview/list scope.
+  // Civil dates select original rows; no resampling, scoring or event regrouping.
+  function inspectionSeries(selected, days) {
+    if (!['7', '30', 'full'].includes(days)) throw Error('Unsupported chart inspection window.');
+    if (days === 'full') return selected.series;
+    const last = selected.series.flatMap(s => s.rows.length ? [s.rows.at(-1).day] : []).sort().at(-1);
+    if (!last) return selected.series;
+    const recent = recentStart(last, days);
+    const from = state.from && state.from > recent ? state.from : recent;
+    return selected.meters.map(meter => ({ meter, ...bundle.select(meter, from, last) }));
   }
   const href = id => '#investigate/' + encodeURIComponent(prefix + id);
   function profile(meter) {
@@ -124,7 +136,7 @@
     Object.assign(profile(event.meter), { focused: true });
     DC.navigate('buildings', 'derconnect:' + event.meter);
   }
-  A.session = { state, start, load, full, scope, overviewMetrics, eventFacts, measuredPair, readingHref, filter, setRange, href, profile, select, open, returnToMeter,
+  A.session = { state, start, load, full, scope, inspectionSeries, overviewMetrics, eventFacts, measuredPair, readingHref, filter, setRange, href, profile, select, open, returnToMeter,
     isRoute: id => typeof id === 'string' && id.startsWith(prefix),
     routeId: id => id.slice(prefix.length), event: id => events.get(id) || null,
     get bundle() { return bundle; }, get status() { return status; }, get error() { return error; } };

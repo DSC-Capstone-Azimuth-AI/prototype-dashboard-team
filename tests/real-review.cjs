@@ -77,3 +77,19 @@ test('SHA-256 bundle identity is stable across reloads and separates changed sou
   const next = await A.withReviewIdentity(A.parse(changed), changed); assert.notEqual(one.reviewIdentity.run, next.reviewIdentity.run);
   c.crypto = null; const missing = await A.withReviewIdentity(A.parse(texts), texts); assert.equal(missing.reviewIdentity, null); assert.match(missing.reviewIdentityError, /unavailable/);
 });
+
+test('comparison progress uses saved source-specific statuses, excludes drafts and reports unreadable records', () => {
+  const { R, values } = setup();
+  const events = ['a', 'b', 'c', 'd', 'e'].map(id => ({ ...event, id }));
+  const draft = R.open(identity, events[0]); R.update(draft, { status: 'reviewed' });
+  const follow = R.open(identity, events[1]); R.update(follow, { status: 'follow_up' }); assert(R.save(follow));
+  const reviewed = R.open(identity, events[2]); R.update(reviewed, { status: 'reviewed' }); assert(R.save(reviewed));
+  values.set(R.keyFor(R.identityFor(identity, events[3])), '{invalid');
+  const before = JSON.stringify([...values]);
+  assert.deepEqual(JSON.parse(JSON.stringify(R.progress(identity, events))), {
+    not_reviewed: 2, in_review: 0, follow_up: 1, reviewed: 1, unavailable: 1, total: 5,
+  });
+  assert.equal(JSON.stringify([...values]), before, 'comparison cannot overwrite review records');
+  assert.equal(R.progress({ ...identity, run: 'other-run' }, events).not_reviewed, 5);
+  assert.equal(R.dirty(draft), true, 'unsaved review remains an independent draft');
+});

@@ -16,6 +16,9 @@ const base = process.env.DASHBOARD_URL || 'http://127.0.0.1:8000';
   const settled = (page, section, id = null) => page.waitForFunction(({ section, id }) => DC.state.section === section && DC.state.routeId === id &&
     document.querySelector('.section.active')?.id === 'sec-' + section && !document.querySelector('#main-content').hasAttribute('aria-busy'), { section, id });
   const alignedNavigation = page => page.waitForFunction(() => {
+    if (!document.querySelector('.tabs').getClientRects().length) {
+      return document.querySelector('#navigation-toggle').getAttribute('aria-expanded') === 'false';
+    }
     const active = document.querySelector('.tabs a[aria-current="page"]').getBoundingClientRect();
     const indicator = document.querySelector('#nav-indicator').getBoundingClientRect();
     return Math.abs(active.x - indicator.x) < 1 && Math.abs(active.y - indicator.y) < 1 && Math.abs(active.width - indicator.width) < 1 && Math.abs(active.height - indicator.height) < 1;
@@ -28,6 +31,7 @@ const base = process.env.DASHBOARD_URL || 'http://127.0.0.1:8000';
     return Math.abs(scrollY - desired) < 2;
   });
   const clickSection = async (page, section) => {
+    if (await page.locator('#navigation-toggle').isVisible()) await page.locator('#navigation-toggle').click();
     await page.locator(`.tabs a[data-section="${section}"]`).click(); await settled(page, section);
     await alignedNavigation(page); await sectionInView(page);
     const filtersVisible = await page.locator(section === 'buildings' ? '#buildings-prototype-from' : '#f-range').evaluate(n => {

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-20T22:38:38.981554Z",
+  "generatedAt": "2026-11-20T23:17:25.064445Z",
   "title": "Design System: DERCONNECT Unified Dashboard",
   "extensions": {
     "colorMeta": {
@@ -979,16 +979,40 @@
       "description": "Native expandable supporting evidence with a focus-aware border.",
       "html": "<details class=\"ds-disclosure\"><summary class=\"ds-disclosure-summary\">Additional evidence</summary><p class=\"ds-disclosure-copy\">Context is available separately from the main evidence.</p></details>",
       "css": ".ds-disclosure{font:14px/1.45 var(--font);border:1px solid var(--border);border-radius:10px;padding:4px 18px;background:var(--surface);color:var(--ink-2);transition:border-color var(--motion-fast) ease;}.ds-disclosure-summary{cursor:pointer;font-size:13px;font-weight:600;padding:10px 0;}.ds-disclosure-summary::marker{color:var(--accent);}.ds-disclosure-summary:focus-visible{outline:2px solid var(--focus);outline-offset:2px;}.ds-disclosure:has(>summary:focus-visible){border-color:var(--focus);}.ds-disclosure[open]>.ds-disclosure-summary{margin-bottom:16px;}.ds-disclosure[open]>.ds-disclosure-copy{animation:ds-disclosure-enter 180ms ease-out;}@keyframes ds-disclosure-enter{from{opacity:.7;transform:translateY(3px);}to{opacity:1;transform:translateY(0);}}@media(prefers-reduced-motion:reduce){.ds-disclosure,.ds-disclosure-copy,.ds-disclosure-summary{transition:none!important;animation:none!important;transform:none!important;}}"
+    },
+    {
+      "name": "Overview Metric Strip",
+      "kind": "custom",
+      "refersTo": "metric-strip",
+      "description": "Compact labeled metrics; headlines keep their filter scope when chart inspection changes.",
+      "html": "<dl class=\"ds-metric-strip\"><div class=\"ds-strip-item\"><dt>Candidate events</dt><dd>—</dd></div><div class=\"ds-strip-item\"><dt>Largest deviation</dt><dd>—</dd></div></dl>",
+      "css": ".ds-metric-strip{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;padding:12px 0;margin:0;border-block:1px solid var(--border-strong);font:14px/1.45 var(--font);color:var(--ink);}.ds-strip-item{padding:8px 16px;}.ds-strip-item+div{border-left:1px solid var(--border);}.ds-strip-item dt{font-size:12px;color:var(--ink-2);}.ds-strip-item dd{margin:6px 0;font-size:26px;font-weight:640;letter-spacing:-.02em;font-variant-numeric:tabular-nums;}@media(max-width:700px){.ds-strip-item{padding:8px;}.ds-strip-item dd{font-size:23px;}}"
+    },
+    {
+      "name": "Desktop Directory Comparison",
+      "kind": "custom",
+      "refersTo": "desktop-comparison",
+      "description": "Native comparison rows at 1440px and wider. Real model coverage, available phase measurements and persisted local review progress remain distinct; narrower layouts retain existing cards.",
+      "html": "<div class=\"ds-comparison\"><table><caption>Meter comparison · saved reviews in this browser only</caption><thead><tr><th scope=\"col\">Meter</th><th scope=\"col\">Candidates</th><th scope=\"col\">Saved reviews</th></tr></thead><tbody><tr><th scope=\"row\">—</th><td>—</td><td>—</td></tr></tbody></table></div>",
+      "css": ".ds-comparison{font:13px/1.5 var(--font);color:var(--ink);overflow:auto;}.ds-comparison table{width:100%;border-collapse:collapse;}.ds-comparison caption{text-align:left;padding:0 0 12px;color:var(--ink-2);font-size:12px;}.ds-comparison th,.ds-comparison td{text-align:left;padding:14px 12px;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums;}.ds-comparison thead{background:var(--surface-2);color:var(--ink-2);}"
+    },
+    {
+      "name": "Keyboard Chart Inspector",
+      "kind": "custom",
+      "refersTo": "chart-inspector",
+      "description": "Native disclosure and keyboard range control outside the SVG image. A live readout retains exact supplied measurements, raw thresholds/scores and observation quality; gaps stay unavailable.",
+      "html": "<details class=\"ds-inspector\"><summary>Inspect hourly values</summary><label>Inspection hour <input type=\"range\" min=\"0\" max=\"1\" value=\"0\"></label><p role=\"status\">Selected hour measurements appear here.</p></details>",
+      "css": ".ds-inspector{font:13px/1.5 var(--font);color:var(--ink);border-top:1px solid var(--border);padding:8px 0;}.ds-inspector summary{color:var(--accent);font-weight:600;cursor:pointer;}.ds-inspector input{accent-color:var(--accent);}.ds-inspector input:focus-visible{outline:2px solid var(--focus);outline-offset:2px;}"
     }
   ],
   "narrative": {
     "northStar": "Facilities Operations Console",
-    "overview": "The Facilities Operations Console is calm, precise and approachable. Operations Green identifies actions and the current location; Soft Stone surfaces separate controls, evidence and supporting context. Dense information stays readable through clear headings, whitespace, cards and disclosures.\n\nComponents are restrained and practical. Tonal layering and faint ambient shadows give the workspace enough depth to distinguish regions without competing with charts or event tables. The visual character is established by the current implementation, not a replacement identity.\n\nThis record captures the final CSS cascade and computed light/dark themes at the documented revision. Earlier blue shell declarations are superseded by green operational overrides; Signal Blue still belongs to the chart taxonomy. Implementation sources are `css/styles.css`, `index.html`, `js/ui.js`, `js/util.js`, `js/charts.js` and the section renderers.",
+    "overview": "The Facilities Operations Console is calm, precise and approachable. Operations Green identifies actions and the current location; Soft Stone surfaces separate controls, evidence and supporting context. Dense information stays readable through clear headings, whitespace, cards and disclosures.\n\nComponents are restrained and practical. Tonal layering and faint ambient shadows give the workspace enough depth to distinguish regions without competing with charts or event tables. The visual character is established by the current implementation, not a replacement identity.\n\nOverview metrics use a compact divided strip. Event evidence uses open sections, with legends and explicit chart dates above plots. The mobile menu opens on request, and supporting detail follows the primary evidence.\n\nThis record captures the final CSS cascade and computed light/dark themes at the documented revision. Earlier blue shell declarations are superseded by green operational overrides; Signal Blue still belongs to the chart taxonomy. Implementation sources are `css/styles.css`, `index.html`, `js/ui.js`, `js/util.js`, `js/charts.js` and the section renderers.\n\nAt 1440px and wider, operational worklists and primary model charts use open sections; native directory comparison tables replace repeated meter/building cards. Navigation groups operational work separately from data tools. Narrower layouts retain their existing card/menu functionality. Synthetic Demo is the consistent source label. Native keyboard inspection exposes exact supplied hourly model values and quality without changing model facts. Focused meter profiles use one context plot with a direct event-review action; saved-window dates remain separate.",
     "keyCharacteristics": [
       "Operations Green for actions and navigation; separate categorical and severity colors.",
       "System typography with compact labels, strong section headings and readable evidence.",
       "Soft Stone surfaces, gently rounded containers and faint ambient shadows.",
-      "Persistent desktop navigation and a compact two-column mobile navigation grid.",
+      "Persistent desktop navigation and a compact mobile menu.",
       "Tables, custom SVG charts and disclosures organize detailed evidence."
     ],
     "rules": [

@@ -147,3 +147,28 @@ test('raw score/threshold presentation preserves tiny nonzero values, zero, sign
   assert.equal(format(0), '0'); assert.equal(format(0.125), '0.125');
   assert.equal(format(null), 'Unavailable'); assert.equal(format(undefined), 'Unavailable');
 });
+
+test('chart inspection preserves canonical hourly evidence, shared scope and metrics across gaps/DST dates', async () => {
+  const { DC, S } = session(); await S.load(() => DC.chronos2.parse(bundle()));
+  const scope = S.scope(), state = JSON.stringify(S.state), metrics = JSON.stringify(S.overviewMetrics(scope));
+  const source = JSON.stringify(scope.series);
+  assert.equal(S.inspectionSeries(scope,'full'),scope.series);
+  for (const days of ['7','30']) {
+    const inspected = S.inspectionSeries(scope,days);
+    assert.equal(inspected.length,scope.meters.length);
+    for (const series of inspected) {
+      const original = scope.series.find(s=>s.meter===series.meter);
+      assert(series.rows.every(row=>original.rows.includes(row)), 'retains original row objects/UTC instants, thresholds and flags');
+      assert(series.events.every(event=>original.events.includes(event)), 'retains original half-open grouped events');
+      if(days==='7') assert(series.rows.every(row=>row.day>='2026-03-02'));
+    }
+  }
+  assert.equal(JSON.stringify(S.state),state);
+  assert.equal(JSON.stringify(scope.series),source);
+  assert.equal(JSON.stringify(S.overviewMetrics(scope)),metrics);
+  S.filter({meter:'E2451',from:'2026-03-01',to:'2026-03-01'});
+  assert(S.inspectionSeries(S.scope(),'7')[0].rows.every(row=>row.day==='2026-03-01'));
+  S.filter({from:'2030-01-01',to:'2030-01-02'});
+  assert.equal(S.inspectionSeries(S.scope(),'7')[0].rows.length,0);
+  assert.throws(()=>S.inspectionSeries(scope,'invalid'),/Unsupported/);
+});

@@ -9,7 +9,7 @@
   <meta name="derconnect-history" content="">
   <meta name="description" content="Anomaly-focused monitoring for DERCONNECT buildings and sub-grids: detect, classify, visualize, investigate, interpret.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M9 1 3 9h4l-1 6 6-8H8z' fill='%232a78d6'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="css/styles.css?v=7">
+  <link rel="stylesheet" href="css/styles.css?v=9">
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
@@ -22,20 +22,26 @@
         </div>
         <p>Campus energy management</p>
       </div>
+      <button class="icon-btn navigation-toggle" id="navigation-toggle" type="button" aria-expanded="false" aria-controls="dashboard-navigation" aria-label="Open dashboard menu">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+        <span id="navigation-toggle-label">Menu</span>
+      </button>
       <button class="icon-btn" id="theme-toggle" type="button" aria-label="Toggle dark mode">
         <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 1.5v11a5.5 5.5 0 0 1 0-11z" fill="currentColor"/></svg>
         <span>Theme</span>
       </button>
     </div>
-    <nav class="tabs" aria-label="Dashboard sections">
+    <nav class="tabs" id="dashboard-navigation" aria-label="Dashboard sections">
       <span class="nav-indicator" id="nav-indicator" aria-hidden="true" hidden></span>
+      <span class="nav-group-label">Monitor &amp; investigate</span>
       <a href="#overview" data-section="overview" aria-label="Overview" aria-controls="sec-overview"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="nav-copy">Overview<small aria-hidden="true">Campus health</small></span></a>
       <a href="#investigate" data-section="investigate" aria-label="Anomaly Investigation" aria-controls="sec-investigate"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h5l3-7 4 14 3-7h5"/></svg><span class="nav-copy">Anomaly Investigation<small aria-hidden="true">Event evidence &amp; review</small></span></a>
       <a href="#buildings" data-section="buildings" aria-label="Buildings &amp; Sub-grids" aria-controls="sec-buildings"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V4h10v17M15 10h4v11M8 8h4M8 12h4M8 16h4"/></svg><span class="nav-copy">Buildings &amp; Sub-grids<small aria-hidden="true">Location analysis</small></span></a>
+      <a href="#historical" data-section="historical" aria-label="Historical Monitoring" aria-controls="sec-historical"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3v17h17M6 14l4-5 4 3 6-7"/></svg><span class="nav-copy">Historical Monitoring<small aria-hidden="true">DERConnect measurements</small></span></a>
+      <span class="nav-group-label">Data &amp; tools</span>
       <a href="#models" data-section="models" aria-label="Detection Quality" aria-controls="sec-models"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3v17h17M8 15v-4M13 15V5M18 15V8"/></svg><span class="nav-copy">Detection Quality<small aria-hidden="true">Synthetic evaluation</small></span></a>
       <a href="#upload" data-section="upload" aria-label="CSV Upload" aria-controls="sec-upload"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 15v5h16v-5"/></svg><span class="nav-copy">CSV Upload<small aria-hidden="true">Check a meter file</small></span></a>
       <a href="#export" data-section="export" aria-label="Export Reports" aria-controls="sec-export"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/></svg><span class="nav-copy">Export Reports<small aria-hidden="true">Download a scoped PDF</small></span></a>
-      <a href="#historical" data-section="historical" aria-label="Historical Monitoring" aria-controls="sec-historical"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3v17h17M6 14l4-5 4 3 6-7"/></svg><span class="nav-copy">Historical Monitoring<small aria-hidden="true">DERConnect measurements</small></span></a>
     </nav>
   </header>
 
@@ -89,9 +95,9 @@
   <script src="js/util.js"></script>
   <!-- CSV API v2 exports records and parseTimestamp for Chronos-2. -->
   <script src="js/csv.js?v=2"></script>
-  <script src="js/charts.js"></script>
+  <script src="js/charts.js?v=3"></script>
   <script src="js/store.js"></script>
-  <script src="js/ui.js?v=5"></script>
+  <script src="js/ui.js?v=7"></script>
   <script src="js/real-data.js"></script>
   <script src="data/campus-calendar.js"></script>
   <script src="js/calendar.js"></script>
@@ -99,16 +105,16 @@
   <script src="js/history-comparison.js"></script>
   <script src="js/history-session.js"></script>
   <script src="js/chronos2.js?v=6"></script>
-  <script src="js/real-events.js?v=5"></script>
-  <script src="js/real-review.js?v=10"></script>
+  <script src="js/real-events.js?v=6"></script>
+  <script src="js/real-review.js?v=11"></script>
   <script src="js/sections/historical.js"></script>
   <script src="js/sections/historical-overview.js?v=3"></script>
-  <script src="js/sections/overview.js?v=4"></script>
-  <script src="js/sections/investigate.js?v=3"></script>
-  <script src="js/sections/chronos-buildings.js?v=11"></script>
-  <script src="js/sections/real-anomalies.js?v=11"></script>
-  <script src="js/sections/real-buildings.js?v=2"></script>
-  <script src="js/sections/buildings.js"></script>
+  <script src="js/sections/overview.js?v=6"></script>
+  <script src="js/sections/investigate.js?v=4"></script>
+  <script src="js/sections/chronos-buildings.js?v=13"></script>
+  <script src="js/sections/real-anomalies.js?v=13"></script>
+  <script src="js/sections/real-buildings.js?v=3"></script>
+  <script src="js/sections/buildings.js?v=2"></script>
   <script src="js/sections/models.js"></script>
   <script src="js/sections/upload.js"></script>
   <script src="vendor/jspdf-3.0.3.umd.min.js"></script>
@@ -117,6 +123,6 @@
   <script src="js/reports.js"></script>
   <script src="js/report-pdf.js"></script>
   <script src="js/sections/export.js"></script>
-  <script src="js/app.js?v=5"></script>
+  <script src="js/app.js?v=6"></script>
 </body>
 </html>

@@ -120,10 +120,12 @@
     ]) grid.append(el('details', { class: 'disclosure span-12 analysis-group', open }, el('summary', { text: title }), el('div', { class: 'grid cols-12' }, cards)));
   }
   function directory(root, list) {
-    const grid = el('div', { class: 'building-directory' });
+    const grid = el('div', { class: 'building-directory comparison-cards' });
+    const comparison = el('div', { class: 'directory-comparison' });
     const search = el('input', { type: 'search', id: 'buildings-meter-search', placeholder: 'Search meters…', 'aria-label': 'Search meters', value: searchText });
     function draw() {
-      DC.clear(grid);
+      DC.clear(grid); DC.clear(comparison);
+      const rows = [];
       for (const entry of list.filter(e => e.name.toLowerCase().includes(search.value.trim().toLowerCase()))) {
         const d = product(entry), summary = d && H.summarize(rowsFor(d));
         const scope = model.full(entry.id);
@@ -139,10 +141,33 @@
           action: 'Open meter profile →',
         });
         card.dataset.realMeter = entry.id; grid.append(card);
+        const progress = scope && DC.realReview.progress(DC.chronos2.session.bundle.reviewIdentity, scope.events);
+        const reviews = progress ? el('div', {}, el('strong', { text: progress.reviewed + ' / ' + progress.total + ' reviewed' }),
+          el('small', { text: progress.not_reviewed + ' not reviewed' + (progress.in_review ? ' · ' + progress.in_review + ' in review' : '') +
+            (progress.follow_up ? ' · ' + progress.follow_up + ' follow-up' : '') + (progress.unavailable ? ' · ' + progress.unavailable + ' unavailable' : '') })) : 'Unavailable';
+        const observations = scope ? el('div', {}, el('span', { text: DC.fmt.int(scope.rows.length) + ' hourly records' }),
+          el('small', { text: DC.fmt.int(scope.rows.filter(row => row.filled === true).length) + ' interpolated' }),
+          scope.rows.some(row => row.actual === null) ? el('small', { text: scope.rows.filter(row => row.actual === null).length + ' observations unavailable' }) : null) :
+          d ? el('div', {}, el('span', { text: fmt(summary.mean) + ' phase mean' }),
+            el('small', { text: fmt(summary.peak) + ' peak sample · ' + d.channel })) : 'Unavailable';
+        rows.push({ id: entry.id, cells: [el('a', { href: href(entry.id), text: entry.name }),
+          el('strong', { text: count ?? 'Unavailable' }),
+          scope ? el('div', {}, el('span', { text: DC.fmt.int(scope.scoredHours) + ' scored hours' }),
+            el('small', { text: 'Loaded ' + model.period(scope) })) : 'Not analyzed', observations, reviews,
+          d ? el('div', {}, el('span', { text: entry.products.length + ' loaded phase' + (entry.products.length === 1 ? '' : 's') }),
+            el('small', { text: DC.fmt.pct(summary.coverage, 1) + ' coverage · ' + d.channel }),
+            d.measurement_kind === 'synthetic_fixture' ? el('small', { text: 'Synthetic phase fixture' }) : null) : 'Not loaded',
+          el('a', { class: 'action-link', href: href(entry.id), text: 'Open profile →', 'aria-label': 'Open meter ' + entry.id + ' profile' })] });
       }
       if (!grid.children.length) grid.append(el('p', { class: 'empty', id: list.length ? 'buildings-history-search-empty' : 'buildings-history-empty', text: list.length ? 'No meters match your search.' : 'Meter profiles appear when model outputs or phase measurements are available.' }));
+      if (rows.length) comparison.append(DC.ui.comparisonTable('Meter comparison · ' + (model.bundle ? 'full model history' : 'selected phase dates') + ' · saved reviews in this browser only',
+        ['Meter', 'Candidates', 'Model coverage', 'Measurements', 'Saved reviews', 'Phase measurements', 'Action'], rows));
+      else comparison.append(el('p', { class: 'empty desktop-only', text: list.length ? 'No meters match your search.' : 'No model outputs or phase measurements loaded.' }));
     }
-    search.addEventListener('input', () => { searchText = search.value; draw(); }); root.append(search, grid); draw();
+    search.addEventListener('input', () => { searchText = search.value; draw(); });
+    root.append(el('div', { class: 'directory-toolbar' }, search,
+      el('span', { class: 'muted desktop-only', text: model.bundle ? 'Chronos-2 hourly total power · candidate events require facilities verification' :
+        'Phase measurements · model outputs unavailable' })), comparison, grid); draw();
     if (!S.products.length) return;
     const details = el('details', { class: 'disclosure', open: researchOpen }, el('summary', { text: 'Advanced building & sub-grid analysis' }), el('div'));
     details.addEventListener('toggle', () => { if (!details.isConnected) return; researchOpen = details.open; if (details.open && !details.lastChild.children.length) research(details.lastChild, list); });

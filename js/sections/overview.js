@@ -4,7 +4,7 @@
   const DC = window.DC, el = DC.el, ui = () => DC.ui;
   DC.sections = DC.sections || {};
 
-  let showEvents = false, diagnosticsOpen = false;
+  let showEvents = false, diagnosticsOpen = false, inspectionWindow = '7';
 
   const kpi = (...args) => ui().kpi(...args);
 
@@ -21,7 +21,6 @@
     const buildings = DC.scopeBuildings();
 
     root.append(el("div", { class: "section-head" },
-      el("div", { class: "section-eyebrow", text: "Campus health" }),
       el("h2", { id: "h-overview", text: "Overview" }),
       el("p", { text: "See which buildings need attention, then choose an event to investigate." })));
 
@@ -49,17 +48,22 @@
     // ---------- Actual vs expected ----------
     const series = ui().scopeSeries(meters);
     const ts = ui().card("Actual vs. expected consumption", `${series.label} · expected = ${DC.det().label} median forecast`, { span: 12 });
+    ts.card.classList.add('overview-evidence');
     grid.append(ts.card);
     ts.tools.append(el("label", { class: "muted" }, el("input", { type: "checkbox", "data-focus-key": "overview-overlays", checked: showEvents, onchange: event => { showEvents = event.target.checked; ui().refresh(root, () => render(root)); } }), " Show anomaly overlays"));
+    ts.tools.append(ui().segmented([['7', 'Last 7 days'], ['30', 'Last 30 days'], ['full', 'Full selected range']], inspectionWindow,
+      value => { inspectionWindow = value; refreshOverview(); }, 'Synthetic chart inspection window'));
+    const chartT0 = inspectionWindow === 'full' ? t0 : Math.max(t0, t1 - Number(inspectionWindow) * 24);
+    function refreshOverview() { ui().refresh(root, () => render(root)); }
     const chartEl = el("div", { class: "chart" });
-    ts.body.append(chartEl);
+    ts.body.append(el('p', { class: 'chart-scope', text: `Chart inspection: ${DC.time.stamp(chartT0)} → ${DC.time.stamp(t1)} (end exclusive). Metrics and candidates retain the selected filter range.` }));
     const typesPresent = DC.TYPES.filter((t) => showEvents && events.some((e) => e.type === t.id));
     const leg = [
       { kind: "line", color: DC.css("--actual"), label: "Measured" },
       { kind: "dash", color: DC.css("--expected"), label: "Expected" },
     ];
     if (series.single) leg.push({ kind: "box", color: DC.css("--band-inner"), label: "80% / 98% forecast band" });
-    ts.body.append(ui().legend(leg.concat(typesPresent.map((t) => ({ kind: "type", type: t.id, label: t.label })))));
+    ts.body.append(ui().legend(leg.concat(typesPresent.map((t) => ({ kind: "type", type: t.id, label: t.label })))), chartEl);
     ts.body.append(el("div", { class: "card-foot", text: showEvents ? "Shaded intervals mark sustained events; symbols mark score peaks. Grey windows are synthetic negative controls. Click an event to open it." : "Hourly simulated electricity demand in kW. Enable anomaly overlays for additional context, or choose a priority event from the queue." }));
 
     // ---------- Type distribution ----------
@@ -82,6 +86,7 @@
 
     // ---------- Queue ----------
     const q = ui().card("Prioritized anomaly queue", "Open events ranked by priority (deviation, duration, energy impact)", { span: 12 });
+    q.card.classList.add('operational-worklist');
     q.tools.append(reviewAction);
     grid.prepend(q.card);
     ts.body.prepend(el("p", { class: "demand-summary", text: mains.length ? `${DC.fmt.kwh(DC.sum(mains.map(m => DC.energy(m, t0, t1))))} main-meter use · ${DC.fmt.kw(peak)} simultaneous peak · hourly simulated readings` : "Main-meter demand summary unavailable." }));
@@ -91,7 +96,7 @@
     const ov = ui().overlays(events.filter((e) => series.meters.some((m) => m.id === e.meter)), series.actual, sel);
     const controls = DC.D.normal_controls.map((c) => ({ start: c.start, end: c.end, label: c.name }));
     DC.charts.timeSeries(chartEl, {
-      t0, t1, height: 300,
+      t0: chartT0, t1, height: 300,
       shade: showEvents ? controls : [],
       band: series.single ? [{ lo: series.lo, hi: series.hi, color: DC.css("--band") }, { lo: series.lo80, hi: series.hi80, color: DC.css("--band-inner") }] : [],
       series: [
@@ -101,15 +106,22 @@
       intervals: showEvents ? ov.intervals : [], markers: showEvents ? ov.markers : [],
       yFormat: (v) => DC.fmt.compact(v) + "",
       ariaLabel: "Measured and expected kW over time with anomaly overlays",
+      inspectionLabel: 'Inspect hourly values',
       tooltip: (t, hit) => {
         if (hit && hit.ev) return ui().eventTooltip(hit.ev);
         const a = series.actual(t), e = series.expected(t);
         const rows = [
-          { color: DC.css("--actual"), value: DC.fmt.kw(a), label: "measured" },
-          { color: DC.css("--expected"), kind: "dash", value: DC.fmt.kw(e), label: "expected" },
+          { color: DC.css("--actual"), value: DC.fmt.kw(a), exactValue: a == null ? 'Unavailable' : a + ' kW', label: "measured" },
+          { color: DC.css("--expected"), kind: "dash", value: DC.fmt.kw(e), exactValue: e == null ? 'Unavailable' : e + ' kW', label: "expected" },
           { value: e == null ? "—" : DC.fmt.signed(a - e, " kW"), label: "deviation" },
         ];
         if (series.single) rows.push({ color: DC.css("--band-inner"), kind: "box", value: `${DC.fmt.one(series.lo(t))}–${DC.fmt.one(series.hi(t))}`, label: "98% band" });
+        if (series.single) {
+          const meter = series.meters[0], normalized = DC.q(meter.id, 'score', t);
+          rows.push({ label: 'Exported score / threshold', value: normalized == null ? 'Unavailable' : normalized + '× (rounded, capped at 99×)' },
+            { label: 'Detector raw threshold', value: DC.det().threshold },
+            { label: 'Data quality', value: ['OK', 'Missing / zero', 'Stuck'][meter.dq[t]] || 'Unavailable' });
+        }
         const ctrl = DC.D.normal_controls.find((c) => t >= c.start && t < c.end);
         return { title: DC.time.stamp(t), rows, note: ctrl ? `${ctrl.name}: ${ctrl.note}` : null };
       },

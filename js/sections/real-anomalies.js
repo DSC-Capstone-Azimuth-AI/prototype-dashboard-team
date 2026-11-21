@@ -11,6 +11,7 @@
   const signedPower = value => !Number.isFinite(value) ? 'Unavailable' : (value > 0 ? '+' : '') +
     (value !== 0 && Math.abs(value) < 0.005 ? value.toExponential(2) : number2(value)) + ' kW';
   const directionText = delta => delta > 0 ? 'Above expected' : delta < 0 ? 'Below expected' : 'Matches expected';
+  let inspectionWindow = '7';
   const fact = (label, value, fullValue = value, note = '') => el('div', { class: 'fact', 'data-fact': label },
     el('div', { class: 'k', text: label }), el('div', { class: 'v', text: value, title: String(fullValue) }),
     note ? el('div', { class: 'muted', text: note }) : null);
@@ -56,13 +57,14 @@
     } }, content);
   }
   function table(events, id) {
-    return el('div', { class: 'table-wrap tall' }, el('table', { id },
-      el('thead', {}, el('tr', {}, ['Event / meter', 'Start (campus time)', 'Duration', 'Usage difference (kW)', 'Action'].map(text => el('th', { scope: 'col', text,
+    return el('div', { class: 'table-wrap tall real-recent-events', tabindex: '0', role: 'region', 'aria-label': 'Recent candidate events' }, el('table', { id },
+      el('thead', {}, el('tr', {}, ['Event / meter', 'Start (campus time)', 'Duration', 'Usage difference (kW)', 'Saved review', 'Action'].map(text => el('th', { scope: 'col', text,
         title: text === 'Usage difference (kW)' ? DC.chronosBuildings.usageHelp : null })))),
       el('tbody', {}, events.map(event => DC.ui.eventRow(event.id, event.id === S.state.selected, () => S.open(event),
         el('td', {}, eventLink(event), el('div', { class: 'muted', text: event.meter })),
         el('td', {}, el('time', { datetime: new Date(event.start).toISOString(), text: H.stamp(event.start) }), DC.calendar.tag(event)),
         el('td', { text: event.duration + ' h' }), el('td', { text: DC.chronosBuildings.usageLabel(event) }),
+        el('td', { class: 'review-state', text: DC.realReview.statusLabel(DC.realReview.savedStatus(S.bundle.reviewIdentity, event)) }),
         el('td', {}, el('button', { type: 'button', class: 'btn', text: 'Inspect', 'data-event-id': event.id,
           'aria-label': 'Inspect ' + event.id, onclick: () => S.open(event) })))))));
   }
@@ -71,6 +73,12 @@
     const c = DC.ui.card(limited ? 'Recent candidate event activity' : 'Candidate event log',
       'Grouped historical detections · unverified potential anomalies', { span: 12 });
     c.card.id = id;
+    if (limited) {
+      c.card.classList.add('operational-worklist');
+      const progress = DC.realReview.progress(S.bundle.reviewIdentity, scope.events);
+      c.head.querySelector('.sub').textContent = 'Latest first · saved locally: ' + progress.reviewed + '/' + progress.total + ' reviewed · ' +
+        progress.in_review + ' in review · ' + progress.follow_up + ' follow-up' + (progress.unavailable ? ' · ' + progress.unavailable + ' unavailable' : '');
+    }
     const review = limited ? null : DC.realReview.tableView(S.bundle.reviewIdentity, scope.events, 'real-investigate-review-filter', () => { eventLogView.logTop = 0; redraw(); });
     const events = review ? DC.calendar.filterEvents(review.events) : scope.events;
     if (review) {
@@ -78,10 +86,12 @@
       c.body.append(review.note, el('p', { class: 'muted', id: 'real-investigate-count', text: events.length + ' of ' + scope.events.length + ' candidate events match review status' +
         (DC.calendar.state.filter !== 'all' ? ' and calendar filter (' + DC.calendar.state.filter.replace('calendar', 'holidays & breaks').replace('regular', 'excluding holidays & breaks') + ').' : '.') }));
     }
-    c.body.append(el('p', { class: 'muted', id: limited ? 'real-overview-usage-help' : 'real-event-usage-help', text: DC.chronosBuildings.usageHelp }));
+    const help = el('p', { class: 'muted', id: limited ? 'real-overview-usage-help' : 'real-event-usage-help', text: DC.chronosBuildings.usageHelp });
+    if (!limited) c.body.append(help);
     if (events.length) c.body.append(limited ? table(events.slice(0, 5), id + '-table') :
       DC.chronosBuildings.eventTable(events, S.event(S.state.selected), eventLogView, { compact: true, id: id + '-table', statuses: review.statuses }));
     else c.body.append(el('p', { class: 'empty', text: limited ? 'No grouped candidate events match these meter and campus dates.' : 'No grouped candidate events match these meters, campus dates, review status and calendar filter.' }));
+    if (limited) c.body.append(help);
     if (scope.skippedEvents) c.body.append(el('p', { class: 'note-box', text: scope.skippedEvents + ' exported intervals lack usable UTC bounds or matching detection hours; only matched events are shown.' }));
     if (scope.unscoredHours && !limited) c.body.append(el('p', { class: 'muted', text: scope.unscoredHours + ' detection hours have incomplete scores, thresholds or flags.' }));
     if (limited) c.tools.append(el('a', { class: 'btn', href: '#investigate', text: 'Review all candidate events →' }));
@@ -93,19 +103,31 @@
     root.append(el('details', { class: 'disclosure', id: 'overview-phase-measurements' }, el('summary', { text: 'Additional phase measurement overview' }), body));
     DC.historicalOverview.render(body, true);
   }
+  function analyzedNotice(root, scope) {
+    if (scope.scoredHours) return false;
+    const notice = el('section', { class: 'scope-notice', id: 'real-no-analysis', role: 'status', 'aria-label': 'Analysis unavailable in selected dates' },
+      el('h3', { text: 'No analyzed measurements in this date range' }),
+      el('p', { text: scope.unscoredHours ? 'Loaded detection hours have incomplete model outputs. Candidate metrics are unavailable, not zero.' :
+        'No scored detection hours match the selected meters and campus dates. This does not mean that no anomalies occurred.' }),
+      el('p', { text: 'Loaded model records: ' + S.bundle.from + ' through ' + S.bundle.to + '. Calibration records are not analyzed detection hours.' }),
+      el('button', { type: 'button', class: 'btn', text: 'Use loaded dates', onclick: () => { S.setRange('all'); redraw(); } }));
+    root.append(notice);
+    return true;
+  }
   function overview(root) {
-    root.append(el('div', { class: 'section-head' }, el('div', { class: 'section-eyebrow', text: 'Historical candidate activity' }),
+    root.append(el('div', { class: 'section-head' },
       el('h2', { id: 'h-overview', text: 'Real DERCONNECT Overview' }),
       el('p', { text: 'Chronos-2 hourly total active power (A+B+C) in source-reported kW. These historical model detections need facilities verification.' })));
     if (!ready(root)) { phaseOverview(root); return; }
     const scope = S.scope();
+    const noAnalysis = analyzedNotice(root, scope);
     const metrics = S.overviewMetrics(scope), kpis = el('div', { class: 'kpis' });
     const largest = metrics.largest, longest = metrics.longest;
     const largestHref = largest ? (largest.event && S.event(largest.event.id) ? S.href(largest.event.id) : S.readingHref(largest.meter, largest.row.time)) : '#investigate';
     for (const [key, label, value, note, icon, href] of [
-      ['events', 'Candidate Events', metrics.count === null ? 'Unavailable' : DC.fmt.int(metrics.count),
-        metrics.count === null ? 'Grouped-event evidence is incomplete; review available events.' : 'Grouped events matching selected meters and dates', 'review', '#investigate'],
-      ['affected', 'Meters with Candidates', metrics.affected === null ? 'Unavailable' : metrics.affected + ' of ' + metrics.selectedMeters,
+      ['events', 'Candidate Events', noAnalysis || metrics.count === null ? 'Unavailable' : DC.fmt.int(metrics.count),
+        noAnalysis ? 'No analyzed detection hours in scope' : metrics.count === null ? 'Grouped-event evidence is incomplete; review available events.' : 'Grouped events matching selected meters and dates', 'review', '#investigate'],
+      ['affected', 'Meters with Candidates', noAnalysis || metrics.affected === null ? 'Unavailable' : metrics.affected + ' of ' + metrics.selectedMeters,
         'Selected model meters with matching grouped candidates', 'meters', '#investigate'],
       ['deviation', 'Largest Deviation from Expected', largest ? signedPower(largest.delta) : 'Unavailable',
         largest ? directionText(largest.delta) + ' · ' + largest.meter + ' · ' + H.stamp(largest.row.time) :
@@ -118,7 +140,6 @@
       card.dataset.realMetric = key; kpis.append(card);
     }
     root.append(kpis);
-    root.append(DC.calendar.overviewNote(scope.events, () => { DC.calendar.setFilter('calendar'); DC.navigate('investigate'); }));
     const quality = el('details', { class: 'disclosure', id: 'real-overview-quality' }, el('summary', { text: 'Analyzed coverage & data quality' }),
       el('p', { id: 'real-analysis-coverage', text: scope.coverageStart === null ? 'Analyzed coverage: no detection records match the list filters.' :
         'Analyzed coverage: ' + H.stamp(scope.coverageStart) + ' → ' + H.stamp(scope.coverageEnd) + ' (end exclusive).' }),
@@ -127,15 +148,26 @@
       el('p', { text: metrics.flagged + ' flagged detection readings · ' + metrics.eligible + ' eligible measured actual/q50 pairs · ' + metrics.excludedFlagged +
         ' flagged readings excluded for missing, interpolated or unknown-quality measurements/forecasts. Calibration flags (' + metrics.calibrationFlags + ') are separate and excluded from candidate metrics.' }),
       el('p', { text: scope.skippedEvents + ' exported events have invalid UTC bounds or no matching detection hours. Coverage counts supplied records, not completeness across missing UTC hours.' }));
-    root.append(quality);
     const grid = el('div', { class: 'grid cols-12' }); root.append(grid);
     eventList(grid, scope, 'real-overview-queue', true);
+    if (!noAnalysis) {
+      const calendarNote = DC.calendar.overviewNote(scope.events, () => { DC.calendar.setFilter('calendar'); DC.navigate('investigate'); });
+      calendarNote.classList.add('span-12'); grid.append(calendarNote);
+    }
     const c = DC.ui.card('Actual vs. expected total active power',
       'Selected meter comparison · hourly kW · America/Los_Angeles · independent vertical scales · no summed campus total', { span: 12 });
-    const charts = el('div', { id: 'real-overview-chart', class: 'grid cols-12' }); c.body.append(charts);
-    for (const series of scope.series) {
+    c.card.classList.add('overview-evidence');
+    const inspected = S.inspectionSeries(scope, inspectionWindow);
+    c.tools.append(DC.ui.segmented([['7', 'Last 7 days'], ['30', 'Last 30 days'], ['full', 'Full selected range']], inspectionWindow,
+      value => { inspectionWindow = value; redraw(); }, 'Overview chart inspection window'));
+    c.body.append(el('p', { class: 'chart-scope', id: 'real-overview-chart-scope', text: 'Chart inspection only · ' +
+      (inspectionWindow === 'full' ? 'full selected range' : 'last ' + inspectionWindow + ' campus days of selected data') +
+      '. Headline metrics and candidates retain the filters above.' }));
+    const charts = el('div', { id: 'real-overview-chart', class: 'grid cols-12' });
+    for (const series of inspected) {
       const comparison = el('section', { class: scope.meters.length > 1 ? 'span-6' : 'span-12', 'data-overview-chart-meter': series.meter,
-        'aria-label': series.meter + ' power comparison' }, el('h4', { text: series.meter }));
+        'aria-label': series.meter + ' power comparison' }, el('h4', { text: series.meter }),
+        el('p', { class: 'chart-scope', text: series.rows.length ? DC.chronosBuildings.range(series.rows) + ' (end exclusive)' : 'No hourly measurements in this inspection window' }));
       charts.append(comparison);
       if (series.rows.length) DC.chronosBuildings.appendChart(comparison, 'real-overview-chart-' + series.meter,
         series.rows, series.events, S.event(S.state.selected), event => S.open(event));
@@ -145,30 +177,39 @@
       { kind: 'dash', color: DC.css('--seq-5'), label: 'Expected median' },
       ...(DC.chronosBuildings.showBand ? [{ kind: 'box', color: DC.css('--band-inner'), label: 'Nominal 80% forecast interval' }] : []),
       { kind: 'box', color: DC.css('--accent'), label: 'Candidate interval' },
-      ...DC.calendar.legend(scope.series.flatMap(series => series.rows))]));
+      ...DC.calendar.legend(inspected.flatMap(series => series.rows))]), charts);
     c.tools.append(DC.calendar.toggle(redraw));
     grid.append(c.card);
-    const cards = el('div', { class: 'building-directory span-12' }); grid.append(cards);
+    quality.classList.add('span-12'); grid.append(quality);
+    const cards = el('div', { class: 'building-directory comparison-cards' }), availability = el('div');
+    grid.append(el('details', { class: 'disclosure span-12' }, el('summary', { text: 'Meter profiles & availability' }), availability, cards));
+    const comparisonRows = [];
     for (const id of scope.meters) {
       const data = S.bundle.select(id, S.state.from, S.state.to);
       const card = DC.ui.buildingCard({ eyebrow: 'DERCONNECT METER', name: id, href: meterHref(id), value: data.events.length,
         label: 'candidate events in scope', status: el('span', { class: 'ink2', text: 'Unverified · ' + A.MODEL }),
         measurement: data.scoredHours + ' scored detection hours', completeness: data.rows.length + ' loaded hourly records in scope', action: 'Open meter profile →' });
       card.dataset.overviewMeter = id; cards.append(card);
+      comparisonRows.push({ id, cells: [el('a', { href: meterHref(id), text: id }), data.events.length,
+        DC.fmt.int(data.scoredHours), DC.fmt.int(data.rows.length),
+        el('a', { class: 'action-link', href: meterHref(id), text: 'Open profile →' })] });
     }
+    availability.append(DC.ui.comparisonTable('Selected-scope meter availability · unverified Chronos-2 candidates',
+      ['Meter', 'Candidates', 'Scored hours', 'Loaded hourly records', 'Action'], comparisonRows));
     const diagnostics = el('details', { class: 'disclosure span-12' }, el('summary', { text: 'Model context & unavailable classifications' }),
       el('p', { text: 'Anomaly type, severity, operational priority, calibrated confidence, verified building/sub-grid names, weather/occupancy explanations and real detection-quality labels are unavailable. Raw detector scores are not probabilities or operational risk.' }));
     grid.append(diagnostics);
     phaseOverview(root);
   }
   function investigate(root) {
-    root.append(el('div', { class: 'section-head' }, el('div', { class: 'section-eyebrow', text: 'Real DERCONNECT · historical model evidence' }),
+    root.append(el('div', { class: 'section-head' },
       el('h2', { id: 'h-investigate', text: DC.state.routeId ? 'Event investigation' : 'Anomaly investigation' }),
-      el('p', { text: (DC.state.routeId ? '' : A.MODEL + ' · ') + 'unverified candidate anomalies · hourly total power in kW · America/Los_Angeles (PST/PDT)' })));
+      DC.state.routeId ? null : el('p', { text: A.MODEL + ' · unverified candidate anomalies · hourly total power in kW · America/Los_Angeles (PST/PDT)' })));
     if (!ready(root)) return;
     const id = S.isRoute(DC.state.routeId) ? S.routeId(DC.state.routeId) : null;
     if (!id) {
-      eventList(root, S.scope(), 'real-investigate-log');
+      const scope = S.scope(); analyzedNotice(root, scope);
+      eventList(root, scope, 'real-investigate-log');
       return;
     }
     S.select(id);
@@ -180,11 +221,11 @@
     }
     const all = S.full(event.meter), rows = all.context(event);
     root.append(el('nav', { class: 'breadcrumbs', 'aria-label': 'Breadcrumbs' }, el('a', { href: '#investigate', text: '← Back to candidate events' }),
-      el('a', { class: 'action-link', href: meterHref(event.meter), id: 'real-return-meter', text: 'View ' + event.meter + ' chart', onclick: evt => { evt.preventDefault(); S.returnToMeter(event); } })));
+      el('a', { class: 'action-link', href: meterHref(event.meter), id: 'real-return-meter', text: 'View ' + event.meter + ' chart', onclick: evt => { evt.preventDefault(); S.returnToMeter(event); } }), DC.ui.reviewJump('real-operator-review')));
     const detail = DC.ui.card('Unclassified candidate anomaly', event.meter + ' · ' + event.id, { span: 12 });
     detail.card.id = 'real-event-detail'; detail.head.remove(); root.append(detail.card);
     detail.body.append(el('div', { class: 'detail-head' }, el('div', {}, el('h3', { text: 'Unclassified candidate anomaly' }),
-      el('p', { class: 'ids', text: event.meter + ' · ' + event.id }))));
+      el('p', { class: 'ids', text: event.meter + ' · ' + event.id + ' · Unverified' }))));
     const facts = S.eventFacts(event), peak = facts.peak;
     const periodText = H.stamp(event.start) + ' → ' + H.stamp(event.end) + ' (end exclusive)';
     const periodFact = fact('Event period', periodText, periodText, 'America/Los_Angeles');
@@ -194,25 +235,27 @@
       power(Math.abs(facts.delta)) + ' ' + directionText(facts.delta).toLowerCase(), facts.delta ?? 'Unavailable', support);
     const deviationHeading = deviation.querySelector('.k');
     deviationHeading.classList.add('real-fact-heading'); deviationHeading.append(DC.ui.metricIcon('deviation'));
-    detail.body.append(el('div', { class: 'facts summary-facts' },
+    detail.body.append(el('div', { class: 'facts summary-facts evidence-facts' },
       fact('Meter', event.meter), periodFact,
       fact('Duration', event.duration + ' h', event.duration, facts.extendsDates ? 'Full exported duration; extends outside selected list dates.' : 'Full exported event duration.'),
       deviation),
-      ...(facts.reason ? [el('p', { class: 'note-box', text: facts.reason })] : []),
-      el('p', { class: 'muted', text: 'Direction (exported): ' + event.direction + '. Score peak and largest power deviation can occur at different hours. The chart includes up to 24 hours on either side, limited by available records; missing hours remain gaps. Interpolated observations are identified in hover and the hourly table. Classification, severity and diagnosis are unavailable; facilities verification is needed.' }));
-    detail.body.append(DC.calendar.context(event), detectionDetails(event));
-    if (rows.length) DC.chronosBuildings.appendChart(detail.body, 'real-event-chart', rows, [event], event, null, true);
+      ...(facts.reason ? [el('p', { class: 'note-box', text: facts.reason })] : []));
+    detail.body.append(el('p', { class: 'chart-scope', text: rows.length ? 'Selected event context · ' + DC.chronosBuildings.range(rows) + ' (end exclusive) · hourly kW' : 'Selected event context unavailable' }));
     detail.body.append(DC.ui.legend([{ kind: 'line', color: DC.css('--actual'), label: 'Observed power' },
       { kind: 'dash', color: DC.css('--seq-5'), label: 'Expected median' },
       ...(DC.chronosBuildings.showBand ? [{ kind: 'box', color: DC.css('--band-inner'), label: 'Nominal 80% forecast interval' }] : []),
       { kind: 'box', color: DC.css('--accent'), label: 'Selected event interval' },
       ...DC.calendar.legend(rows)]));
+    if (rows.length) DC.chronosBuildings.appendChart(detail.body, 'real-event-chart', rows, [event], event, null, true);
     const ordered = S.scope().events, index = ordered.findIndex(e => e.id === id);
     const actions = el('div', { class: 'chronos-event-actions' });
     for (const [delta, label] of [[-1, 'Previous'], [1, 'Next']]) actions.append(el('button', { type: 'button', class: 'btn', text: label,
       disabled: index < 0 || !ordered[index + delta], onclick: () => S.open(ordered[index + delta]) }));
+    actions.append(DC.ui.reviewJump('real-operator-review', 'Review this event'));
     detail.body.append(actions, el('p', { id: 'real-detail-scope', class: 'muted', text: index < 0 ? 'This event is outside the retained Overview / list filters (' + S.state.meter + ', ' + (S.state.from || 'loaded start') + ' through ' + (S.state.to || 'loaded end') + '). Showing the exact event with its own historical context; list filters are unchanged.' : 'Event context is the full selected event plus surrounding hours. Overview / list filters are retained separately. Previous / Next follows the filtered event log, newest first.' }));
-    detail.body.append(DC.realReview.render(S.bundle.reviewIdentity, event, S.bundle.reviewIdentityError));
+    detail.body.append(DC.calendar.context(event), el('details', { class: 'disclosure' }, el('summary', { text: 'How to interpret this evidence' }),
+      el('p', { class: 'muted', text: 'Direction (exported): ' + event.direction + '. Score peak and largest power deviation can occur at different hours. The chart includes up to 24 hours on either side, limited by available records; missing hours remain gaps. Interpolated observations are identified in hover and the hourly table. Classification, severity and diagnosis are unavailable; facilities verification is needed.' })),
+      detectionDetails(event), DC.realReview.render(S.bundle.reviewIdentity, event, S.bundle.reviewIdentityError));
     const hourly = el('details', { class: 'disclosure' }, el('summary', { text: 'Supporting hourly measurements and model outputs' }));
     hourly.append(el('div', { class: 'table-wrap tall' }, el('table', { id: 'real-event-hours' },
       el('thead', {}, el('tr', {}, ['Campus timestamp', 'Observed kW', 'Expected kW', 'Raw score', 'Threshold', 'Flag', 'Observation', 'Period'].map(text => el('th', { scope: 'col', text })))),

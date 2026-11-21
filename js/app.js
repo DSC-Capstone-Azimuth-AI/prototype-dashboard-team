@@ -122,9 +122,38 @@
   let sectionScrollPending = null;
   const tabPressAnimations = new WeakMap();
   let arrivalAnimation = null;
+  const mobileNavigation = matchMedia('(max-width: 700px)');
+  const navigationToggle = $('#navigation-toggle'), navigation = $('.tabs'), header = $('.app-header');
+  header.classList.add('navigation-ready');
+  function setNavigation(open, returnFocus = false) {
+    header.classList.toggle('navigation-open', open && mobileNavigation.matches);
+    navigationToggle.setAttribute('aria-expanded', String(open && mobileNavigation.matches));
+    $('#navigation-toggle-label').textContent = open && mobileNavigation.matches ? 'Close' : 'Menu';
+    navigationToggle.setAttribute('aria-label', (open && mobileNavigation.matches ? 'Close' : 'Open') + ' dashboard menu');
+    if (returnFocus) navigationToggle.focus({ preventScroll: true });
+    if (open) requestAnimationFrame(() => syncNavigationIndicator(false));
+  }
+  navigationToggle.addEventListener('click', () => setNavigation(navigationToggle.getAttribute('aria-expanded') !== 'true'));
+  header.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && navigationToggle.getAttribute('aria-expanded') === 'true') {
+      event.preventDefault(); setNavigation(false, true);
+    }
+  });
+  document.addEventListener('click', event => {
+    if (!header.contains(event.target)) setNavigation(false);
+  });
+  header.addEventListener('focusout', event => {
+    if (!header.contains(event.relatedTarget)) setNavigation(false);
+  });
+  mobileNavigation.addEventListener('change', () => {
+    const focusInNavigation = navigation.contains(document.activeElement);
+    setNavigation(false, mobileNavigation.matches && focusInNavigation);
+    requestAnimationFrame(() => syncNavigationIndicator(false));
+  });
   function syncNavigationIndicator(animate = true) {
     const nav = $(".tabs"), active = nav.querySelector('[aria-current="page"]'), indicator = $("#nav-indicator");
     if (!active) return;
+    if (!nav.getClientRects().length) return;
     const immediate = !animate || reducedMotion() || !nav.classList.contains("indicator-ready");
     if (immediate) indicator.style.transition = "none";
     indicator.hidden = false;
@@ -155,6 +184,7 @@
     const link = event.target.closest("a[data-section]");
     if (!link || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
+    setNavigation(false);
     if (!reducedMotion() && typeof link.animate === "function") {
       tabPressAnimations.get(link)?.cancel();
       tabPressAnimations.set(link, link.animate(
@@ -270,6 +300,7 @@
     DC.navigate("investigate");
   };
   function fromHash() {
+    setNavigation(false);
     const [sec, rawPart] = location.hash.slice(1).split("/");
     const raw = rawPart?.split("?")[0];
     const section = SECTIONS.includes(sec) ? sec : "overview";

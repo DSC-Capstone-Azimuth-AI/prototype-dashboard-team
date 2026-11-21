@@ -120,13 +120,17 @@
     el.append(svg);
 
     // background windows (e.g., normal-control periods, investigation window)
+    let shadeLabelEnd = -Infinity;
     for (const sh of o.shade || []) {
       const a = Math.max(sh.start, t0), b = Math.min(sh.end, t1);
       if (b <= a) continue;
-      S("rect", { x: x(a - 0.5), y: m.t, width: Math.max(1, x(b - 0.5) - x(a - 0.5)), height: ih, fill: sh.color || DC.css("--surface-3"), opacity: sh.opacity || 0.6 }, svg);
-      if (sh.label && !o.compact && (iw >= 640 || x(b - 0.5) - x(a - 0.5) >= sh.label.length * 5.5)) {
-        const tx = S("text", { x: x(a - 0.5) + 4, y: m.t + 11, fill: DC.css("--muted"), "font-size": 10 }, svg);
+      const region = S("rect", { x: x(a - 0.5), y: m.t, width: Math.max(1, x(b - 0.5) - x(a - 0.5)), height: ih, fill: sh.color || DC.css("--surface-3"), opacity: sh.opacity || 0.6 }, svg);
+      if (sh.label) S('title', {}, region).textContent = sh.label;
+      const labelX = x(a - 0.5) + 4, labelWidth = sh.label ? sh.label.length * 5.5 : 0;
+      if (sh.label && !o.compact && labelX > shadeLabelEnd + 8 && labelX + labelWidth < Math.min(x(b - 0.5), m.l + iw)) {
+        const tx = S("text", { x: labelX, y: m.t + 11, fill: DC.css("--muted"), "font-size": 10 }, svg);
         tx.textContent = sh.label;
+        shadeLabelEnd = labelX + labelWidth;
       }
     }
 
@@ -264,6 +268,47 @@
       });
       overlay.addEventListener("mouseleave", () => { if (!o.cursor) cross.setAttribute("opacity", 0); tip.hide(); });
       if (o.onClick) overlay.addEventListener("click", (evt) => { const { t, hit } = locate(evt); o.onClick(t, hit); });
+
+      // Native range input gives the same hourly positions an independent keyboard
+      // path. Keep it outside the SVG image; linked comparisons own their inspector.
+      if (o.tooltip && !o.compact && !o.cursor) {
+        const inspect = DC.el('details', { class: 'chart-inspector' });
+        const hourly = o.inspectionLabel === 'Inspect hourly values';
+        const help = DC.el('p', { class: 'muted', text: 'Use Left / Right to move one ' + (hourly ? 'hour' : 'position') + '; Home / End to reach the range boundaries. Missing ' + (hourly ? 'hours' : 'values') + ' remain unavailable.' });
+        const readout = DC.el('div', { class: 'inspection-readout', role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' });
+        const slider = DC.el('input', { type: 'range', min: t0, max: t1 - 1, step: 1, value: t0,
+          'aria-label': o.inspectionLabel || 'Chart inspection position' });
+        const previous = DC.el('button', { type: 'button', class: 'btn', text: 'Previous', 'aria-label': 'Inspect previous position' });
+        const next = DC.el('button', { type: 'button', class: 'btn', text: 'Next', 'aria-label': 'Inspect next position' });
+        const open = DC.el('button', { type: 'button', class: 'btn', text: 'Open candidate event', hidden: true });
+        let selectedHit = null;
+        const update = () => {
+          const t = Number(slider.value), content = o.tooltip(t, null);
+          selectedHit = (o.intervals || []).find(iv => t >= iv.start && t < iv.end && (iv.ev || iv.event)) ||
+            (o.markers || []).find(marker => marker.t === t && (marker.ev || marker.event)) || null;
+          previous.disabled = t <= t0; next.disabled = t >= t1 - 1;
+          open.hidden = !o.onClick || !selectedHit;
+          DC.clear(readout);
+          slider.setAttribute('aria-valuetext', content?.title || String(t));
+          readout.append(DC.el('strong', { class: 'inspection-time', text: content?.title || 'Selected position: ' + t }));
+          const facts = DC.el('dl', { class: 'inspection-facts' });
+          for (const row of content?.rows || []) facts.append(DC.el('div', {},
+            DC.el('dt', { text: row.label }), DC.el('dd', { text: row.exactValue ?? row.value })));
+          readout.append(facts);
+          if (content?.note) readout.append(DC.el('p', { class: 'inspection-quality', text: content.note }));
+          cross.setAttribute('x1', x(t)); cross.setAttribute('x2', x(t)); cross.setAttribute('opacity', inspect.open ? 1 : 0);
+          cross.setAttribute('data-time', t);
+        };
+        slider.addEventListener('input', update);
+        const step = amount => { slider.value = Math.max(t0, Math.min(t1 - 1, Number(slider.value) + amount)); update(); };
+        previous.addEventListener('click', () => step(-1)); next.addEventListener('click', () => step(1));
+        open.addEventListener('click', () => o.onClick(Number(slider.value), selectedHit));
+        inspect.addEventListener('toggle', () => { if (inspect.isConnected) update(); });
+        overlay.addEventListener('mouseleave', () => { if (inspect.open) update(); });
+        inspect.append(DC.el('summary', { text: o.inspectionLabel || 'Inspect chart values' }), help,
+          DC.el('div', { class: 'inspection-controls' }, previous, slider, next, open), readout);
+        el.append(inspect); update();
+      }
     }
     return { x, y, svg };
   }

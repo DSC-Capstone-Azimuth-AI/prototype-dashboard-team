@@ -64,7 +64,7 @@ typography:
     letterSpacing: "-0.035em"
   headline-mobile:
     fontFamily: "system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"
-    fontSize: "25px"
+    fontSize: "24px"
     fontWeight: 650
     lineHeight: 1.2
     letterSpacing: "-0.035em"
@@ -166,6 +166,9 @@ components:
     textColor: "{colors.ink-secondary}"
     rounded: "{rounded.disclosure}"
     padding: "4px 18px"
+  metric-strip:
+    textColor: "{colors.ink}"
+    padding: "12px 0px"
 ---
 
 # Design System: DERCONNECT Unified Dashboard
@@ -178,13 +181,16 @@ The Facilities Operations Console is calm, precise and approachable. Operations 
 
 Components are restrained and practical. Tonal layering and faint ambient shadows give the workspace enough depth to distinguish regions without competing with charts or event tables. The visual character is established by the current implementation, not a replacement identity.
 
+Overview metrics use a compact divided strip. Event evidence uses open sections, with legends and explicit chart dates above plots. The mobile menu opens on request, and supporting detail follows the primary evidence.
+
 This record captures the final CSS cascade and computed light/dark themes at the documented revision. Earlier blue shell declarations are superseded by green operational overrides; Signal Blue still belongs to the chart taxonomy. Implementation sources are `css/styles.css`, `index.html`, `js/ui.js`, `js/util.js`, `js/charts.js` and the section renderers.
 
 **Key Characteristics:**
+
 - Operations Green for actions and navigation; separate categorical and severity colors.
 - System typography with compact labels, strong section headings and readable evidence.
 - Soft Stone surfaces, gently rounded containers and faint ambient shadows.
-- Persistent desktop navigation and a compact two-column mobile navigation grid.
+- Persistent desktop navigation and a compact mobile menu.
 - Tables, custom SVG charts and disclosures organize detailed evidence.
 
 ## Colors
@@ -244,7 +250,7 @@ Desktop uses a fixed left navigation rail (232px), with matching body offset. Th
 
 Evidence panels use a twelve-column grid with mixed spans and a compact gap (14px). The KPI row uses four columns with a larger gap (16px); the building directory uses three columns. At the evidence breakpoint (1100px and below), broad spans become full-width, KPIs and summary facts become two columns, and the directory becomes two columns.
 
-At the mobile shell breakpoint (700px and below), remove the body offset, turn the rail into a sticky top header, and arrange navigation into two columns. Hide navigation subtitles and the brand tagline. Main padding becomes compact (20px 16px), cards use mobile padding (14px), and the building directory becomes one column. KPI and summary-fact grids remain two columns with a compact gap (8px). Controls wrap; keep evidence tables horizontally scrollable within their own container.
+At the mobile shell breakpoint (700px and below), remove the body offset and use a compact sticky header (65px in the checked views). Its Menu button opens a scrollable navigation disclosure; Escape returns focus to the button, and route selection closes the menu. All destinations remain native links. Hide navigation subtitles and the brand tagline. Main padding becomes compact (16px 16px 20px), cards use mobile padding (14px), and the building directory becomes one column. Summary metrics use two columns. Controls wrap; keep evidence tables horizontally scrollable within their own container, with the recent-event Action column retained at the right edge.
 
 The smaller chart/filter breakpoint (640px and below) stacks remaining narrow spans and allows filter fields to fill available width. Event interpretation uses two columns when space permits, and one column through the intermediate breakpoint (1150px and below). These are overlapping component breakpoints, not one universal device scale.
 
@@ -278,7 +284,7 @@ Familiar native controls use surface fill, stronger boundary and compact control
 
 ### Navigation
 
-The desktop rail pairs inline outline SVG icons with a name and small subtitle. Current location uses accent text, wash and a left inset stripe. When the animated indicator is ready it owns the moving background/boundary; preserve the static selected treatment as its fallback. Mobile keeps icons and names but hides subtitles. Maintain native links, `aria-current` and visible keyboard focus.
+The desktop rail pairs inline outline SVG icons with a name and small subtitle. At 1440px and wider, concise links sit under Monitor & investigate and Data & tools; redundant subtitles yield to the group labels. Historical Monitoring belongs with the operational destinations. Current location uses accent text, wash and a left inset stripe. When the animated indicator is ready it owns the moving background/boundary; preserve the static selected treatment as its fallback. Mobile exposes the same links through a Menu disclosure with `aria-expanded` and `aria-controls`; current location uses accent wash. Maintain native links, `aria-current` and visible keyboard focus. The menu is nonmodal and closes on Escape, route selection or outside click.
 
 ### Chips / Review Status
 
@@ -287,6 +293,16 @@ Type chips are compact outlined pills with a fixed colored symbol and a readable
 ### Cards / Metric Cards
 
 Cards group one coherent evidence region with a title, optional subtitle/tools, body and optional footnote. Use the ambient shadow and fine border. Headers allow tools to wrap; at mobile sizes the tools stop relying on an automatic left margin. Linked metric cards preserve the label, compact accent icon, value and context; their hover changes the boundary to accent and keyboard focus remains explicit.
+
+Overview and saved-window metrics use a divided strip rather than separate cards. Overview icons yield to labels and values; linked metrics retain focus and hover feedback. Event detail uses an open surface with compact facts, a chart and supporting disclosures. Review jumps scroll to and focus the corresponding operator-review region. Original calculations and source-specific review semantics remain intact.
+
+At desktop widths of 1440px and wider, Overview worklists and primary model evidence use open sections without an enclosing card border, radius or shadow. Candidate volume leads the operational metric strip; the worklist exposes saved local review status and progress. Supporting context stays secondary. Page headings use a 28px desktop variant with -0.025em tracking. The incumbent narrower layouts retain their existing structure.
+
+### Desktop Directory Comparison
+
+Buildings and real meters use native comparison tables at 1440px and wider; the existing cards remain the narrower-screen presentation. Column headings carry repeated labels once. Real rows compare candidate counts, scored hours, loaded record dates, measurement/interpolation availability, saved review progress and optional phase availability. Loaded record dates include calibration and must not be labeled analyzed coverage. Phase-only rows explicitly lack connected model evidence. Review progress reads persisted records, excludes drafts and reports unreadable statuses as unavailable. Synthetic building rows retain explicitly simulated relationships and separate local annotations. Use Synthetic Demo consistently for this source.
+
+Use thin row dividers, existing table colors, right-sized text and tabular numerals. Keep model descriptions in one caption or toolbar, rather than repeating them per meter. Search and profile links retain the same route/state contracts; the directory does not create verified building identities or feeder mappings.
 
 ### Disclosures
 
@@ -297,6 +313,12 @@ Native details/summary structures hold additional evidence and help. Keep the ac
 Tables use sticky, muted-surface column headers, thin row dividers, hover tone and selected wash. Numeric columns align right; labels and identifiers stay readable. Contain vertical scrolling (420px standard, 560px tall) and horizontal overflow inside the table wrapper. Narrow real-event tables keep their existing sticky Action column.
 
 Custom SVG charts use neutral solid measured lines, dashed expected lines and layered uncertainty bands. Point anomalies use markers; sustained intervals use shading. Preserve fixed anomaly symbols, labeled legends, units, axis text and gap behavior. Existing tooltips use a compact elevated surface, small text and tabular numeric values; do not replace chart evidence with decorative illustrations.
+
+Real Chronos-2 charts retain their existing blue dashed median expectation. Overview offers 7-day, 30-day and full-selected-range inspection without changing headline metrics or candidate filters. Legends and exact chart ranges precede plots. Calendar names render only when the shaded interval has room; hover context retains the full information. A focused event plot is explicitly separate from saved-window metrics, which sit in a disclosure until the saved chart range is restored. Empty analyzed scopes lead with a visible explanation and recovery action.
+
+Noncompact tooltip-enabled time series expose a native Inspect chart values disclosure with a keyboard range control, Previous/Next and a live selected-position readout. Hourly model plots call this Inspect hourly values. Arrow keys move one hour; Home/End reach the displayed boundaries. Real readouts preserve supplied numeric precision for power, raw scores and thresholds, distinguish measured/interpolated/unavailable observations, retain missing UTC gaps and link matching candidate events. Linked comparison charts retain their existing synchronized keyboard inspector. Synthetic scores remain rounded/capped export ratios, never reconstructed raw decisions.
+
+A meter profile focused on an event uses its primary context plot and one retained selected-event summary. Open event review sits beside the focus/return controls; after returning to the saved range, it sits in the selected summary. A secondary context chart remains available only when the primary plot has returned to the saved range. Saved chart dates and event/list filters remain distinct.
 
 ### Motion and Focus
 
